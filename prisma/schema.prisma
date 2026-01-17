@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(cuid())
+  clerkId          String    @unique
+  emailEncrypted   String
+  emailIv          String
+  emailTag         String
+  emailHash        String    @unique
+  zipCodeEncrypted String?
+  zipCodeIv        String?
+  zipCodeTag       String?
+  firstName        String?
+  lastName         String?
+  profilePublic    Boolean   @default(false)
+  votesPublic      Boolean   @default(false)
+  emailNotifications Boolean @default(true)
+  lastLoginAt      DateTime?
+  votes            Vote[]
+  notifications    Notification[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  @@index([emailHash])
+  @@index([clerkId])
+}
+
+model Bill {
+  id                String    @id @default(cuid())
+  congress          String
+  billType          String
+  billNumber        String
+  title             String
+  shortTitle        String?
+  summary           String?   @db.Text
+  aiSummary         String?   @db.Text
+  introducedDate    DateTime
+  latestActionDate  DateTime?
+  latestActionText  String?
+  status            String
+  originChamber     String
+  policyArea        String?
+  subjects          String[]
+  sponsors          Json
+  cosponsors        Json?
+  actions           Json?
+  votes             Vote[]
+  impacts           Impact[]
+  prosCons          ProCon[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([congress, billType, billNumber])
+  @@index([policyArea])
+  @@index([status])
+  @@index([introducedDate])
+}
+
+model Vote {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  billId             String
+  bill               Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  position           String
+  reasoningEncrypted String?  @db.Text
+  reasoningIv        String?
+  reasoningTag       String?
+  isAnonymous        Boolean  @default(true)
+  confidence         Int?
+  ipHash             String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  @@unique([userId, billId])
+  @@index([billId])
+  @@index([userId])
+}
+
+model BillVoteAggregate {
+  id           String   @id @default(cuid())
+  billId       String   @unique
+  yesCount     Int      @default(0)
+  noCount      Int      @default(0)
+  abstainCount Int      @default(0)
+  totalVotes   Int      @default(0)
+  lastVoteAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([billId])
+}
+
+model ProCon {
+  id          String   @id @default(cuid())
+  billId      String
+  bill        Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  type        String
+  title       String
+  description String   @db.Text
+  category    String?
+  source      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([billId])
+  @@index([billId, type])
+}
+
+model Impact {
+  id                String   @id @default(cuid())
+  billId            String
+  bill              Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  category          String
+  demographic       String?
+  impactType        String
+  shortDescription  String
+  detailedAnalysis  String   @db.Text
+  affectedGroups    String[]
+  confidence        Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([billId])
+  @@index([category])
+}
+
+model Representative {
+  id         String   @id @default(cuid())
+  bioguideId String   @unique
+  firstName  String
+  lastName   String
+  fullName   String
+  party      String
+  state      String
+  district   String?
+  chamber    String
+  termStart  DateTime
+  currentTerm Boolean @default(true)
+  committees String[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@index([state])
+  @@index([bioguideId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  message   String
+  billId    String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([userId, read])
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  eventType     String
+  severity      String
+  userId        String?
+  ipAddressHash String?
+  metadata      Json?
+  message       String?
+  timestamp     DateTime @default(now())
+  
+  @@index([eventType, timestamp])
+  @@index([userId])
+  @@index([severity])
+}
