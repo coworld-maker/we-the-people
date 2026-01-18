@@ -3,10 +3,11 @@ import { BillService } from '@/lib/services/billService'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const bill = await BillService.getBillById(params.id)
+    const { id } = await params
+    const bill = await BillService.getBillById(id)
     
     if (!bill) {
       return NextResponse.json(
@@ -15,7 +16,7 @@ export async function GET(
       )
     }
 
-    const stats = await BillService.getBillVoteStats(params.id)
+    const stats = await BillService.getBillVoteStats(id)
     
     return NextResponse.json({ bill, stats })
   } catch (error) {
