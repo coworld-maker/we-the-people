@@ -1,0 +1,27 @@
+name: Daily Bill Sync
+
+on:
+  schedule:
+    # Runs every day at 2:00 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  sync-bills:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger bill sync
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://www.democracyunlocked.com/api/cron/sync")
+          
+          echo "Response code: $response"
+          
+          if [ "$response" != "200" ]; then
+            echo "Sync failed with status $response"
+            exit 1
+          fi
+          
+          echo "Bill sync completed successfully"
