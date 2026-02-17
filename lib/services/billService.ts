@@ -11,63 +11,92 @@ function parseSubjects(subjects: any): string[] {
   return []
 }
 
+// Safely parse a date string — returns a valid Date or null
+function safeDate(value: any): Date | null {
+  if (!value) return null
+  const d = new Date(value)
+  return isNaN(d.getTime()) ? null : d
+}
+
+// Safely convert sponsors/cosponsors to an array
+// Congress API sometimes returns { count, url } instead of an actual array
+function parseSponsorList(data: any): any[] {
+  if (!data) return []
+  if (Array.isArray(data)) return data
+  return []
+}
+
 export class BillService {
   static async syncBills() {
     try {
       const bills = await CongressAPI.getRecentBills(118, 50)
-      
-      for (const billData of bills) {
-        const details = await CongressAPI.getBillDetails(
-          parseInt(billData.congress),
-          billData.type,
-          billData.number
-        )
+      let synced = 0
 
-        await prisma.bill.upsert({
-          where: {
-            congress_billType_billNumber: {
+      for (const billData of bills) {
+        try {
+          const details = await CongressAPI.getBillDetails(
+            parseInt(billData.congress),
+            billData.type,
+            billData.number
+          )
+
+          const introducedDate = safeDate(billData.introducedDate) || safeDate(details.introducedDate)
+          const latestActionDate = safeDate(details.latestAction?.actionDate)
+
+          // Skip bills with no valid introduced date (required field)
+          if (!introducedDate) {
+            console.warn(`Skipping bill ${billData.type}${billData.number}: no valid introducedDate`)
+            continue
+          }
+
+          await prisma.bill.upsert({
+            where: {
+              congress_billType_billNumber: {
+                congress: billData.congress,
+                billType: billData.type,
+                billNumber: billData.number,
+              }
+            },
+            create: {
               congress: billData.congress,
               billType: billData.type,
               billNumber: billData.number,
+              title: details.title || billData.title,
+              shortTitle: details.shortTitle || null,
+              summary: details.summary?.text || null,
+              introducedDate,
+              latestActionDate,
+              latestActionText: details.latestAction?.text || null,
+              status: details.status || 'introduced',
+              originChamber: details.originChamber || 'house',
+              policyArea: details.policyArea?.name || null,
+              subjects: parseSubjects(details.subjects),
+              sponsors: parseSponsorList(details.sponsors),
+              cosponsors: parseSponsorList(details.cosponsors),
+            },
+            update: {
+              title: details.title || billData.title,
+              shortTitle: details.shortTitle || null,
+              summary: details.summary?.text || null,
+              latestActionDate,
+              latestActionText: details.latestAction?.text || null,
+              status: details.status || 'introduced',
+              policyArea: details.policyArea?.name || null,
+              subjects: parseSubjects(details.subjects),
+              sponsors: parseSponsorList(details.sponsors),
+              cosponsors: parseSponsorList(details.cosponsors),
             }
-          },
-          create: {
-            congress: billData.congress,
-            billType: billData.type,
-            billNumber: billData.number,
-            title: details.title || billData.title,
-            shortTitle: details.shortTitle,
-            summary: details.summary?.text,
-            introducedDate: new Date(billData.introducedDate),
-            latestActionDate: details.latestAction?.actionDate 
-              ? new Date(details.latestAction.actionDate) 
-              : null,
-            latestActionText: details.latestAction?.text,
-            status: details.status || 'introduced',
-            originChamber: details.originChamber || 'house',
-            policyArea: details.policyArea?.name,
-            subjects: parseSubjects(details.subjects),
-            sponsors: details.sponsors || [],
-            cosponsors: details.cosponsors || [],
-          },
-          update: {
-            title: details.title || billData.title,
-            shortTitle: details.shortTitle,
-            summary: details.summary?.text,
-            latestActionDate: details.latestAction?.actionDate 
-              ? new Date(details.latestAction.actionDate) 
-              : null,
-            latestActionText: details.latestAction?.text,
-            status: details.status || 'introduced',
-            policyArea: details.policyArea?.name,
-            subjects: parseSubjects(details.subjects),
-            sponsors: details.sponsors || [],
-            cosponsors: details.cosponsors || [],
-          }
-        })
+          })
+
+          synced++
+        } catch (billError) {
+          console.error(`Error syncing bill ${billData.type}${billData.number}:`, billError)
+          // Continue syncing other bills instead of failing entirely
+          continue
+        }
       }
 
-      return { success: true, count: bills.length }
+      return { success: true, count: synced }
     } catch (error) {
       console.error('Bill sync error:', error)
       throw error
