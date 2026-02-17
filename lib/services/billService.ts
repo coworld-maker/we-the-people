@@ -34,10 +34,14 @@ export class BillService {
 
       for (const billData of bills) {
         try {
+          const congressStr = String(billData.congress)
+          const billType = String(billData.type)
+          const billNumber = String(billData.number)
+
           const details = await CongressAPI.getBillDetails(
-            parseInt(billData.congress),
-            billData.type,
-            billData.number
+            parseInt(congressStr),
+            billType,
+            billNumber
           )
 
           const introducedDate = safeDate(billData.introducedDate) || safeDate(details.introducedDate)
@@ -45,22 +49,22 @@ export class BillService {
 
           // Skip bills with no valid introduced date (required field)
           if (!introducedDate) {
-            console.warn(`Skipping bill ${billData.type}${billData.number}: no valid introducedDate`)
+            console.warn(`Skipping bill ${billType}${billNumber}: no valid introducedDate`)
             continue
           }
 
           await prisma.bill.upsert({
             where: {
               congress_billType_billNumber: {
-                congress: billData.congress,
-                billType: billData.type,
-                billNumber: billData.number,
+                congress: congressStr,
+                billType: billType,
+                billNumber: billNumber,
               }
             },
             create: {
-              congress: billData.congress,
-              billType: billData.type,
-              billNumber: billData.number,
+              congress: congressStr,
+              billType: billType,
+              billNumber: billNumber,
               title: details.title || billData.title,
               shortTitle: details.shortTitle || null,
               summary: details.summary?.text || null,
@@ -90,7 +94,7 @@ export class BillService {
 
           synced++
         } catch (billError) {
-          console.error(`Error syncing bill ${billData.type}${billData.number}:`, billError)
+          console.error(`Error syncing bill ${billData.type || 'unknown'}${billData.number || ''}:`, billError)
           // Continue syncing other bills instead of failing entirely
           continue
         }
