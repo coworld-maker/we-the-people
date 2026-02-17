@@ -1,6 +1,16 @@
 import prisma from '@/lib/prisma'
 import { CongressAPI } from '@/lib/api/congress'
 
+// Safely convert subjects from any format to string array
+function parseSubjects(subjects: any): string[] {
+  if (!subjects) return []
+  if (Array.isArray(subjects)) return subjects.map((s: any) => s.name || s).filter(Boolean)
+  if (subjects.subject && Array.isArray(subjects.subject)) return subjects.subject.map((s: any) => s.name || s).filter(Boolean)
+  if (subjects.legislativeSubjects && Array.isArray(subjects.legislativeSubjects)) return subjects.legislativeSubjects.map((s: any) => s.name || s).filter(Boolean)
+  if (typeof subjects === 'string') return [subjects]
+  return []
+}
+
 export class BillService {
   static async syncBills() {
     try {
@@ -36,7 +46,7 @@ export class BillService {
             status: details.status || 'introduced',
             originChamber: details.originChamber || 'house',
             policyArea: details.policyArea?.name,
-            subjects: details.subjects?.map((s: any) => s.name) || [],
+            subjects: parseSubjects(details.subjects),
             sponsors: details.sponsors || [],
             cosponsors: details.cosponsors || [],
           },
@@ -50,7 +60,7 @@ export class BillService {
             latestActionText: details.latestAction?.text,
             status: details.status || 'introduced',
             policyArea: details.policyArea?.name,
-            subjects: details.subjects?.map((s: any) => s.name) || [],
+            subjects: parseSubjects(details.subjects),
             sponsors: details.sponsors || [],
             cosponsors: details.cosponsors || [],
           }
