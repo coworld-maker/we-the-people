@@ -26,11 +26,68 @@ function parseSponsorList(data: any): any[] {
   return []
 }
 
+// Derive bill status from latestActionText since Congress API
+// doesn't return a simple status field — without this, every bill
+// shows as "introduced" even if it became law
+function deriveStatus(details: any): string {
+  const actionText = (details.latestAction?.text || '').toLowerCase()
+
+  if (actionText.includes('became public law') || actionText.includes('signed by president')) {
+    return 'enacted'
+  }
+  if (actionText.includes('passed senate') && actionText.includes('passed house')) {
+    return 'passed_both'
+  }
+  if (actionText.includes('resolving differences') || actionText.includes('conference')) {
+    return 'resolving_differences'
+  }
+  if (actionText.includes('passed senate') || actionText.includes('passed house') ||
+      actionText.includes('held at the desk')) {
+    return 'passed_chamber'
+  }
+  if (actionText.includes('placed on senate legislative calendar') ||
+      actionText.includes('placed on the union calendar') ||
+      actionText.includes('reported by')) {
+    return 'reported'
+  }
+  if (actionText.includes('committee') || actionText.includes('hearing') ||
+      actionText.includes('subcommittee')) {
+    return 'in_committee'
+  }
+
+  return details.status || 'introduced'
+}
+
+// Normalize originChamber — API returns "Senate"/"House" but schema
+// may expect lowercase. Also derive from bill type as fallback.
+function normalizeOriginChamber(details: any, billType: string): string {
+  if (details.originChamber) {
+    const chamber = details.originChamber.toLowerCase()
+    if (chamber === 'senate' || chamber === 'house') return chamber
+  }
+  // Fallback: derive from bill type prefix
+  if (billType.toUpperCase().startsWith('S')) return 'senate'
+  return 'house'
+}
+
+// Small delay to avoid rate-limiting the Congress API
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 export class BillService {
   static async syncBills() {
     try {
       const bills = await CongressAPI.getRecentBills(118, 50)
+
+      // Guard against null/undefined response
+      if (!bills || !Array.isArray(bills) || bills.length === 0) {
+        console.warn('No bills returned from Congress API')
+        return { success: true, count: 0 }
+      }
+
       let synced = 0
+      let skipped = 0
 
       for (const billData of bills) {
         try {
@@ -50,8 +107,12 @@ export class BillService {
           // Skip bills with no valid introduced date (required field)
           if (!introducedDate) {
             console.warn(`Skipping bill ${billType}${billNumber}: no valid introducedDate`)
+            skipped++
             continue
           }
+
+          // Ensure title is never undefined/null (required field)
+          const title = details.title || billData.title || `${billType} ${billNumber}`
 
           await prisma.bill.upsert({
             where: {
@@ -65,26 +126,26 @@ export class BillService {
               congress: congressStr,
               billType: billType,
               billNumber: billNumber,
-              title: details.title || billData.title,
+              title,
               shortTitle: details.shortTitle || null,
               summary: details.summary?.text || null,
               introducedDate,
               latestActionDate,
               latestActionText: details.latestAction?.text || null,
-              status: details.status || 'introduced',
-              originChamber: details.originChamber || 'house',
+              status: deriveStatus(details),
+              originChamber: normalizeOriginChamber(details, billType),
               policyArea: details.policyArea?.name || null,
               subjects: parseSubjects(details.subjects),
               sponsors: parseSponsorList(details.sponsors),
               cosponsors: parseSponsorList(details.cosponsors),
             },
             update: {
-              title: details.title || billData.title,
+              title,
               shortTitle: details.shortTitle || null,
               summary: details.summary?.text || null,
               latestActionDate,
               latestActionText: details.latestAction?.text || null,
-              status: details.status || 'introduced',
+              status: deriveStatus(details),
               policyArea: details.policyArea?.name || null,
               subjects: parseSubjects(details.subjects),
               sponsors: parseSponsorList(details.sponsors),
@@ -93,14 +154,20 @@ export class BillService {
           })
 
           synced++
+
+          // Small delay every 10 bills to avoid Congress API rate limits
+          if (synced % 10 === 0) {
+            await delay(500)
+          }
         } catch (billError) {
           console.error(`Error syncing bill ${billData.type || 'unknown'}${billData.number || ''}:`, billError)
-          // Continue syncing other bills instead of failing entirely
+          skipped++
           continue
         }
       }
 
-      return { success: true, count: synced }
+      console.log(`Sync complete: ${synced} synced, ${skipped} skipped out of ${bills.length}`)
+      return { success: true, count: synced, skipped }
     } catch (error) {
       console.error('Bill sync error:', error)
       throw error
@@ -153,7 +220,17 @@ export class BillService {
       include: {
         votes: {
           where: { isAnonymous: false },
-          include: { user: true }
+          include: {
+            user: {
+              // Only select safe fields — do NOT expose encrypted email fields
+              select: {
+                id: true,
+                clerkId: true,
+                displayName: true,
+                createdAt: true,
+              }
+            }
+          }
         },
         prosCons: true,
         impacts: true,
@@ -194,10 +271,12 @@ export class BillService {
     }
 
     votes.forEach(v => {
-      if (v.position === 'yes') stats.yesCount = v._count
-      if (v.position === 'no') stats.noCount = v._count
-      if (v.position === 'abstain') stats.abstainCount = v._count
-      stats.totalVotes += v._count
+      // Handle both Prisma shapes: v._count as number OR v._count._all as number
+      const count = typeof v._count === 'number' ? v._count : (v._count as any)?._all || 0
+      if (v.position === 'yes') stats.yesCount = count
+      if (v.position === 'no') stats.noCount = count
+      if (v.position === 'abstain') stats.abstainCount = count
+      stats.totalVotes += count
     })
 
     await prisma.billVoteAggregate.upsert({
