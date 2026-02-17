@@ -226,7 +226,6 @@ export class BillService {
               select: {
                 id: true,
                 clerkId: true,
-                displayName: true,
                 createdAt: true,
               }
             }
