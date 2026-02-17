@@ -4,8 +4,13 @@ import { BillService } from '@/lib/services/billService'
 import { UserService } from '@/lib/services/userService'
 import { VoteService } from '@/lib/services/voteService'
 import VotingPanel from '@/components/voting/VotingPanel'
-import { Calendar, User, FileText } from 'lucide-react'
+import AISummary from '@/components/bills/AISummary'
+import ProsConsPanel from '@/components/bills/ProsConsPanel'
+import ImpactPanel from '@/components/bills/ImpactPanel'
+import DiscussionBoard from '@/components/bills/DiscussionBoard'
+import { Calendar, FileText, User, ArrowLeft, ExternalLink, Scale } from 'lucide-react'
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 
 export default async function BillDetailPage({
   params,
@@ -38,81 +43,147 @@ export default async function BillDetailPage({
   const noPercent = totalVotes > 0 ? Math.round((stats.noCount / totalVotes) * 100) : 0
   const abstainPercent = totalVotes > 0 ? Math.round((stats.abstainCount / totalVotes) * 100) : 0
 
+  const statusColors: Record<string, string> = {
+    enacted: 'bg-green-100 text-green-800 border-green-200',
+    passed_chamber: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    passed_both: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    reported: 'bg-blue-100 text-blue-800 border-blue-200',
+    in_committee: 'bg-orange-100 text-orange-800 border-orange-200',
+    introduced: 'bg-gray-100 text-gray-800 border-gray-200',
+  }
+
+  const congressGovUrl = `https://www.congress.gov/bill/${bill.congress}th-congress/${bill.originChamber === 'senate' ? 'senate' : 'house'}-bill/${bill.billNumber}`
+
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Bill Header */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm font-semibold rounded">
-                {bill.billType} {bill.billNumber}
-              </span>
-              <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-semibold rounded">
-                {bill.status}
-              </span>
-              {bill.policyArea && (
-                <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded">
-                  {bill.policyArea}
-                </span>
-              )}
-            </div>
+    <div className="max-w-7xl mx-auto">
+      {/* Back link */}
+      <Link
+        href="/bills"
+        className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 mb-6 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Bills
+      </Link>
 
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              {bill.title}
-            </h1>
-
-            <div className="flex items-center gap-6 text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Introduced: {new Date(bill.introducedDate).toLocaleDateString()}
-              </div>
-              {bill.latestActionDate && (
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Last Action: {new Date(bill.latestActionDate).toLocaleDateString()}
-                </div>
-              )}
-            </div>
+      {/* Bill Header Card */}
+      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+        <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-8 py-6">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <span className="px-3 py-1 bg-white/20 text-white text-sm font-semibold rounded-full backdrop-blur">
+              {bill.billType} {bill.billNumber}
+            </span>
+            <span className={`px-3 py-1 text-sm font-semibold rounded-full border ${statusColors[bill.status] || statusColors.introduced}`}>
+              {bill.status.replace(/_/g, ' ')}
+            </span>
+            {bill.policyArea && (
+              <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-semibold rounded-full">
+                {bill.policyArea}
+              </span>
+            )}
+            <span className="px-3 py-1 bg-white/10 text-white/80 text-sm rounded-full">
+              {bill.congress}th Congress
+            </span>
           </div>
 
-          {/* Summary */}
-          {bill.summary && (
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Summary</h2>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {bill.summary}
-              </p>
-            </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-4 leading-tight">
+            {bill.shortTitle || bill.title}
+          </h1>
+
+          {bill.shortTitle && bill.title !== bill.shortTitle && (
+            <p className="text-white/60 text-sm mb-4">{bill.title}</p>
           )}
 
-          {/* Latest Action */}
-          {bill.latestActionText && (
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Latest Action</h2>
-              <p className="text-gray-700">{bill.latestActionText}</p>
+          <div className="flex items-center gap-6 text-sm text-white/70 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4" />
+              Introduced {new Date(bill.introducedDate).toLocaleDateString()}
             </div>
-          )}
+            {bill.latestActionDate && (
+              <div className="flex items-center gap-1.5">
+                <FileText className="w-4 h-4" />
+                Last action {new Date(bill.latestActionDate).toLocaleDateString()}
+              </div>
+            )}
+            <a
+              href={congressGovUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 hover:text-white transition-colors"
+            >
+              <ExternalLink className="w-4 h-4" />
+              View on Congress.gov
+            </a>
+          </div>
+        </div>
+
+        {/* Latest Action Banner */}
+        {bill.latestActionText && (
+          <div className="px-8 py-3 bg-blue-50 border-t border-blue-100">
+            <p className="text-sm">
+              <span className="font-semibold text-blue-800">Latest Action:</span>{' '}
+              <span className="text-blue-700">{bill.latestActionText}</span>
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-8">
+        {/* Main Content — 2 columns */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* AI Summary */}
+          <AISummary
+            billId={bill.id}
+            aiSummary={(bill as any).aiSummary}
+            officialSummary={bill.summary}
+            aiAnalyzedAt={(bill as any).aiAnalyzedAt?.toISOString() || null}
+          />
+
+          {/* Pros & Cons */}
+          <ProsConsPanel prosCons={bill.prosCons as any} />
+
+          {/* Impact Analysis */}
+          <ImpactPanel impacts={bill.impacts as any} />
 
           {/* Sponsors */}
           {Array.isArray(bill.sponsors) && bill.sponsors.length > 0 && (
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Sponsors</h2>
-              <div className="space-y-2">
-                {bill.sponsors.map((sponsor: any, index: number) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-500" />
-                    <span className="text-gray-700">
-                      {sponsor.fullName || `${sponsor.firstName} ${sponsor.lastName}`}
-                      {sponsor.party && ` (${sponsor.party})`}
-                      {sponsor.state && ` - ${sponsor.state}`}
-                    </span>
-                  </div>
-                ))}
+            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+              <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <User className="w-5 h-5 text-white" />
+                  <h2 className="text-lg font-bold text-white">Sponsors</h2>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {(bill.sponsors as any[]).map((sponsor: any, index: number) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${
+                        sponsor.party === 'R' ? 'bg-red-500' :
+                        sponsor.party === 'D' ? 'bg-blue-500' :
+                        'bg-gray-500'
+                      }`}>
+                        {sponsor.party || '?'}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">
+                          {sponsor.fullName || `${sponsor.firstName} ${sponsor.lastName}`}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {sponsor.state}{sponsor.district ? `-${sponsor.district}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
+
+          {/* Discussion Board */}
+          <DiscussionBoard billId={bill.id} />
         </div>
 
         {/* Sidebar */}
@@ -127,63 +198,86 @@ export default async function BillDetailPage({
           />
 
           {/* Vote Statistics */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              Public Opinion
-            </h3>
-            <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="bg-gradient-to-r from-teal-500 to-cyan-500 px-6 py-4">
+              <div className="flex items-center gap-2">
+                <Scale className="w-5 h-5 text-white" />
+                <h3 className="text-lg font-bold text-white">Public Opinion</h3>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              {/* Yes */}
               <div>
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex justify-between items-center mb-1.5">
                   <span className="text-sm font-medium text-gray-700">Yes</span>
-                  <span className="text-sm font-semibold text-green-600">
-                    {yesPercent}% ({stats.yesCount})
+                  <span className="text-sm font-bold text-green-600">
+                    {yesPercent}% <span className="font-normal text-gray-400">({stats.yesCount})</span>
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-100 rounded-full h-3">
                   <div
-                    className="bg-green-500 h-2 rounded-full transition-all"
+                    className="bg-gradient-to-r from-green-400 to-green-500 h-3 rounded-full transition-all duration-500"
                     style={{ width: `${yesPercent}%` }}
                   />
                 </div>
               </div>
 
+              {/* No */}
               <div>
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex justify-between items-center mb-1.5">
                   <span className="text-sm font-medium text-gray-700">No</span>
-                  <span className="text-sm font-semibold text-red-600">
-                    {noPercent}% ({stats.noCount})
+                  <span className="text-sm font-bold text-red-600">
+                    {noPercent}% <span className="font-normal text-gray-400">({stats.noCount})</span>
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-100 rounded-full h-3">
                   <div
-                    className="bg-red-500 h-2 rounded-full transition-all"
+                    className="bg-gradient-to-r from-red-400 to-red-500 h-3 rounded-full transition-all duration-500"
                     style={{ width: `${noPercent}%` }}
                   />
                 </div>
               </div>
 
+              {/* Abstain */}
               <div>
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex justify-between items-center mb-1.5">
                   <span className="text-sm font-medium text-gray-700">Abstain</span>
-                  <span className="text-sm font-semibold text-gray-600">
-                    {abstainPercent}% ({stats.abstainCount})
+                  <span className="text-sm font-bold text-gray-600">
+                    {abstainPercent}% <span className="font-normal text-gray-400">({stats.abstainCount})</span>
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-100 rounded-full h-3">
                   <div
-                    className="bg-gray-500 h-2 rounded-full transition-all"
+                    className="bg-gradient-to-r from-gray-300 to-gray-400 h-3 rounded-full transition-all duration-500"
                     style={{ width: `${abstainPercent}%` }}
                   />
                 </div>
               </div>
 
-              <div className="pt-4 border-t">
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold">{totalVotes}</span> total votes cast
+              <div className="pt-3 border-t">
+                <p className="text-center text-sm text-gray-500">
+                  <span className="font-bold text-gray-900">{totalVotes}</span> citizen{totalVotes !== 1 ? 's' : ''} voted
                 </p>
               </div>
             </div>
           </div>
+
+          {/* Subjects/Tags */}
+          {bill.subjects && bill.subjects.length > 0 && (
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h3 className="font-bold text-gray-900 mb-3">Topics</h3>
+              <div className="flex flex-wrap gap-2">
+                {bill.subjects.map((subject: string, i: number) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-full"
+                  >
+                    {subject}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
