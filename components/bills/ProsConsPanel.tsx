@@ -1,125 +1,78 @@
 'use client'
 
 import { useState } from 'react'
-import { ThumbsUp, ThumbsDown, ChevronDown, ChevronUp, Tag } from 'lucide-react'
 
-interface ProConItem {
-  id: string
-  type: string
-  title: string
-  description: string
-  category: string | null
+interface ProCon {
+  id: string; type: string; title: string; description: string; category: string; source: string
 }
 
-interface ProsConsPanelProps {
-  prosCons: ProConItem[]
-}
-
-const categoryColors: Record<string, string> = {
-  Economy: 'bg-blue-100 text-blue-700',
-  Environment: 'bg-emerald-100 text-emerald-700',
-  Healthcare: 'bg-pink-100 text-pink-700',
-  Education: 'bg-indigo-100 text-indigo-700',
-  Security: 'bg-red-100 text-red-700',
-  Rights: 'bg-purple-100 text-purple-700',
-  Infrastructure: 'bg-orange-100 text-orange-700',
-  Other: 'bg-gray-100 text-gray-700',
-}
-
-export default function ProsConsPanel({ prosCons }: ProsConsPanelProps) {
+export default function ProsConsPanel({ prosCons }: { prosCons: ProCon[] }) {
   const [expanded, setExpanded] = useState(true)
 
-  const pros = prosCons.filter(pc => pc.type === 'pro')
-  const cons = prosCons.filter(pc => pc.type === 'con')
+  if (!prosCons || prosCons.length === 0) return null
 
-  if (pros.length === 0 && cons.length === 0) return null
+  const pros = prosCons.filter(p => p.type === 'pro')
+  const cons = prosCons.filter(p => p.type === 'con')
+
+  const categoryColors: Record<string, string> = {
+    Economy: 'bg-amber-50 text-amber-700', Environment: 'bg-emerald-50 text-emerald-700',
+    Healthcare: 'bg-rose-50 text-rose-700', Education: 'bg-blue-50 text-blue-700',
+    Security: 'bg-red-50 text-red-700', Rights: 'bg-violet-50 text-violet-700',
+    Infrastructure: 'bg-orange-50 text-orange-700', Other: 'bg-gray-50 text-gray-600',
+  }
 
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden">
-      {/* Header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-4 flex items-center justify-between"
+    <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
+      <button onClick={() => setExpanded(!expanded)}
+        className="w-full px-6 py-4 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
       >
-        <div className="flex items-center gap-2">
-          <ThumbsUp className="w-5 h-5 text-white" />
-          <h2 className="text-lg font-bold text-white">Pros &amp; Cons</h2>
-          <span className="text-sm text-green-100 ml-2">
-            {pros.length} pros, {cons.length} cons
-          </span>
-        </div>
-        {expanded ? (
-          <ChevronUp className="w-5 h-5 text-white" />
-        ) : (
-          <ChevronDown className="w-5 h-5 text-white" />
-        )}
+        <h2 className="font-display text-lg font-bold text-[#0F172A]">⚖️ Arguments For &amp; Against</h2>
+        <span className="text-gray-400">{expanded ? '▲' : '▼'}</span>
       </button>
 
       {expanded && (
-        <div className="p-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Pros */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <ThumbsUp className="w-4 h-4 text-green-600" />
-                </div>
-                <h3 className="font-bold text-green-800">Arguments For</h3>
-              </div>
-              <div className="space-y-3">
-                {pros.map(pro => (
-                  <div
-                    key={pro.id}
-                    className="p-4 bg-green-50 border border-green-100 rounded-lg"
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <h4 className="font-semibold text-gray-900 text-sm">
-                        {pro.title}
-                      </h4>
-                      {pro.category && (
-                        <span className={`shrink-0 px-2 py-0.5 text-xs font-medium rounded-full ${categoryColors[pro.category] || categoryColors.Other}`}>
-                          {pro.category}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600 leading-relaxed">
-                      {pro.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
+        <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+          {/* Pros */}
+          <div className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-lg">👍</span>
+              <h3 className="font-display font-bold text-emerald-600">Arguments For</h3>
             </div>
-
-            {/* Cons */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                  <ThumbsDown className="w-4 h-4 text-red-600" />
-                </div>
-                <h3 className="font-bold text-red-800">Arguments Against</h3>
-              </div>
-              <div className="space-y-3">
-                {cons.map(con => (
-                  <div
-                    key={con.id}
-                    className="p-4 bg-red-50 border border-red-100 rounded-lg"
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <h4 className="font-semibold text-gray-900 text-sm">
-                        {con.title}
-                      </h4>
-                      {con.category && (
-                        <span className={`shrink-0 px-2 py-0.5 text-xs font-medium rounded-full ${categoryColors[con.category] || categoryColors.Other}`}>
-                          {con.category}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600 leading-relaxed">
-                      {con.description}
-                    </p>
+            <div className="space-y-4">
+              {pros.map(p => (
+                <div key={p.id} className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h4 className="font-display font-bold text-[#0F172A] text-sm">{p.title}</h4>
+                    <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold ${categoryColors[p.category] || categoryColors.Other}`}>
+                      {p.category}
+                    </span>
                   </div>
-                ))}
-              </div>
+                  <p className="text-sm text-gray-600 leading-relaxed font-body">{p.description}</p>
+                </div>
+              ))}
+              {pros.length === 0 && <p className="text-sm text-gray-400 italic">No arguments for generated yet.</p>}
+            </div>
+          </div>
+
+          {/* Cons */}
+          <div className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-lg">👎</span>
+              <h3 className="font-display font-bold text-red-500">Arguments Against</h3>
+            </div>
+            <div className="space-y-4">
+              {cons.map(c => (
+                <div key={c.id} className="p-4 bg-red-50/50 rounded-xl border border-red-100">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h4 className="font-display font-bold text-[#0F172A] text-sm">{c.title}</h4>
+                    <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold ${categoryColors[c.category] || categoryColors.Other}`}>
+                      {c.category}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed font-body">{c.description}</p>
+                </div>
+              ))}
+              {cons.length === 0 && <p className="text-sm text-gray-400 italic">No arguments against generated yet.</p>}
             </div>
           </div>
         </div>
