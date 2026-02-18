@@ -8,6 +8,7 @@ import AISummary from '@/components/bills/AISummary'
 import ProsConsPanel from '@/components/bills/ProsConsPanel'
 import ImpactPanel from '@/components/bills/ImpactPanel'
 import DiscussionBoard from '@/components/bills/DiscussionBoard'
+import BillFullText from '@/components/bills/BillFullText'
 import { Calendar, FileText, User, ArrowLeft, ExternalLink, Scale } from 'lucide-react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -116,7 +117,6 @@ export default async function BillDetailPage({
           </div>
         </div>
 
-        {/* Latest Action Banner */}
         {bill.latestActionText && (
           <div className="px-8 py-3 bg-blue-50 border-t border-blue-100">
             <p className="text-sm">
@@ -128,7 +128,7 @@ export default async function BillDetailPage({
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        {/* Main Content — 2 columns */}
+        {/* Main Content */}
         <div className="lg:col-span-2 space-y-8">
           {/* AI Summary */}
           <AISummary
@@ -143,6 +143,13 @@ export default async function BillDetailPage({
 
           {/* Impact Analysis */}
           <ImpactPanel impacts={bill.impacts as any} />
+
+          {/* Full Bill Text */}
+          <BillFullText
+            billId={bill.id}
+            initialText={(bill as any).fullText || null}
+            congressGovUrl={congressGovUrl}
+          />
 
           {/* Sponsors */}
           {Array.isArray(bill.sponsors) && bill.sponsors.length > 0 && (
@@ -206,7 +213,6 @@ export default async function BillDetailPage({
               </div>
             </div>
             <div className="p-6 space-y-4">
-              {/* Yes */}
               <div>
                 <div className="flex justify-between items-center mb-1.5">
                   <span className="text-sm font-medium text-gray-700">Yes</span>
@@ -222,7 +228,6 @@ export default async function BillDetailPage({
                 </div>
               </div>
 
-              {/* No */}
               <div>
                 <div className="flex justify-between items-center mb-1.5">
                   <span className="text-sm font-medium text-gray-700">No</span>
@@ -238,7 +243,6 @@ export default async function BillDetailPage({
                 </div>
               </div>
 
-              {/* Abstain */}
               <div>
                 <div className="flex justify-between items-center mb-1.5">
                   <span className="text-sm font-medium text-gray-700">Abstain</span>
