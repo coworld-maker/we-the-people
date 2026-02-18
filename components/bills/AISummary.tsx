@@ -1,13 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Sparkles, Loader2, BookOpen, AlertCircle } from 'lucide-react'
 
 interface AISummaryProps {
-  billId: string
-  aiSummary: string | null
-  officialSummary: string | null
-  aiAnalyzedAt: string | null
+  billId: string; aiSummary: string | null; officialSummary: string | null; aiAnalyzedAt: string | null
 }
 
 export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyzedAt }: AISummaryProps) {
@@ -18,52 +14,42 @@ export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyz
   const [showOfficial, setShowOfficial] = useState(false)
 
   async function handleAnalyze() {
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     try {
       const res = await fetch(`/api/bills/${billId}/analyze`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.details || data.error || 'Analysis failed')
       window.location.reload()
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
+    } catch (err: any) { setError(err.message) }
+    finally { setLoading(false) }
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden border border-amber-100">
-      <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 px-6 py-4">
+    <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-amber-100">
+      <div className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 px-6 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-white" />
-            <h2 className="text-lg font-bold text-white">AI-Powered Summary</h2>
-          </div>
+          <h2 className="font-display text-lg font-bold text-white">✨ AI-Powered Summary</h2>
           {analyzedAt && (
-            <span className="text-xs text-white/80 bg-white/20 px-2 py-0.5 rounded-full">
-              Analyzed {new Date(analyzedAt).toLocaleDateString()}
+            <span className="text-xs text-white/80 bg-white/20 px-2.5 py-0.5 rounded-full font-body">
+              {new Date(analyzedAt).toLocaleDateString()}
             </span>
           )}
         </div>
       </div>
-
       <div className="p-6">
         {summary ? (
           <>
-            <p className="text-gray-800 leading-relaxed whitespace-pre-line text-[15px]">{summary}</p>
+            <p className="text-gray-700 leading-relaxed whitespace-pre-line text-[15px] font-body">{summary}</p>
             {officialSummary && (
               <div className="mt-4 pt-4 border-t border-gray-100">
-                <button
-                  onClick={() => setShowOfficial(!showOfficial)}
-                  className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 font-semibold transition-colors"
+                <button onClick={() => setShowOfficial(!showOfficial)}
+                  className="text-sm text-[#6366F1] hover:text-[#4F46E5] font-semibold transition-colors font-body"
                 >
-                  <BookOpen className="w-4 h-4" />
-                  {showOfficial ? 'Hide' : 'Show'} Official Congress Summary
+                  📄 {showOfficial ? 'Hide' : 'Show'} Official Summary
                 </button>
                 {showOfficial && (
-                  <div className="mt-3 p-4 bg-indigo-50 rounded-lg border border-indigo-100">
-                    <p className="text-sm text-indigo-900 leading-relaxed">{officialSummary}</p>
+                  <div className="mt-3 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+                    <p className="text-sm text-indigo-900 leading-relaxed font-body">{officialSummary}</p>
                   </div>
                 )}
               </div>
@@ -71,30 +57,19 @@ export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyz
           </>
         ) : (
           <div className="text-center py-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-8 h-8 text-amber-500" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Get an AI-powered breakdown
-            </h3>
-            <p className="text-gray-500 text-sm mb-5 max-w-md mx-auto">
-              Generate a plain-language summary, pros &amp; cons, and impact analysis to understand this bill better.
+            <div className="text-5xl mb-4">🤖</div>
+            <h3 className="font-display text-lg font-bold text-[#0F172A] mb-2">Get an AI breakdown</h3>
+            <p className="text-gray-400 text-sm mb-5 max-w-md mx-auto font-body">
+              Plain-language summary, pros &amp; cons, and impact analysis — powered by AI.
             </p>
-            <button
-              onClick={handleAnalyze}
-              disabled={loading}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 font-semibold transition-all disabled:opacity-60 shadow-lg shadow-amber-200"
+            <button onClick={handleAnalyze} disabled={loading}
+              className="inline-flex items-center gap-2 px-7 py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl hover:shadow-lg hover:shadow-amber-200 font-display font-bold text-sm disabled:opacity-50 transition-all hover:-translate-y-0.5"
             >
-              {loading ? (
-                <><Loader2 className="w-5 h-5 animate-spin" /> Analyzing... (30-60s)</>
-              ) : (
-                <><Sparkles className="w-5 h-5" /> Generate AI Analysis</>
-              )}
+              {loading ? '⏳ Analyzing... (30-60s)' : '✨ Generate AI Analysis'}
             </button>
             {error && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 text-left max-w-md mx-auto">
-                <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-                <p className="text-sm text-red-700">{error}</p>
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-left max-w-md mx-auto">
+                <p className="text-sm text-red-700 font-body">⚠️ {error}</p>
               </div>
             )}
           </div>
