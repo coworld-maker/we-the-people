@@ -24,6 +24,9 @@ export default async function DashboardPage() {
 
   const earnedBadges = profile.badges.filter(b => b.earned).length
 
+  // Strip check functions before passing to client components
+  const serializedBadges = profile.badges.map(({ check, ...rest }) => rest)
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Welcome */}
@@ -75,7 +78,7 @@ export default async function DashboardPage() {
       <VoteCharts stats={profile.stats} votesByPolicy={profile.votesByPolicy} />
 
       {/* Badges */}
-      <BadgeGrid badges={profile.badges} />
+      <BadgeGrid badges={serializedBadges} />
 
       {/* Two-col: Recommendations + Feed */}
       <div className="grid lg:grid-cols-2 gap-6">
