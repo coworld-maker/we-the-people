@@ -2,7 +2,6 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { BillService } from '@/lib/services/billService'
 import Link from 'next/link'
-import { FileText, Calendar, TrendingUp, Sparkles } from 'lucide-react'
 import BillFilters from '@/components/bills/BillFilters'
 
 export default async function BillsPage({
@@ -28,7 +27,6 @@ export default async function BillsPage({
 
   const totalPages = Math.ceil(total / limit)
 
-  // Build query string preserving filters
   function buildQuery(p: number) {
     const q = new URLSearchParams()
     q.set('page', String(p))
@@ -38,116 +36,79 @@ export default async function BillsPage({
     return q.toString()
   }
 
+  const statusConfig: Record<string, { label: string; emoji: string; bg: string; text: string }> = {
+    enacted: { label: 'Enacted', emoji: '✅', bg: 'bg-emerald-50', text: 'text-emerald-700' },
+    passed_both: { label: 'Passed Both', emoji: '🏛️', bg: 'bg-green-50', text: 'text-green-700' },
+    passed_chamber: { label: 'Passed Chamber', emoji: '📋', bg: 'bg-amber-50', text: 'text-amber-700' },
+    reported: { label: 'Reported', emoji: '📝', bg: 'bg-blue-50', text: 'text-blue-700' },
+    in_committee: { label: 'In Committee', emoji: '🔍', bg: 'bg-orange-50', text: 'text-orange-700' },
+    introduced: { label: 'Introduced', emoji: '📌', bg: 'bg-gray-50', text: 'text-gray-600' },
+  }
+
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
-            <FileText className="w-5 h-5 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Congressional Bills
-          </h1>
-        </div>
-        <p className="text-gray-600 ml-[52px]">
-          Browse and vote on current legislation. <span className="font-semibold text-indigo-600">{total}</span> bill{total !== 1 ? 's' : ''} available.
+        <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-[#0F172A]">📜 Congressional Bills</h1>
+        <p className="text-gray-500 font-body mt-1">
+          <span className="font-semibold text-[#6366F1]">{total}</span> bill{total !== 1 ? 's' : ''} to explore and vote on
         </p>
       </div>
 
-      {/* Filters */}
       <BillFilters />
 
-      {/* Bills List */}
       {bills.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-md p-12 text-center border border-gray-100">
-          <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No bills found</h3>
-          <p className="text-gray-500">
-            {params.search || params.status || params.year
-              ? 'Try adjusting your search or filters.'
-              : 'Bills will appear here once synced.'}
-          </p>
+        <div className="bg-white rounded-3xl shadow-lg p-16 text-center border border-gray-100">
+          <div className="text-6xl mb-4">🔍</div>
+          <h3 className="font-display text-xl font-bold text-[#0F172A] mb-2">No bills found</h3>
+          <p className="text-gray-500 font-body">{params.search || params.status || params.year ? 'Try adjusting your filters.' : 'Bills will appear once synced.'}</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {bills.map((bill: any) => (
-            <Link
-              key={bill.id}
-              href={`/bills/${bill.id}`}
-              className="group block bg-white p-6 rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 border border-gray-100 hover:border-indigo-200"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-md">
-                      {bill.billType} {bill.billNumber}
-                    </span>
-                    <span className={`px-2.5 py-1 text-xs font-bold rounded-md ${
-                      bill.status === 'enacted'
-                        ? 'bg-green-50 text-green-700'
-                        : bill.status === 'passed_chamber' || bill.status === 'passed_both'
-                        ? 'bg-amber-50 text-amber-700'
-                        : bill.status === 'in_committee'
-                        ? 'bg-orange-50 text-orange-700'
-                        : 'bg-gray-50 text-gray-600'
-                    }`}>
-                      {bill.status.replace(/_/g, ' ')}
-                    </span>
-                    {bill.policyArea && (
-                      <span className="px-2.5 py-1 bg-purple-50 text-purple-700 text-xs font-bold rounded-md">
-                        {bill.policyArea}
-                      </span>
+          {bills.map((bill: any) => {
+            const sc = statusConfig[bill.status] || statusConfig.introduced
+            return (
+              <Link key={bill.id} href={`/bills/${bill.id}`}
+                className="group block bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300 hover:-translate-y-0.5"
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`hidden sm:flex w-12 h-12 ${sc.bg} rounded-xl items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform`}>
+                    {sc.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className="inline-flex items-center px-2.5 py-1 bg-[#0F172A] text-white text-xs font-bold rounded-lg">{bill.billType} {bill.billNumber}</span>
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 ${sc.bg} ${sc.text} text-xs font-bold rounded-lg`}>{sc.label}</span>
+                      {bill.policyArea && <span className="inline-flex items-center px-2.5 py-1 bg-violet-50 text-violet-600 text-xs font-bold rounded-lg">{bill.policyArea}</span>}
+                    </div>
+                    <h2 className="font-display text-lg font-bold text-[#0F172A] group-hover:text-[#6366F1] transition-colors leading-snug mb-1.5">
+                      {bill.shortTitle || bill.title}
+                    </h2>
+                    {bill.summary && (
+                      <p className="text-gray-500 text-sm line-clamp-2 leading-relaxed font-body mb-3">{bill.summary.replace(/<[^>]+>/g, '')}</p>
                     )}
+                    <div className="flex items-center gap-4 text-xs text-gray-400 font-medium">
+                      <span>📅 {new Date(bill.introducedDate).toLocaleDateString()}</span>
+                      <span>🗳️ {bill._count?.votes || 0} votes</span>
+                      {bill.originChamber && <span>{bill.originChamber === 'senate' ? '🏛️ Senate' : '🏠 House'}</span>}
+                      {(bill as any).aiSummary && <span className="text-amber-500 font-semibold">✨ AI Analyzed</span>}
+                    </div>
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors mb-1.5 leading-snug">
-                    {bill.title}
-                  </h2>
-                  {bill.summary && (
-                    <p className="text-gray-500 text-sm line-clamp-2 leading-relaxed">
-                      {bill.summary}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-5 text-xs text-gray-400 pt-2 border-t border-gray-50">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>{new Date(bill.introducedDate).toLocaleDateString()}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  <span>{bill._count?.votes || 0} votes</span>
-                </div>
-                {(bill as any).aiSummary && (
-                  <div className="flex items-center gap-1.5 text-amber-500">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>AI Analyzed</span>
+                  <div className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gray-50 group-hover:bg-indigo-50 transition-colors shrink-0 self-center">
+                    <span className="text-gray-300 group-hover:text-[#6366F1] transition-colors text-lg">→</span>
                   </div>
-                )}
-              </div>
-            </Link>
-          ))}
+                </div>
+              </Link>
+            )
+          })}
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="mt-8 flex justify-center gap-2">
-          {page > 1 && (
-            <Link href={`/bills?${buildQuery(page - 1)}`} className="px-5 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700">
-              Previous
-            </Link>
-          )}
-          <span className="px-5 py-2.5 text-sm text-gray-500">
-            Page {page} of {totalPages}
-          </span>
-          {page < totalPages && (
-            <Link href={`/bills?${buildQuery(page + 1)}`} className="px-5 py-2.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700">
-              Next
-            </Link>
-          )}
+        <div className="mt-10 flex justify-center gap-3">
+          {page > 1 && <Link href={`/bills?${buildQuery(page - 1)}`} className="px-6 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 text-sm font-semibold text-[#0F172A] shadow-sm">← Previous</Link>}
+          <span className="px-6 py-3 text-sm text-gray-400 font-medium">Page {page} of {totalPages}</span>
+          {page < totalPages && <Link href={`/bills?${buildQuery(page + 1)}`} className="px-6 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 text-sm font-semibold text-[#0F172A] shadow-sm">Next →</Link>}
         </div>
       )}
     </div>
