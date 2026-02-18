@@ -64,11 +64,14 @@ export class CongressAPI {
   }
 
   /**
-   * Fetches the actual plain text content of a bill.
-   * 1. Gets text version metadata from Congress API
-   * 2. Finds the TXT format URL
-   * 3. Fetches the raw text content
-   * Returns null if no text is available.
+   * Fetches the actual text content of a bill from Congress.gov.
+   * 
+   * The Congress API returns text versions with formats like:
+   *   - "Formatted Text" → .htm (HTML file)
+   *   - "PDF" → .pdf
+   *   - "Formatted XML" → .xml
+   * 
+   * We fetch the "Formatted Text" (HTML) and strip tags to get clean text.
    */
   static async fetchBillTextContent(
     congress: number,
@@ -79,6 +82,7 @@ export class CongressAPI {
       const textVersions = await this.getBillText(congress, billType, billNumber)
 
       if (!textVersions || textVersions.length === 0) {
+        console.warn(`No text versions for ${billType}${billNumber}`)
         return null
       }
 
@@ -86,54 +90,85 @@ export class CongressAPI {
       const latestVersion = textVersions[0]
       const formats = latestVersion?.formats || []
 
-      // Prefer TXT format, fall back to others
-      const txtFormat = formats.find((f: any) => f.type === 'Formatted Text')
-        || formats.find((f: any) => f.type === 'PDF') // won't fetch PDF, just for URL
-        || formats.find((f: any) => f.url?.endsWith('.txt'))
-        || formats[0]
-
-      if (!txtFormat?.url) {
+      if (formats.length === 0) {
+        console.warn(`No formats available for ${billType}${billNumber}`)
         return null
       }
 
-      let textUrl = txtFormat.url
+      // Prefer "Formatted Text" (HTML) — this is what Congress API provides
+      // There is no plain TXT in the API, despite the Congress.gov website showing one
+      const htmlFormat = formats.find((f: any) => f.type === 'Formatted Text')
+      const xmlFormat = formats.find((f: any) => f.type === 'Formatted XML')
 
-      // The Congress API sometimes returns URLs without the api_key
-      // For .txt URLs from congress.gov, we can fetch directly
-      // For API URLs, we need to add the key
-      if (textUrl.includes('api.congress.gov')) {
-        textUrl += textUrl.includes('?') ? `&api_key=${API_KEY}` : `?api_key=${API_KEY}`
+      const targetFormat = htmlFormat || xmlFormat
+      if (!targetFormat?.url) {
+        console.warn(`No fetchable text format for ${billType}${billNumber}. Available:`, formats.map((f: any) => f.type))
+        return null
       }
 
-      const textResponse = await axios.get(textUrl, {
+      console.log(`Fetching bill text from: ${targetFormat.url}`)
+
+      const textResponse = await axios.get(targetFormat.url, {
         timeout: 15000,
         responseType: 'text',
-        // Some congress.gov URLs redirect, follow them
         maxRedirects: 5,
+        headers: {
+          'Accept': 'text/html, application/xhtml+xml, text/plain, */*',
+          'User-Agent': 'DemocracyUnlocked/1.0',
+        },
       })
 
-      if (typeof textResponse.data === 'string' && textResponse.data.length > 0) {
-        // Clean up HTML tags if present (formatted text sometimes has them)
-        let text = textResponse.data
-        // Remove HTML tags but preserve line breaks
-        text = text.replace(/<br\s*\/?>/gi, '\n')
-        text = text.replace(/<\/p>/gi, '\n\n')
-        text = text.replace(/<[^>]+>/g, '')
-        // Decode HTML entities
-        text = text.replace(/&amp;/g, '&')
-        text = text.replace(/&lt;/g, '<')
-        text = text.replace(/&gt;/g, '>')
-        text = text.replace(/&quot;/g, '"')
-        text = text.replace(/&#39;/g, "'")
-        text = text.replace(/&nbsp;/g, ' ')
-        // Collapse excessive whitespace
-        text = text.replace(/\n{3,}/g, '\n\n')
-        text = text.trim()
-
-        return text || null
+      if (typeof textResponse.data !== 'string' || textResponse.data.length === 0) {
+        console.warn(`Empty response from ${targetFormat.url}`)
+        return null
       }
 
-      return null
+      let text = textResponse.data
+
+      // Strip HTML to get clean text
+      // First preserve meaningful whitespace from block elements
+      text = text.replace(/<br\s*\/?>/gi, '\n')
+      text = text.replace(/<\/p>/gi, '\n\n')
+      text = text.replace(/<\/div>/gi, '\n')
+      text = text.replace(/<\/h[1-6]>/gi, '\n\n')
+      text = text.replace(/<\/li>/gi, '\n')
+      text = text.replace(/<\/tr>/gi, '\n')
+      text = text.replace(/<hr\s*\/?>/gi, '\n---\n')
+
+      // Remove all remaining HTML tags
+      text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      text = text.replace(/<[^>]+>/g, '')
+
+      // Decode HTML entities
+      text = text.replace(/&amp;/g, '&')
+      text = text.replace(/&lt;/g, '<')
+      text = text.replace(/&gt;/g, '>')
+      text = text.replace(/&quot;/g, '"')
+      text = text.replace(/&#39;/g, "'")
+      text = text.replace(/&nbsp;/g, ' ')
+      text = text.replace(/&mdash;/g, '—')
+      text = text.replace(/&ndash;/g, '–')
+      text = text.replace(/&lsquo;/g, "'")
+      text = text.replace(/&rsquo;/g, "'")
+      text = text.replace(/&ldquo;/g, '"')
+      text = text.replace(/&rdquo;/g, '"')
+      text = text.replace(/&#\d+;/g, '') // Remove remaining numeric entities
+
+      // Clean up whitespace
+      text = text.replace(/[ \t]+/g, ' ')        // Collapse horizontal whitespace
+      text = text.replace(/\n /g, '\n')            // Remove leading spaces after newlines
+      text = text.replace(/ \n/g, '\n')            // Remove trailing spaces before newlines
+      text = text.replace(/\n{3,}/g, '\n\n')      // Collapse excessive newlines
+      text = text.trim()
+
+      if (text.length < 50) {
+        console.warn(`Text too short (${text.length} chars) for ${billType}${billNumber}, likely parsing error`)
+        return null
+      }
+
+      console.log(`Successfully fetched ${text.length} chars of text for ${billType}${billNumber}`)
+      return text
     } catch (error) {
       console.error(`Failed to fetch bill text for ${billType}${billNumber}:`, error)
       return null
