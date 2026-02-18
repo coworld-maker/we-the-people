@@ -1,168 +1,123 @@
 import Link from 'next/link'
 import { auth } from '@clerk/nextjs/server'
+import {
+  Vote, BookOpen, BarChart3, Shield, Users, ArrowRight,
+  CheckCircle2, MessageSquare, FileText, TrendingUp,
+} from 'lucide-react'
 
 export default async function LandingPage() {
   const { userId } = await auth()
 
   return (
-    <div className="min-h-screen bg-white overflow-hidden">
-      {/* ── HERO ── */}
-      <section className="relative mesh-bg min-h-[100vh] flex items-center">
-        {/* Animated blobs */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-[#FF6B6B] rounded-full mix-blend-multiply filter blur-[128px] opacity-30 animate-blob" />
-        <div className="absolute top-40 right-10 w-72 h-72 bg-[#6366F1] rounded-full mix-blend-multiply filter blur-[128px] opacity-30 animate-blob animation-delay-2000" />
-        <div className="absolute bottom-20 left-1/3 w-72 h-72 bg-[#38BDF8] rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob animation-delay-4000" />
-
-        {/* Nav */}
-        <nav className="absolute top-0 left-0 right-0 z-50 px-6 py-5">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#FF6B6B] to-[#6366F1] rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white text-xl">🗳️</span>
-              </div>
-              <span className="font-display text-xl font-extrabold text-white tracking-tight">
-                Democracy<span className="text-[#FF6B6B]">Unlocked</span>
-              </span>
+    <div className="min-h-screen bg-white">
+      {/* ── NAV ── */}
+      <nav className="absolute top-0 left-0 right-0 z-50 px-6 py-5">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-[--accent] rounded-lg flex items-center justify-center">
+              <Vote className="w-4 h-4 text-white" />
             </div>
-            <div className="flex items-center gap-3">
-              {userId ? (
-                <Link
-                  href="/dashboard"
-                  className="px-6 py-2.5 bg-gradient-to-r from-[#FF6B6B] to-[#E85D5D] text-white font-semibold rounded-full hover:shadow-lg hover:shadow-red-500/25 transition-all text-sm"
-                >
-                  Go to Dashboard →
+            <span className="font-display text-base font-bold text-white">
+              Democracy Unlocked
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {userId ? (
+              <Link href="/dashboard" className="btn-primary text-sm">
+                Dashboard <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            ) : (
+              <>
+                <Link href="/sign-in" className="px-4 py-2 text-sm font-medium text-white/60 hover:text-white transition-colors">
+                  Sign in
                 </Link>
-              ) : (
-                <>
-                  <Link href="/sign-in" className="px-5 py-2.5 text-white/80 hover:text-white font-medium text-sm transition-colors">
-                    Log in
-                  </Link>
-                  <Link
-                    href="/sign-up"
-                    className="px-6 py-2.5 bg-gradient-to-r from-[#FF6B6B] to-[#E85D5D] text-white font-semibold rounded-full hover:shadow-lg hover:shadow-red-500/25 transition-all text-sm"
-                  >
-                    Join Free 🚀
-                  </Link>
-                </>
-              )}
-            </div>
+                <Link href="/sign-up" className="btn-primary text-sm">
+                  Get started <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </>
+            )}
           </div>
-        </nav>
+        </div>
+      </nav>
 
-        {/* Hero content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-6 pt-32 pb-20">
-          <div className="max-w-3xl">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-full mb-8 animate-fade-in-up">
-              <span className="w-2 h-2 bg-[#84CC16] rounded-full animate-pulse" />
-              <span className="text-white/80 text-sm font-medium">50+ bills tracked from the 118th Congress</span>
-            </div>
-
-            <h1 className="font-display text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] mb-6 animate-fade-in-up animation-delay-200">
-              Your vote.{' '}
-              <span className="bg-gradient-to-r from-[#FF6B6B] via-[#FB7185] to-[#F59E0B] bg-clip-text text-transparent">
-                Your voice.
-              </span>
-              <br />
-              Your democracy.
-            </h1>
-
-            <p className="text-lg sm:text-xl text-white/60 max-w-xl mb-10 leading-relaxed font-body animate-fade-in-up animation-delay-400" style={{ opacity: 0 }}>
-              Read real bills in plain English. Vote on legislation. See how your opinion stacks up. Democracy shouldn&apos;t require a law degree.
-            </p>
-
-            <div className="flex flex-wrap gap-4 animate-fade-in-up animation-delay-600" style={{ opacity: 0 }}>
-              <Link
-                href={userId ? '/dashboard' : '/sign-up'}
-                className="group px-8 py-4 bg-gradient-to-r from-[#FF6B6B] to-[#E85D5D] text-white font-bold rounded-2xl text-lg hover:shadow-2xl hover:shadow-red-500/30 transition-all hover:-translate-y-0.5"
-              >
-                Start Voting — It&apos;s Free
-                <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
-              </Link>
-              <Link
-                href="/bills"
-                className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-bold rounded-2xl text-lg hover:bg-white/20 transition-all border border-white/10"
-              >
-                Browse Bills 📜
-              </Link>
-            </div>
+      {/* ── HERO ── */}
+      <section className="hero-gradient pt-32 pb-24 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/[0.06] border border-white/[0.08] rounded-full mb-8 animate-in">
+            <div className="w-1.5 h-1.5 bg-[--success] rounded-full" />
+            <span className="text-sm text-white/50 font-medium">Tracking the 118th Congress</span>
           </div>
 
-          {/* Stats floating cards */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 hidden xl:flex flex-col gap-4">
-            <div className="glass-dark rounded-2xl p-5 w-52 animate-float">
-              <p className="text-3xl font-display font-extrabold text-white mb-1">50+</p>
-              <p className="text-sm text-white/50">Bills Tracked</p>
-            </div>
-            <div className="glass-dark rounded-2xl p-5 w-52 animate-float animation-delay-200">
-              <p className="text-3xl font-display font-extrabold text-[#84CC16] mb-1">Free</p>
-              <p className="text-sm text-white/50">Always &amp; Forever</p>
-            </div>
-            <div className="glass-dark rounded-2xl p-5 w-52 animate-float animation-delay-400">
-              <p className="text-3xl font-display font-extrabold text-[#FF6B6B] mb-1">AI</p>
-              <p className="text-sm text-white/50">Powered Analysis</p>
-            </div>
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-[1.1] mb-6 animate-in delay-100" style={{ opacity: 0 }}>
+            Understand legislation.
+            <br />
+            <span className="text-[--accent]">Make your voice heard.</span>
+          </h1>
+
+          <p className="text-lg text-white/40 max-w-xl mx-auto mb-10 leading-relaxed font-body animate-in delay-200" style={{ opacity: 0 }}>
+            Democracy Unlocked gives you the tools to read, analyze, and vote on
+            real Congressional bills — powered by AI that explains what they actually mean.
+          </p>
+
+          <div className="flex flex-wrap justify-center gap-3 animate-in delay-300" style={{ opacity: 0 }}>
+            <Link href={userId ? '/dashboard' : '/sign-up'} className="btn-primary px-7 py-3.5 text-base rounded-xl">
+              Start voting — it&apos;s free <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link href="/bills" className="btn-secondary px-7 py-3.5 text-base rounded-xl bg-white/[0.06] border-white/[0.1] text-white hover:bg-white/[0.1] hover:border-white/[0.15] hover:text-white">
+              Browse bills
+            </Link>
           </div>
         </div>
 
-        {/* Wave separator */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 50L48 45C96 40 192 30 288 35C384 40 480 60 576 65C672 70 768 60 864 50C960 40 1056 30 1152 35C1248 40 1344 60 1392 70L1440 80V100H0Z" fill="white"/>
-          </svg>
+        {/* Trust indicators */}
+        <div className="max-w-2xl mx-auto mt-16 grid grid-cols-3 gap-8 animate-in delay-400" style={{ opacity: 0 }}>
+          {[
+            { value: '50+', label: 'Bills tracked' },
+            { value: 'AI', label: 'Powered analysis' },
+            { value: 'Free', label: 'No paywall, ever' },
+          ].map(item => (
+            <div key={item.label} className="text-center">
+              <p className="font-display text-2xl font-extrabold text-white">{item.value}</p>
+              <p className="text-sm text-white/30 mt-1">{item.label}</p>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* ── HOW IT WORKS ── */}
-      <section className="py-24 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-24 px-6">
+        <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <span className="pill bg-indigo-50 text-indigo-600 mb-4">✨ Dead simple</span>
-            <h2 className="font-display text-4xl sm:text-5xl font-extrabold text-[#0F172A] mb-4">
-              Democracy in 3 taps
+            <p className="text-sm font-semibold text-[--accent] uppercase tracking-wider mb-3">How it works</p>
+            <h2 className="font-display text-3xl sm:text-4xl font-extrabold">
+              Civic engagement, simplified
             </h2>
-            <p className="text-lg text-gray-500 max-w-md mx-auto font-body">
-              No jargon. No confusion. Just you and the bills that shape your life.
-            </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-12">
             {[
               {
-                step: '01',
-                emoji: '📖',
+                icon: BookOpen,
                 title: 'Read',
-                desc: 'AI breaks down complex bills into plain English anyone can understand. No law degree needed.',
-                color: 'from-[#6366F1] to-[#818CF8]',
-                glow: 'shadow-indigo-200',
+                desc: 'AI breaks down complex legislation into clear, plain-language summaries with balanced pros and cons.',
               },
               {
-                step: '02',
-                emoji: '🗳️',
+                icon: Vote,
                 title: 'Vote',
-                desc: 'Cast your vote on real Congressional bills. Yes, no, or abstain — your voice counts.',
-                color: 'from-[#FF6B6B] to-[#FB7185]',
-                glow: 'shadow-red-200',
+                desc: 'Cast your position on real Congressional bills. Track your history and see how your views evolve over time.',
               },
               {
-                step: '03',
-                emoji: '📊',
-                title: 'Compare',
-                desc: 'See how citizens across the country feel. Track your voting history. Make an impact.',
-                color: 'from-[#84CC16] to-[#A3E635]',
-                glow: 'shadow-lime-200',
+                icon: BarChart3,
+                title: 'Understand',
+                desc: 'See how citizens across the country feel. Explore impact analysis across demographics and policy areas.',
               },
             ].map((item, i) => (
-              <div
-                key={item.step}
-                className={`group relative bg-white rounded-3xl p-8 border border-gray-100 card-hover shadow-lg ${item.glow}`}
-              >
-                <div className={`w-14 h-14 bg-gradient-to-br ${item.color} rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-lg group-hover:scale-110 transition-transform`}>
-                  {item.emoji}
+              <div key={item.title} className="text-center">
+                <div className="w-12 h-12 bg-[--accent-light] rounded-xl flex items-center justify-center mx-auto mb-5">
+                  <item.icon className="w-5 h-5 text-[--accent]" />
                 </div>
-                <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">{item.step}</span>
-                <h3 className="font-display text-2xl font-extrabold text-[#0F172A] mt-1 mb-3">{item.title}</h3>
-                <p className="text-gray-500 leading-relaxed font-body">{item.desc}</p>
+                <h3 className="font-display text-lg font-bold mb-2">{item.title}</h3>
+                <p className="text-[--text-secondary] leading-relaxed text-[15px]">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -170,33 +125,61 @@ export default async function LandingPage() {
       </section>
 
       {/* ── FEATURES ── */}
-      <section className="py-24 px-6 bg-[#F8FAFC]">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-24 px-6 bg-[--surface-secondary]">
+        <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <span className="pill bg-rose-50 text-rose-600 mb-4">🔥 Features</span>
-            <h2 className="font-display text-4xl sm:text-5xl font-extrabold text-[#0F172A] mb-4">
-              Built for the TikTok generation
+            <p className="text-sm font-semibold text-[--accent] uppercase tracking-wider mb-3">Platform</p>
+            <h2 className="font-display text-3xl sm:text-4xl font-extrabold">
+              Everything you need to stay informed
             </h2>
-            <p className="text-lg text-gray-500 max-w-lg mx-auto font-body">
-              We made civic engagement something you actually want to do.
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-6">
+            {[
+              { icon: FileText, title: 'AI-Powered Summaries', desc: 'Every bill explained in plain English with nonpartisan analysis of key provisions and implications.' },
+              { icon: Shield, title: 'Balanced Analysis', desc: 'Pros, cons, and impact assessments across demographics — always presenting multiple perspectives.' },
+              { icon: MessageSquare, title: 'Citizen Discussion', desc: 'Moderated discussion boards where citizens can respectfully debate the merits of legislation.' },
+              { icon: TrendingUp, title: 'Civic Score', desc: 'Track your engagement with XP, badges, and levels as you participate in the democratic process.' },
+              { icon: BookOpen, title: 'Full Bill Text', desc: 'Read the complete legislative text pulled directly from Congress.gov — no paywalls or gatekeeping.' },
+              { icon: Users, title: 'Public Sentiment', desc: 'See how citizens vote on every bill with real-time statistics and sentiment breakdowns.' },
+            ].map(feat => (
+              <div key={feat.title} className="card p-6 lift">
+                <div className="w-10 h-10 bg-[--accent-light] rounded-lg flex items-center justify-center mb-4">
+                  <feat.icon className="w-4.5 h-4.5 text-[--accent]" />
+                </div>
+                <h3 className="font-display text-base font-bold mb-1.5">{feat.title}</h3>
+                <p className="text-sm text-[--text-secondary] leading-relaxed">{feat.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── WHY IT MATTERS ── */}
+      <section className="py-24 px-6">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-sm font-semibold text-[--accent] uppercase tracking-wider mb-3">Why this matters</p>
+            <h2 className="font-display text-3xl sm:text-4xl font-extrabold mb-6">
+              Democracy works better when people participate
+            </h2>
+            <p className="text-[--text-secondary] text-lg leading-relaxed">
+              Most Americans can&apos;t name a single bill Congress is working on. We believe
+              that&apos;s not apathy — it&apos;s a design problem. Democracy Unlocked makes
+              legislation accessible, understandable, and actionable.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-4">
             {[
-              { emoji: '🤖', title: 'AI Summaries', desc: 'Complex bills explained in plain English by AI', bg: 'bg-amber-50', accent: 'text-amber-600' },
-              { emoji: '⚖️', title: 'Pros & Cons', desc: 'Balanced analysis of every bill — both sides presented fairly', bg: 'bg-indigo-50', accent: 'text-indigo-600' },
-              { emoji: '🎯', title: 'Impact Analysis', desc: 'See how bills affect you — students, workers, families, everyone', bg: 'bg-rose-50', accent: 'text-rose-600' },
-              { emoji: '💬', title: 'Citizen Debates', desc: 'Discussion boards to debate bills with fellow citizens', bg: 'bg-violet-50', accent: 'text-violet-600' },
-              { emoji: '📜', title: 'Full Bill Text', desc: 'Read the exact wording straight from Congress.gov', bg: 'bg-emerald-50', accent: 'text-emerald-600' },
-              { emoji: '🔒', title: 'Anonymous Voting', desc: 'Your vote is yours. Vote without fear.', bg: 'bg-sky-50', accent: 'text-sky-600' },
-            ].map((feat) => (
-              <div key={feat.title} className="bg-white rounded-2xl p-6 border border-gray-100 card-hover">
-                <div className={`w-12 h-12 ${feat.bg} rounded-xl flex items-center justify-center text-xl mb-4`}>
-                  {feat.emoji}
-                </div>
-                <h3 className={`font-display text-lg font-bold ${feat.accent} mb-1`}>{feat.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed font-body">{feat.desc}</p>
+              'Nonpartisan — we never take sides or push agendas',
+              'Open source — our code and methodology are transparent',
+              'Privacy-first — anonymous voting, no data selling, ever',
+              'Free forever — civic tools should never be behind a paywall',
+            ].map(point => (
+              <div key={point} className="flex items-start gap-3 p-4 bg-[--surface-secondary] rounded-lg">
+                <CheckCircle2 className="w-5 h-5 text-[--success] mt-0.5 shrink-0" />
+                <p className="text-[15px] text-[--text]">{point}</p>
               </div>
             ))}
           </div>
@@ -204,42 +187,30 @@ export default async function LandingPage() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="relative mesh-bg py-24 px-6">
-        <div className="absolute top-10 right-20 w-64 h-64 bg-[#FF6B6B] rounded-full filter blur-[128px] opacity-20" />
-        <div className="absolute bottom-10 left-20 w-64 h-64 bg-[#6366F1] rounded-full filter blur-[128px] opacity-20" />
-
-        <div className="relative z-10 max-w-2xl mx-auto text-center">
-          <h2 className="font-display text-4xl sm:text-5xl font-extrabold text-white mb-6 leading-tight">
-            Ready to unlock{' '}
-            <span className="bg-gradient-to-r from-[#FF6B6B] to-[#F59E0B] bg-clip-text text-transparent">
-              your power
-            </span>
-            ?
+      <section className="hero-gradient py-24 px-6">
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-4">
+            Your seat at the table is waiting
           </h2>
-          <p className="text-lg text-white/50 mb-10 font-body">
-            Join thousands of citizens who are taking their seat at the table. Free forever.
+          <p className="text-lg text-white/40 mb-10">
+            Join citizens who are taking an active role in shaping the future. Free, private, nonpartisan.
           </p>
-          <Link
-            href={userId ? '/dashboard' : '/sign-up'}
-            className="inline-flex items-center gap-2 px-10 py-5 bg-gradient-to-r from-[#FF6B6B] to-[#E85D5D] text-white font-bold rounded-2xl text-xl hover:shadow-2xl hover:shadow-red-500/30 transition-all hover:-translate-y-1"
-          >
-            Get Started — Free 🗳️
+          <Link href={userId ? '/dashboard' : '/sign-up'} className="btn-primary px-8 py-4 text-base rounded-xl">
+            Get started — free forever <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="bg-[#0F172A] border-t border-white/5 py-12 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="bg-[--dark] py-10 px-6 border-t border-white/[0.05]">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-[#FF6B6B] to-[#6366F1] rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm">🗳️</span>
+            <div className="w-6 h-6 bg-[--accent] rounded flex items-center justify-center">
+              <Vote className="w-3 h-3 text-white" />
             </div>
-            <span className="font-display font-bold text-white/80 text-sm">
-              Democracy<span className="text-[#FF6B6B]">Unlocked</span>
-            </span>
+            <span className="font-display text-sm font-semibold text-white/60">Democracy Unlocked</span>
           </div>
-          <p className="text-xs text-white/30 font-body">
+          <p className="text-xs text-white/20">
             &copy; {new Date().getFullYear()} Democracy Unlocked. Not affiliated with the U.S. Government.
           </p>
         </div>
