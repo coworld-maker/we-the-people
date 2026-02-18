@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { FileText, ChevronDown, ChevronUp, Loader2, Download, ExternalLink } from 'lucide-react'
+import { FileText, ChevronDown, ChevronUp, Loader2, ExternalLink } from 'lucide-react'
 
 interface BillFullTextProps {
   billId: string
@@ -13,17 +13,15 @@ export default function BillFullText({ billId, initialText, congressGovUrl }: Bi
   const [text, setText] = useState(initialText)
   const [expanded, setExpanded] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [fetched, setFetched] = useState(!!initialText)
+  const [fallbackUrl, setFallbackUrl] = useState<string | null>(null)
 
-  async function handleFetchText() {
+  async function handleToggle() {
     if (text) {
       setExpanded(!expanded)
       return
     }
 
     setLoading(true)
-    setError('')
     try {
       const res = await fetch(`/api/bills/${billId}/text`)
       const data = await res.json()
@@ -31,24 +29,24 @@ export default function BillFullText({ billId, initialText, congressGovUrl }: Bi
       if (data.text) {
         setText(data.text)
         setExpanded(true)
-        setFetched(true)
       } else {
-        setError('Full text not available from Congress.gov for this bill.')
+        // No text available — set fallback URL
+        setFallbackUrl(data.fallbackUrl || `${congressGovUrl}/text`)
       }
-    } catch (err: any) {
-      setError('Failed to load bill text.')
+    } catch {
+      setFallbackUrl(`${congressGovUrl}/text`)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden">
+    <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-200">
       {/* Header */}
       <button
-        onClick={handleFetchText}
+        onClick={handleToggle}
         disabled={loading}
-        className="w-full bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-4 flex items-center justify-between hover:from-slate-700 hover:to-slate-800 transition-all"
+        className="w-full bg-gradient-to-r from-slate-700 to-slate-800 px-6 py-4 flex items-center justify-between hover:from-slate-800 hover:to-slate-900 transition-all"
       >
         <div className="flex items-center gap-2">
           {loading ? (
@@ -59,67 +57,55 @@ export default function BillFullText({ billId, initialText, congressGovUrl }: Bi
           <h2 className="text-lg font-bold text-white">
             {loading ? 'Loading Full Text...' : 'Full Bill Text'}
           </h2>
-          {text && (
-            <span className="text-sm text-slate-300 ml-2">
-              {text.length.toLocaleString()} characters
-            </span>
-          )}
         </div>
         {text ? (
-          expanded ? (
-            <ChevronUp className="w-5 h-5 text-white" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-white" />
-          )
+          expanded ? <ChevronUp className="w-5 h-5 text-white" /> : <ChevronDown className="w-5 h-5 text-white" />
         ) : !loading ? (
           <span className="text-sm text-slate-300">Click to load</span>
         ) : null}
       </button>
 
-      {error && (
-        <div className="px-6 py-3 bg-yellow-50 border-t border-yellow-100">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-yellow-700">{error}</p>
-            <a
-              href={`${congressGovUrl}/text`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              View on Congress.gov
-            </a>
-          </div>
+      {/* Fallback — direct link to Congress.gov */}
+      {fallbackUrl && !text && (
+        <div className="px-6 py-4 bg-blue-50 border-t border-blue-100">
+          <p className="text-sm text-blue-800 mb-2">
+            The full text is available directly on Congress.gov:
+          </p>
+          <a
+            href={fallbackUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-sm transition-colors shadow-sm"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Read Full Text on Congress.gov
+          </a>
         </div>
       )}
 
+      {/* Text content */}
       {text && expanded && (
         <div className="relative">
-          {/* Toolbar */}
           <div className="sticky top-0 z-10 px-6 py-2 bg-gray-50 border-b flex items-center justify-between">
-            <span className="text-xs text-gray-500">
-              Official legislative text from Congress.gov
+            <span className="text-xs text-gray-500 font-medium">
+              Official legislative text • {text.length.toLocaleString()} characters
             </span>
             <a
               href={`${congressGovUrl}/text`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
+              className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-semibold"
             >
               <ExternalLink className="w-3 h-3" />
-              View original
+              Congress.gov
             </a>
           </div>
-
-          {/* Text content */}
-          <div className="px-6 py-6 max-h-[600px] overflow-y-auto">
+          <div className="px-6 py-6 max-h-[600px] overflow-y-auto bg-gray-50/50">
             <pre className="whitespace-pre-wrap font-serif text-[15px] leading-relaxed text-gray-800">
               {text}
             </pre>
           </div>
-
-          {/* Fade overlay at bottom */}
-          <div className="sticky bottom-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+          <div className="sticky bottom-0 h-8 bg-gradient-to-t from-white to-transparent pointer-events-none" />
         </div>
       )}
     </div>
