@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { BillService } from '@/lib/services/billService'
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages'
 
@@ -20,7 +21,7 @@ interface AIAnalysis {
 async function callClaude(prompt: string, systemPrompt: string): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY is not set')
+    throw new Error('ANTHROPIC_API_KEY is not set in environment variables')
   }
 
   const response = await fetch(ANTHROPIC_API_URL, {
@@ -31,19 +32,25 @@ async function callClaude(prompt: string, systemPrompt: string): Promise<string>
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
+      model: 'claude-3-5-haiku-20241022',
+      max_tokens: 3000,
       system: systemPrompt,
       messages: [{ role: 'user', content: prompt }],
     }),
   })
 
   if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`Claude API error: ${response.status} - ${error}`)
+    const errorText = await response.text()
+    console.error(`Claude API HTTP ${response.status}:`, errorText)
+    throw new Error(`Claude API error: ${response.status} - ${errorText}`)
   }
 
   const data = await response.json()
+
+  if (!data.content || data.content.length === 0) {
+    throw new Error('Claude returned empty response')
+  }
+
   return data.content
     .filter((block: any) => block.type === 'text')
     .map((block: any) => block.text)
@@ -58,6 +65,23 @@ export class AIService {
 
     if (!bill) throw new Error('Bill not found')
 
+    // Try to fetch full text if we don't have it yet
+    let fullText = bill.fullText
+    if (!fullText) {
+      try {
+        fullText = await BillService.fetchAndSaveBillText(billId)
+      } catch (e) {
+        console.warn('Could not fetch bill text, proceeding without it')
+      }
+    }
+
+    // Truncate full text to ~6000 chars to stay within token limits
+    const truncatedText = fullText
+      ? fullText.length > 6000
+        ? fullText.substring(0, 6000) + '\n\n[... text truncated for analysis ...]'
+        : fullText
+      : null
+
     const billContext = `
 Title: ${bill.title}
 ${bill.shortTitle ? `Short Title: ${bill.shortTitle}` : ''}
@@ -69,50 +93,62 @@ Introduced: ${bill.introducedDate.toISOString().split('T')[0]}
 Latest Action: ${bill.latestActionText || 'None'}
 Official Summary: ${bill.summary || 'No official summary available'}
 Subjects: ${bill.subjects?.length ? bill.subjects.join(', ') : 'None listed'}
-Sponsors: ${JSON.stringify(bill.sponsors)}
+${truncatedText ? `\nFull Bill Text:\n${truncatedText}` : ''}
 `.trim()
 
     const systemPrompt = `You are a nonpartisan civic education analyst. Your job is to help everyday Americans understand Congressional legislation in plain, accessible language. Be balanced, factual, and fair. Never take political sides. Always present multiple perspectives.
 
-Respond ONLY with valid JSON — no markdown, no backticks, no extra text.`
+You MUST respond ONLY with valid JSON. No markdown, no backticks, no commentary before or after the JSON.`
 
-    const prompt = `Analyze this Congressional bill and respond with a JSON object containing these fields:
+    const prompt = `Analyze this Congressional bill and return a JSON object:
 
 ${billContext}
 
-Return this exact JSON structure:
+Return ONLY this JSON structure (no other text):
 {
-  "summary": "A 2-3 paragraph plain-English summary that a high school student could understand. Explain what the bill does, why it matters, and who it affects. Avoid jargon.",
+  "summary": "A 2-3 paragraph plain-English summary that a high school student could understand. Explain what the bill does, why it matters, and who it affects.",
   "pros": [
-    {"title": "Short title", "description": "2-3 sentence explanation of this benefit", "category": "Economy|Environment|Healthcare|Education|Security|Rights|Infrastructure|Other"}
+    {"title": "Short title", "description": "2-3 sentence explanation", "category": "Economy"}
   ],
   "cons": [
-    {"title": "Short title", "description": "2-3 sentence explanation of this concern", "category": "Economy|Environment|Healthcare|Education|Security|Rights|Infrastructure|Other"}
+    {"title": "Short title", "description": "2-3 sentence explanation", "category": "Economy"}
   ],
   "impacts": [
     {
-      "category": "Economic|Social|Environmental|Healthcare|Education|Security|Infrastructure",
-      "demographic": "e.g. Small Business Owners, Rural Communities, Students, etc.",
-      "impactType": "positive|negative|neutral",
-      "shortDescription": "One sentence impact",
-      "detailedAnalysis": "2-3 sentence detailed explanation",
+      "category": "Economic",
+      "demographic": "e.g. Small Business Owners",
+      "impactType": "positive",
+      "shortDescription": "One sentence",
+      "detailedAnalysis": "2-3 sentences",
       "affectedGroups": ["Group 1", "Group 2"],
       "confidence": 75
     }
   ]
 }
 
-Provide 3-5 pros, 3-5 cons, and 4-6 impacts covering different demographics. Be balanced and fair.`
+Valid categories for pros/cons: Economy, Environment, Healthcare, Education, Security, Rights, Infrastructure, Other
+Valid categories for impacts: Economic, Social, Environmental, Healthcare, Education, Security, Infrastructure
+Valid impactType values: positive, negative, neutral
+
+Provide 3-4 pros, 3-4 cons, and 4-5 impacts covering different demographics. Be balanced.`
 
     const rawResponse = await callClaude(prompt, systemPrompt)
 
-    // Parse JSON, stripping any markdown fences
-    const cleaned = rawResponse.replace(/```json\s?|```/g, '').trim()
-    const analysis: AIAnalysis = JSON.parse(cleaned)
+    let cleaned = rawResponse.trim()
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '')
+    }
 
-    // Validate structure
+    let analysis: AIAnalysis
+    try {
+      analysis = JSON.parse(cleaned)
+    } catch (parseError) {
+      console.error('Failed to parse Claude response:', cleaned.substring(0, 500))
+      throw new Error('Failed to parse AI analysis response as JSON')
+    }
+
     if (!analysis.summary || !Array.isArray(analysis.pros) || !Array.isArray(analysis.cons) || !Array.isArray(analysis.impacts)) {
-      throw new Error('Invalid AI analysis structure')
+      throw new Error('Invalid AI analysis structure — missing required fields')
     }
 
     return analysis
@@ -121,7 +157,6 @@ Provide 3-5 pros, 3-5 cons, and 4-6 impacts covering different demographics. Be 
   static async analyzeAndSaveBill(billId: string): Promise<void> {
     const analysis = await this.analyzeBill(billId)
 
-    // Save AI summary to bill
     await prisma.bill.update({
       where: { id: billId },
       data: {
@@ -130,50 +165,34 @@ Provide 3-5 pros, 3-5 cons, and 4-6 impacts covering different demographics. Be 
       },
     })
 
-    // Clear existing AI-generated pros/cons and impacts for this bill
     await prisma.proCon.deleteMany({ where: { billId, source: 'ai' } })
     await prisma.impact.deleteMany({ where: { billId } })
 
-    // Save pros
     for (const pro of analysis.pros) {
       await prisma.proCon.create({
         data: {
-          billId,
-          type: 'pro',
-          title: pro.title,
-          description: pro.description,
-          category: pro.category,
-          source: 'ai',
+          billId, type: 'pro', title: pro.title,
+          description: pro.description, category: pro.category || 'Other', source: 'ai',
         },
       })
     }
 
-    // Save cons
     for (const con of analysis.cons) {
       await prisma.proCon.create({
         data: {
-          billId,
-          type: 'con',
-          title: con.title,
-          description: con.description,
-          category: con.category,
-          source: 'ai',
+          billId, type: 'con', title: con.title,
+          description: con.description, category: con.category || 'Other', source: 'ai',
         },
       })
     }
 
-    // Save impacts
     for (const impact of analysis.impacts) {
       await prisma.impact.create({
         data: {
-          billId,
-          category: impact.category,
-          demographic: impact.demographic,
-          impactType: impact.impactType,
-          shortDescription: impact.shortDescription,
-          detailedAnalysis: impact.detailedAnalysis,
-          affectedGroups: impact.affectedGroups,
-          confidence: impact.confidence,
+          billId, category: impact.category || 'Social', demographic: impact.demographic,
+          impactType: impact.impactType || 'neutral', shortDescription: impact.shortDescription,
+          detailedAnalysis: impact.detailedAnalysis, affectedGroups: impact.affectedGroups || [],
+          confidence: impact.confidence || 70,
         },
       })
     }
