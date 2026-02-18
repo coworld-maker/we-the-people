@@ -4,6 +4,8 @@ import {
   Vote, BookOpen, BarChart3, Shield, Users, ArrowRight,
   CheckCircle2, MessageSquare, FileText, TrendingUp,
 } from 'lucide-react'
+import TypewriterHero from '@/components/landing/TypewriterHero'
+import HeroStats from '@/components/landing/HeroStats'
 
 export default async function LandingPage() {
   const { userId } = await auth()
@@ -41,22 +43,28 @@ export default async function LandingPage() {
       </nav>
 
       {/* ── HERO ── */}
-      <section className="hero-gradient pt-32 pb-24 px-6">
-        <div className="max-w-3xl mx-auto text-center">
+      <section className="hero-gradient pt-32 pb-28 px-6 relative overflow-hidden">
+        {/* Subtle grid overlay */}
+        <div className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '60px 60px',
+          }}
+        />
+
+        <div className="max-w-3xl mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/[0.06] border border-white/[0.08] rounded-full mb-8 animate-in">
             <div className="w-1.5 h-1.5 bg-[--success] rounded-full" />
             <span className="text-sm text-white/50 font-medium">Tracking the 118th Congress</span>
           </div>
 
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-[1.1] mb-6 animate-in delay-100" style={{ opacity: 0 }}>
-            Understand legislation.
-            <br />
-            <span className="text-[--accent]">Make your voice heard.</span>
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-[3.5rem] font-extrabold text-white leading-[1.1] mb-2 animate-in delay-100" style={{ opacity: 0 }}>
+            <TypewriterHero />
           </h1>
 
-          <p className="text-lg text-white/40 max-w-xl mx-auto mb-10 leading-relaxed font-body animate-in delay-200" style={{ opacity: 0 }}>
-            Democracy Unlocked gives you the tools to read, analyze, and vote on
-            real Congressional bills — powered by AI that explains what they actually mean.
+          <p className="text-lg sm:text-xl text-white/30 max-w-xl mx-auto mt-6 mb-10 leading-relaxed font-body animate-in delay-200" style={{ opacity: 0 }}>
+            AI-powered bill analysis, citizen voting, and public sentiment —
+            the tools you need to participate in democracy.
           </p>
 
           <div className="flex flex-wrap justify-center gap-3 animate-in delay-300" style={{ opacity: 0 }}>
@@ -69,19 +77,8 @@ export default async function LandingPage() {
           </div>
         </div>
 
-        {/* Trust indicators */}
-        <div className="max-w-2xl mx-auto mt-16 grid grid-cols-3 gap-8 animate-in delay-400" style={{ opacity: 0 }}>
-          {[
-            { value: '50+', label: 'Bills tracked' },
-            { value: 'AI', label: 'Powered analysis' },
-            { value: 'Free', label: 'No paywall, ever' },
-          ].map(item => (
-            <div key={item.label} className="text-center">
-              <p className="font-display text-2xl font-extrabold text-white">{item.value}</p>
-              <p className="text-sm text-white/30 mt-1">{item.label}</p>
-            </div>
-          ))}
-        </div>
+        {/* Interactive stats bar */}
+        <HeroStats />
       </section>
 
       {/* ── HOW IT WORKS ── */}
@@ -98,23 +95,31 @@ export default async function LandingPage() {
             {[
               {
                 icon: BookOpen,
+                step: '01',
                 title: 'Read',
                 desc: 'AI breaks down complex legislation into clear, plain-language summaries with balanced pros and cons.',
               },
               {
                 icon: Vote,
+                step: '02',
                 title: 'Vote',
                 desc: 'Cast your position on real Congressional bills. Track your history and see how your views evolve over time.',
               },
               {
                 icon: BarChart3,
+                step: '03',
                 title: 'Understand',
                 desc: 'See how citizens across the country feel. Explore impact analysis across demographics and policy areas.',
               },
-            ].map((item, i) => (
-              <div key={item.title} className="text-center">
-                <div className="w-12 h-12 bg-[--accent-light] rounded-xl flex items-center justify-center mx-auto mb-5">
-                  <item.icon className="w-5 h-5 text-[--accent]" />
+            ].map((item) => (
+              <div key={item.title} className="text-center group">
+                <div className="relative mx-auto mb-5 w-14 h-14">
+                  <div className="w-14 h-14 bg-[--accent-light] rounded-xl flex items-center justify-center group-hover:bg-[--accent] transition-colors duration-300">
+                    <item.icon className="w-5 h-5 text-[--accent] group-hover:text-white transition-colors duration-300" />
+                  </div>
+                  <span className="absolute -top-2 -right-2 w-6 h-6 bg-[--dark] text-white text-[10px] font-bold rounded-full flex items-center justify-center font-display">
+                    {item.step}
+                  </span>
                 </div>
                 <h3 className="font-display text-lg font-bold mb-2">{item.title}</h3>
                 <p className="text-[--text-secondary] leading-relaxed text-[15px]">{item.desc}</p>
@@ -143,9 +148,9 @@ export default async function LandingPage() {
               { icon: BookOpen, title: 'Full Bill Text', desc: 'Read the complete legislative text pulled directly from Congress.gov — no paywalls or gatekeeping.' },
               { icon: Users, title: 'Public Sentiment', desc: 'See how citizens vote on every bill with real-time statistics and sentiment breakdowns.' },
             ].map(feat => (
-              <div key={feat.title} className="card p-6 lift">
-                <div className="w-10 h-10 bg-[--accent-light] rounded-lg flex items-center justify-center mb-4">
-                  <feat.icon className="w-4.5 h-4.5 text-[--accent]" />
+              <div key={feat.title} className="card p-6 lift group">
+                <div className="w-10 h-10 bg-[--accent-light] rounded-lg flex items-center justify-center mb-4 group-hover:bg-[--accent] transition-colors duration-300">
+                  <feat.icon className="w-4.5 h-4.5 text-[--accent] group-hover:text-white transition-colors duration-300" />
                 </div>
                 <h3 className="font-display text-base font-bold mb-1.5">{feat.title}</h3>
                 <p className="text-sm text-[--text-secondary] leading-relaxed">{feat.desc}</p>
@@ -187,8 +192,14 @@ export default async function LandingPage() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="hero-gradient py-24 px-6">
-        <div className="max-w-2xl mx-auto text-center">
+      <section className="hero-gradient py-24 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '60px 60px',
+          }}
+        />
+        <div className="max-w-2xl mx-auto text-center relative z-10">
           <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-4">
             Your seat at the table is waiting
           </h2>
