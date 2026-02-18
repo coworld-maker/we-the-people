@@ -9,28 +9,26 @@ export async function GET(
 ) {
   try {
     const { userId } = await auth()
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { id } = await params
-
     const { BillService } = await import('@/lib/services/billService')
     const text = await BillService.fetchAndSaveBillText(id)
 
     if (!text) {
-      return NextResponse.json({
-        text: null,
-        message: 'No text available for this bill from Congress.gov',
-      })
+      // Return the congress.gov URL so the frontend can link to it
+      const { default: prisma } = await import('@/lib/prisma')
+      const bill = await prisma.bill.findUnique({ where: { id } })
+      const fallbackUrl = bill
+        ? `https://www.congress.gov/bill/${bill.congress}th-congress/${bill.originChamber === 'senate' ? 'senate' : 'house'}-bill/${bill.billNumber}/text`
+        : null
+
+      return NextResponse.json({ text: null, fallbackUrl, message: 'Text not available via API — use the direct link.' })
     }
 
     return NextResponse.json({ text })
   } catch (error) {
-    console.error('Bill text fetch error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch bill text', details: String(error) },
-      { status: 500 }
-    )
+    console.error('Bill text error:', error)
+    return NextResponse.json({ error: 'Failed to fetch bill text', details: String(error) }, { status: 500 })
   }
 }
