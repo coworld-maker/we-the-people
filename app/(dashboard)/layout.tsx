@@ -1,5 +1,6 @@
 import { UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
+import { Vote, LayoutDashboard, FileText } from 'lucide-react'
 
 export default function DashboardLayout({
   children,
@@ -7,54 +8,52 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Top nav */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16">
+    <div className="min-h-screen bg-[--surface-secondary]">
+      {/* Nav */}
+      <nav className="sticky top-0 z-50 bg-white border-b border-[--border]">
+        <div className="max-w-6xl mx-auto px-5">
+          <div className="flex items-center justify-between h-14">
             {/* Logo */}
-            <Link href="/dashboard" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-gradient-to-br from-[#FF6B6B] to-[#6366F1] rounded-xl flex items-center justify-center shadow-md">
-                <span className="text-white text-lg">🗳️</span>
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-[--accent] rounded-lg flex items-center justify-center">
+                <Vote className="w-3.5 h-3.5 text-white" />
               </div>
-              <span className="font-display text-lg font-extrabold text-[#0F172A] tracking-tight hidden sm:block">
-                Democracy<span className="text-[#FF6B6B]">Unlocked</span>
+              <span className="font-display text-sm font-bold text-[--text] hidden sm:block">
+                Democracy Unlocked
               </span>
             </Link>
 
             {/* Nav links */}
-            <div className="flex items-center gap-1">
-              <Link
-                href="/dashboard"
-                className="px-4 py-2 text-sm font-semibold text-gray-500 hover:text-[#0F172A] hover:bg-gray-50 rounded-xl transition-colors font-body"
+            <div className="flex items-center gap-0.5">
+              <Link href="/dashboard"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[--text-secondary] hover:text-[--text] hover:bg-[--surface-secondary] rounded-md transition-colors"
               >
-                🏠 Dashboard
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Dashboard</span>
               </Link>
-              <Link
-                href="/bills"
-                className="px-4 py-2 text-sm font-semibold text-gray-500 hover:text-[#0F172A] hover:bg-gray-50 rounded-xl transition-colors font-body"
+              <Link href="/bills"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[--text-secondary] hover:text-[--text] hover:bg-[--surface-secondary] rounded-md transition-colors"
               >
-                📜 Bills
+                <FileText className="w-3.5 h-3.5" />
+                <span>Bills</span>
               </Link>
             </div>
 
             {/* User */}
-            <div className="flex items-center gap-3">
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: 'w-9 h-9 ring-2 ring-gray-100',
-                  },
-                }}
-              />
-            </div>
+            <UserButton
+              afterSignOutUrl="/"
+              appearance={{
+                elements: {
+                  avatarBox: 'w-8 h-8',
+                },
+              }}
+            />
           </div>
         </div>
       </nav>
 
       {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-6xl mx-auto px-5 py-8">
         {children}
       </main>
     </div>
