@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { FileText, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
 
-interface BillFullTextProps { billId: string; initialText: string | null; congressGovUrl: string }
+interface Props { billId: string; initialText: string | null; congressGovUrl: string }
 
-export default function BillFullText({ billId, initialText, congressGovUrl }: BillFullTextProps) {
+export default function BillFullText({ billId, initialText, congressGovUrl }: Props) {
   const [text, setText] = useState(initialText)
   const [expanded, setExpanded] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -23,34 +24,39 @@ export default function BillFullText({ billId, initialText, congressGovUrl }: Bi
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
+    <div className="card overflow-hidden">
       <button onClick={handleToggle} disabled={loading}
-        className="w-full bg-gradient-to-r from-slate-700 to-slate-800 px-6 py-4 flex items-center justify-between hover:from-slate-800 hover:to-slate-900 transition-all"
+        className="w-full px-6 py-4 flex items-center justify-between border-b border-[--border] hover:bg-[--surface-secondary] transition-colors"
       >
-        <h2 className="font-display text-lg font-bold text-white flex items-center gap-2">
-          📜 {loading ? 'Loading...' : 'Full Bill Text'}
-        </h2>
-        {text ? <span className="text-white/60 text-sm">{expanded ? '▲' : '▼'}</span>
-          : !loading ? <span className="text-sm text-slate-400 font-body">Click to load</span> : null}
+        <div className="flex items-center gap-2">
+          <FileText className="w-4 h-4 text-[--text-muted]" />
+          <h2 className="font-display text-sm font-bold text-[--text]">
+            {loading ? 'Loading...' : 'Full bill text'}
+          </h2>
+        </div>
+        {text && (expanded ? <ChevronUp className="w-4 h-4 text-[--text-muted]" /> : <ChevronDown className="w-4 h-4 text-[--text-muted]" />)}
       </button>
 
       {fallbackUrl && !text && (
-        <div className="px-6 py-4 bg-blue-50 border-t border-blue-100">
-          <p className="text-sm text-blue-800 mb-3 font-body">Full text is available on Congress.gov:</p>
-          <a href={fallbackUrl} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#6366F1] text-white rounded-xl hover:bg-[#4F46E5] font-display font-bold text-sm transition-colors"
-          >🔗 Read on Congress.gov</a>
+        <div className="px-6 py-4">
+          <p className="text-sm text-[--text-secondary] mb-3">Full text is available on Congress.gov:</p>
+          <a href={fallbackUrl} target="_blank" rel="noopener noreferrer" className="btn-primary text-sm">
+            <ExternalLink className="w-3.5 h-3.5" /> Read on Congress.gov
+          </a>
         </div>
       )}
 
       {text && expanded && (
         <div className="relative">
-          <div className="sticky top-0 z-10 px-6 py-2.5 bg-gray-50 border-b flex items-center justify-between">
-            <span className="text-xs text-gray-400 font-medium font-body">{text.length.toLocaleString()} characters</span>
-            <a href={`${congressGovUrl}/text`} target="_blank" rel="noopener noreferrer" className="text-xs text-[#6366F1] font-semibold font-body">Congress.gov →</a>
+          <div className="sticky top-0 z-10 px-6 py-2 bg-[--surface-secondary] border-b border-[--border] flex items-center justify-between">
+            <span className="text-xs text-[--text-muted]">{text.length.toLocaleString()} characters</span>
+            <a href={`${congressGovUrl}/text`} target="_blank" rel="noopener noreferrer"
+              className="text-xs text-[--accent] font-medium flex items-center gap-1 hover:text-[--accent-hover]">
+              Congress.gov <ExternalLink className="w-3 h-3" />
+            </a>
           </div>
-          <div className="px-6 py-6 max-h-[600px] overflow-y-auto bg-gray-50/30">
-            <pre className="whitespace-pre-wrap font-serif text-[15px] leading-relaxed text-gray-800">{text}</pre>
+          <div className="px-6 py-6 max-h-[600px] overflow-y-auto">
+            <pre className="whitespace-pre-wrap font-serif text-[14px] leading-relaxed text-[--text-secondary]">{text}</pre>
           </div>
         </div>
       )}
