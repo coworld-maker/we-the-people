@@ -1,78 +1,63 @@
 'use client'
 
 import { useState } from 'react'
+import { ThumbsUp, ThumbsDown, ChevronDown, ChevronUp } from 'lucide-react'
 
-interface ProCon {
-  id: string; type: string; title: string; description: string; category: string; source: string
-}
+interface ProCon { id: string; type: string; title: string; description: string; category: string; source: string }
 
 export default function ProsConsPanel({ prosCons }: { prosCons: ProCon[] }) {
   const [expanded, setExpanded] = useState(true)
-
   if (!prosCons || prosCons.length === 0) return null
 
   const pros = prosCons.filter(p => p.type === 'pro')
   const cons = prosCons.filter(p => p.type === 'con')
 
-  const categoryColors: Record<string, string> = {
-    Economy: 'bg-amber-50 text-amber-700', Environment: 'bg-emerald-50 text-emerald-700',
-    Healthcare: 'bg-rose-50 text-rose-700', Education: 'bg-blue-50 text-blue-700',
-    Security: 'bg-red-50 text-red-700', Rights: 'bg-violet-50 text-violet-700',
-    Infrastructure: 'bg-orange-50 text-orange-700', Other: 'bg-gray-50 text-gray-600',
-  }
-
   return (
-    <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
+    <div className="card overflow-hidden">
       <button onClick={() => setExpanded(!expanded)}
-        className="w-full px-6 py-4 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+        className="w-full px-6 py-4 flex items-center justify-between border-b border-[--border] hover:bg-[--surface-secondary] transition-colors"
       >
-        <h2 className="font-display text-lg font-bold text-[#0F172A]">⚖️ Arguments For &amp; Against</h2>
-        <span className="text-gray-400">{expanded ? '▲' : '▼'}</span>
+        <h2 className="font-display text-sm font-bold text-[--text]">Arguments for &amp; against</h2>
+        {expanded ? <ChevronUp className="w-4 h-4 text-[--text-muted]" /> : <ChevronDown className="w-4 h-4 text-[--text-muted]" />}
       </button>
 
       {expanded && (
-        <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100">
-          {/* Pros */}
+        <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[--border]">
           <div className="p-6">
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-lg">👍</span>
-              <h3 className="font-display font-bold text-emerald-600">Arguments For</h3>
+              <ThumbsUp className="w-4 h-4 text-emerald-600" />
+              <h3 className="font-display text-sm font-semibold text-emerald-700">In favor</h3>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {pros.map(p => (
-                <div key={p.id} className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h4 className="font-display font-bold text-[#0F172A] text-sm">{p.title}</h4>
-                    <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold ${categoryColors[p.category] || categoryColors.Other}`}>
-                      {p.category}
-                    </span>
+                <div key={p.id} className="p-4 bg-emerald-50/60 rounded-lg border border-emerald-100">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <h4 className="text-sm font-semibold text-[--text]">{p.title}</h4>
+                    <span className="badge bg-white text-[--text-secondary] border border-[--border] text-[10px]">{p.category}</span>
                   </div>
-                  <p className="text-sm text-gray-600 leading-relaxed font-body">{p.description}</p>
+                  <p className="text-sm text-[--text-secondary] leading-relaxed">{p.description}</p>
                 </div>
               ))}
-              {pros.length === 0 && <p className="text-sm text-gray-400 italic">No arguments for generated yet.</p>}
+              {pros.length === 0 && <p className="text-sm text-[--text-muted] italic">None generated yet.</p>}
             </div>
           </div>
 
-          {/* Cons */}
           <div className="p-6">
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-lg">👎</span>
-              <h3 className="font-display font-bold text-red-500">Arguments Against</h3>
+              <ThumbsDown className="w-4 h-4 text-red-500" />
+              <h3 className="font-display text-sm font-semibold text-red-600">Against</h3>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {cons.map(c => (
-                <div key={c.id} className="p-4 bg-red-50/50 rounded-xl border border-red-100">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h4 className="font-display font-bold text-[#0F172A] text-sm">{c.title}</h4>
-                    <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold ${categoryColors[c.category] || categoryColors.Other}`}>
-                      {c.category}
-                    </span>
+                <div key={c.id} className="p-4 bg-red-50/60 rounded-lg border border-red-100">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <h4 className="text-sm font-semibold text-[--text]">{c.title}</h4>
+                    <span className="badge bg-white text-[--text-secondary] border border-[--border] text-[10px]">{c.category}</span>
                   </div>
-                  <p className="text-sm text-gray-600 leading-relaxed font-body">{c.description}</p>
+                  <p className="text-sm text-[--text-secondary] leading-relaxed">{c.description}</p>
                 </div>
               ))}
-              {cons.length === 0 && <p className="text-sm text-gray-400 italic">No arguments against generated yet.</p>}
+              {cons.length === 0 && <p className="text-sm text-[--text-muted] italic">None generated yet.</p>}
             </div>
           </div>
         </div>
