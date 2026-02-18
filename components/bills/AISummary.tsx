@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { Sparkles, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react'
 
-interface AISummaryProps {
+interface Props {
   billId: string; aiSummary: string | null; officialSummary: string | null; aiAnalyzedAt: string | null
 }
 
-export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyzedAt }: AISummaryProps) {
+export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyzedAt }: Props) {
   const [summary, setSummary] = useState(aiSummary)
   const [analyzedAt, setAnalyzedAt] = useState(aiAnalyzedAt)
   const [loading, setLoading] = useState(false)
@@ -25,51 +26,52 @@ export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyz
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-amber-100">
-      <div className="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg font-bold text-white">✨ AI-Powered Summary</h2>
-          {analyzedAt && (
-            <span className="text-xs text-white/80 bg-white/20 px-2.5 py-0.5 rounded-full font-body">
-              {new Date(analyzedAt).toLocaleDateString()}
-            </span>
-          )}
+    <div className="card overflow-hidden">
+      <div className="px-6 py-4 border-b border-[--border] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-[--accent]" />
+          <h2 className="font-display text-sm font-bold text-[--text]">AI Summary</h2>
         </div>
+        {analyzedAt && <span className="text-xs text-[--text-muted]">Analyzed {new Date(analyzedAt).toLocaleDateString()}</span>}
       </div>
       <div className="p-6">
         {summary ? (
           <>
-            <p className="text-gray-700 leading-relaxed whitespace-pre-line text-[15px] font-body">{summary}</p>
+            <p className="text-[15px] text-[--text-secondary] leading-relaxed whitespace-pre-line">{summary}</p>
             {officialSummary && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="mt-4 pt-4 border-t border-[--border]">
                 <button onClick={() => setShowOfficial(!showOfficial)}
-                  className="text-sm text-[#6366F1] hover:text-[#4F46E5] font-semibold transition-colors font-body"
+                  className="flex items-center gap-1 text-sm text-[--accent] hover:text-[--accent-hover] font-medium transition-colors"
                 >
-                  📄 {showOfficial ? 'Hide' : 'Show'} Official Summary
+                  {showOfficial ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  Official summary
                 </button>
                 {showOfficial && (
-                  <div className="mt-3 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
-                    <p className="text-sm text-indigo-900 leading-relaxed font-body">{officialSummary}</p>
+                  <div className="mt-3 p-4 bg-[--surface-secondary] rounded-lg border border-[--border]">
+                    <p className="text-sm text-[--text-secondary] leading-relaxed">{officialSummary}</p>
                   </div>
                 )}
               </div>
             )}
           </>
         ) : (
-          <div className="text-center py-8">
-            <div className="text-5xl mb-4">🤖</div>
-            <h3 className="font-display text-lg font-bold text-[#0F172A] mb-2">Get an AI breakdown</h3>
-            <p className="text-gray-400 text-sm mb-5 max-w-md mx-auto font-body">
-              Plain-language summary, pros &amp; cons, and impact analysis — powered by AI.
+          <div className="text-center py-6">
+            <Sparkles className="w-8 h-8 text-[--accent] mx-auto mb-3 opacity-50" />
+            <h3 className="font-display text-base font-bold text-[--text] mb-1">Generate AI analysis</h3>
+            <p className="text-sm text-[--text-muted] mb-5 max-w-sm mx-auto">
+              Get a plain-language summary with balanced pros, cons, and impact analysis.
             </p>
-            <button onClick={handleAnalyze} disabled={loading}
-              className="inline-flex items-center gap-2 px-7 py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl hover:shadow-lg hover:shadow-amber-200 font-display font-bold text-sm disabled:opacity-50 transition-all hover:-translate-y-0.5"
-            >
-              {loading ? '⏳ Analyzing... (30-60s)' : '✨ Generate AI Analysis'}
+            <button onClick={handleAnalyze} disabled={loading} className="btn-primary">
+              {loading ? (
+                <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Analyzing...</>
+              ) : (
+                <><Sparkles className="w-3.5 h-3.5" /> Generate analysis</>
+              )}
             </button>
             {error && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-left max-w-md mx-auto">
-                <p className="text-sm text-red-700 font-body">⚠️ {error}</p>
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-left max-w-md mx-auto flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                <p className="text-sm text-red-700">{error}</p>
               </div>
             )}
           </div>
