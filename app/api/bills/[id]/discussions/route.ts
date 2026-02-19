@@ -1,87 +1,157 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { UserService } from '@/lib/services/userService'
-import { moderateContent } from '@/lib/moderation'
+import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { UserService } from '@/lib/services/userService'
+import { isAdminUserId } from '@/lib/admin'
+
+// Content moderation (inline — if you have lib/moderation.ts, import from there instead)
+function moderateContent(content: string): { ok: boolean; reason?: string } {
+  const lower = content.toLowerCase()
+
+  // Block all-caps screaming (more than 70% uppercase and > 20 chars)
+  const letters = content.replace(/[^a-zA-Z]/g, '')
+  if (letters.length > 20) {
+    const upperCount = (content.match(/[A-Z]/g) || []).length
+    if (upperCount / letters.length > 0.7) {
+      return { ok: false, reason: 'Please avoid writing in all capitals.' }
+    }
+  }
+
+  // Block spam patterns
+  const spamPatterns = [
+    /(.)\1{6,}/i,           // Same character 7+ times
+    /(buy|sell|free|click|subscribe|follow)\s+(now|here|me)/i,
+    /https?:\/\/\S+/i,      // Links (basic)
+  ]
+  for (const p of spamPatterns) {
+    if (p.test(content)) return { ok: false, reason: 'This content was flagged as spam. Please revise.' }
+  }
+
+  // Must have some substance
+  if (content.trim().length < 3) {
+    return { ok: false, reason: 'Comment is too short.' }
+  }
+
+  return { ok: true }
+}
 
 export async function GET(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id: billId } = await params
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const discussions = await prisma.discussion.findMany({
-      where: { billId, parentId: null },
-      include: {
-        user: {
-          select: { id: true, clerkId: true, firstName: true, lastName: true, createdAt: true },
-        },
-        replies: {
-          include: {
-            user: {
-              select: { id: true, clerkId: true, firstName: true, lastName: true, createdAt: true },
+  const { id: billId } = await params
+
+  const discussions = await prisma.discussion.findMany({
+    where: { billId, parentId: null },
+    include: {
+      user: { select: { id: true, firstName: true, lastName: true } },
+      replies: {
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true } },
+          replies: {
+            include: {
+              user: { select: { id: true, firstName: true, lastName: true } },
             },
+            orderBy: { createdAt: 'asc' },
           },
-          orderBy: { createdAt: 'asc' },
         },
+        orderBy: { createdAt: 'asc' },
       },
-      orderBy: { createdAt: 'desc' },
-    })
+    },
+    orderBy: { createdAt: 'desc' },
+  })
 
-    return NextResponse.json({ discussions })
-  } catch (error) {
-    console.error('Discussions GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch discussions' }, { status: 500 })
-  }
+  // Check if current user is admin
+  const isAdmin = isAdminUserId(userId)
+
+  return NextResponse.json({ discussions, isAdmin })
 }
 
 export async function POST(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { userId } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { userId: clerkUserId } = await auth()
+  if (!clerkUserId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const user = await UserService.getCurrentUser()
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  const user = await UserService.getCurrentUser()
+  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
-    const { id: billId } = await params
-    const body = await request.json()
-    const { content, parentId } = body
+  const { id: billId } = await params
+  const body = await request.json()
+  const { content, parentId } = body
 
-    // Content moderation
-    const modResult = moderateContent(content)
-    if (!modResult.allowed) {
-      return NextResponse.json({ error: modResult.reason }, { status: 400 })
-    }
-
-    const bill = await prisma.bill.findUnique({ where: { id: billId } })
-    if (!bill) return NextResponse.json({ error: 'Bill not found' }, { status: 404 })
-
-    if (parentId) {
-      const parent = await prisma.discussion.findUnique({ where: { id: parentId } })
-      if (!parent) return NextResponse.json({ error: 'Parent comment not found' }, { status: 404 })
-    }
-
-    const discussion = await prisma.discussion.create({
-      data: {
-        billId,
-        userId: user.id,
-        content: content.trim(),
-        parentId: parentId || null,
-      },
-      include: {
-        user: {
-          select: { id: true, clerkId: true, firstName: true, lastName: true, createdAt: true },
-        },
-      },
-    })
-
-    return NextResponse.json({ discussion }, { status: 201 })
-  } catch (error) {
-    console.error('Discussions POST error:', error)
-    return NextResponse.json({ error: 'Failed to post comment' }, { status: 500 })
+  if (!content || typeof content !== 'string') {
+    return NextResponse.json({ error: 'Content is required' }, { status: 400 })
   }
+
+  if (content.length > 2000) {
+    return NextResponse.json({ error: 'Comment is too long (max 2000 characters)' }, { status: 400 })
+  }
+
+  // Moderate
+  const modResult = moderateContent(content)
+  if (!modResult.ok) {
+    return NextResponse.json({ error: modResult.reason }, { status: 400 })
+  }
+
+  // Verify bill exists
+  const bill = await prisma.bill.findUnique({ where: { id: billId } })
+  if (!bill) return NextResponse.json({ error: 'Bill not found' }, { status: 404 })
+
+  // If reply, verify parent exists and limit depth
+  if (parentId) {
+    const parent = await prisma.discussion.findUnique({
+      where: { id: parentId },
+      include: { parent: true },
+    })
+    if (!parent) return NextResponse.json({ error: 'Parent comment not found' }, { status: 404 })
+    // Allow max 2 levels of nesting
+    if (parent.parent?.parentId) {
+      return NextResponse.json({ error: 'Maximum reply depth reached' }, { status: 400 })
+    }
+  }
+
+  const discussion = await prisma.discussion.create({
+    data: {
+      content: content.trim(),
+      billId,
+      userId: user.id,
+      parentId: parentId || null,
+    },
+    include: {
+      user: { select: { id: true, firstName: true, lastName: true } },
+    },
+  })
+
+  return NextResponse.json({ discussion })
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { userId: clerkUserId } = await auth()
+  if (!clerkUserId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Only admins can delete
+  if (!isAdminUserId(clerkUserId)) {
+    return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const commentId = searchParams.get('commentId')
+
+  if (!commentId) {
+    return NextResponse.json({ error: 'commentId is required' }, { status: 400 })
+  }
+
+  // Delete replies first (cascade), then the comment
+  await prisma.discussion.deleteMany({ where: { parentId: commentId } })
+  await prisma.discussion.delete({ where: { id: commentId } })
+
+  return NextResponse.json({ deleted: true })
 }
