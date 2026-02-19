@@ -15,25 +15,18 @@ export async function GET(request: Request) {
   try {
     const representatives: any[] = []
 
-    // Fetch current members from Congress.gov API
-    const headers: Record<string, string> = { 'Accept': 'application/json' }
-    if (CONGRESS_API_KEY) {
-      headers['X-Api-Key'] = CONGRESS_API_KEY
+    if (!CONGRESS_API_KEY) {
+      return NextResponse.json({
+        representatives: [],
+        error: 'Congress API key not configured. Use the external links below to find your representatives.',
+      })
     }
 
-    // Search for members by state
-    const baseUrl = 'https://api.congress.gov/v3'
-    const apiKey = CONGRESS_API_KEY ? `?api_key=${CONGRESS_API_KEY}` : ''
-
-    // Get current congress number (118th: 2023-2025, 119th: 2025-2027)
-    const currentCongress = 119
-
-    // Fetch members for the state
-    const membersUrl = `${baseUrl}/member/${state}${apiKey}&currentMember=true&limit=50`
+    const membersUrl = `https://api.congress.gov/v3/member/${state}?api_key=${CONGRESS_API_KEY}&currentMember=true&limit=50`
 
     const res = await fetch(membersUrl, {
       headers: { 'Accept': 'application/json' },
-      next: { revalidate: 86400 }, // Cache for 24 hours
+      next: { revalidate: 86400 },
     })
 
     if (res.ok) {
@@ -41,30 +34,29 @@ export async function GET(request: Request) {
       const members = data.members || []
 
       for (const member of members) {
-        // Determine chamber from terms
         const latestTerm = member.terms?.item?.[0]
         const chamber = latestTerm?.chamber === 'Senate' ? 'Senate' : 'House'
 
         representatives.push({
           name: member.name || `${member.firstName} ${member.lastName}`,
+          bioguideId: member.bioguideId || null,
           office: chamber === 'Senate'
-            ? `U.S. Senator`
+            ? 'U.S. Senator'
             : `U.S. Representative${member.district ? ` — District ${member.district}` : ''}`,
           party: member.partyName === 'Republican' ? 'R'
             : member.partyName === 'Democratic' ? 'D'
             : member.partyName?.[0] || 'I',
           state: member.state || state,
-          phone: member.directOrderName ? undefined : undefined, // API doesn't expose phone directly
+          phone: null,
           website: member.officialWebsiteUrl || member.url || null,
           chamber,
+          depiction: member.depiction?.imageUrl || null,
         })
       }
     } else {
-      // Fallback: If Congress.gov API fails, return helpful external link
-      console.error('Congress API error:', res.status, await res.text())
+      console.error('Congress API error:', res.status)
     }
 
-    // Sort: Senators first, then House
     representatives.sort((a, b) => {
       if (a.chamber === 'Senate' && b.chamber !== 'Senate') return -1
       if (a.chamber !== 'Senate' && b.chamber === 'Senate') return 1
@@ -74,6 +66,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ representatives })
   } catch (error: any) {
     console.error('Representative lookup error:', error)
-    return NextResponse.json({ error: 'Failed to look up representatives. Please try the direct links below.' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to look up representatives.' }, { status: 500 })
   }
 }
