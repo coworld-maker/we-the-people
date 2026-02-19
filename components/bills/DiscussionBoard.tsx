@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MessageSquare, Send, CornerDownRight, AlertCircle } from 'lucide-react'
+import { MessageSquare, Send, CornerDownRight, AlertCircle, Trash2, ShieldAlert } from 'lucide-react'
 
 interface User { id: string; firstName: string | null; lastName: string | null }
 interface Item { id: string; content: string; createdAt: string; user: User; replies?: Item[] }
@@ -15,12 +15,14 @@ function timeAgo(d: string) {
 const COLORS = ['bg-indigo-600','bg-emerald-600','bg-amber-600','bg-rose-600','bg-violet-600','bg-cyan-600']
 function avatarBg(id: string) { return COLORS[id.split('').reduce((a,c)=>a+c.charCodeAt(0),0)%COLORS.length] }
 
-function Comment({ c, billId, onRefresh, depth=0 }: { c: Item; billId: string; onRefresh: ()=>void; depth?: number }) {
+function Comment({ c, billId, onRefresh, depth=0, isAdmin }: { c: Item; billId: string; onRefresh: ()=>void; depth?: number; isAdmin: boolean }) {
   const [showReply, setShowReply] = useState(false)
   const [reply, setReply] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [showReplies, setShowReplies] = useState(true)
+  const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   async function handleReply() {
     if (!reply.trim()) return; setSubmitting(true); setError('')
@@ -32,16 +34,57 @@ function Comment({ c, billId, onRefresh, depth=0 }: { c: Item; billId: string; o
     } catch { setError('Network error') } finally { setSubmitting(false) }
   }
 
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/bills/${billId}/discussions?commentId=${c.id}`, { method: 'DELETE' })
+      if (!res.ok) { const d = await res.json(); setError(d.error || 'Delete failed'); return }
+      onRefresh()
+    } catch { setError('Network error') }
+    finally { setDeleting(false); setConfirmDelete(false) }
+  }
+
   return (
     <div className={depth > 0 ? 'ml-8 pl-4 border-l-2 border-[--surface-tertiary]' : ''}>
-      <div className="py-4">
+      <div className="py-4 group/comment">
         <div className="flex items-center gap-2.5 mb-2">
           <div className={`w-7 h-7 rounded-full ${avatarBg(c.user.id)} flex items-center justify-center text-white text-xs font-semibold`}>
             {(c.user.firstName||'C').charAt(0).toUpperCase()}
           </div>
           <span className="text-sm font-semibold text-[--text]">{name(c.user)}</span>
           <span className="text-xs text-[--text-muted]">{timeAgo(c.createdAt)}</span>
+
+          {/* Admin delete */}
+          {isAdmin && !confirmDelete && (
+            <button onClick={() => setConfirmDelete(true)}
+              className="ml-auto opacity-0 group-hover/comment:opacity-100 transition-opacity text-[--text-muted] hover:text-red-500"
+              title="Delete comment (admin)"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
+
+        {/* Delete confirmation */}
+        {confirmDelete && (
+          <div className="mb-2 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-red-500" />
+              <span className="text-xs text-red-700 font-medium">Delete this comment and all replies?</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setConfirmDelete(false)} className="text-xs text-[--text-muted] hover:text-[--text] font-medium">
+                Cancel
+              </button>
+              <button onClick={handleDelete} disabled={deleting}
+                className="text-xs bg-red-600 text-white px-3 py-1 rounded-md font-medium hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        )}
+
         <p className="text-[15px] text-[--text-secondary] leading-relaxed whitespace-pre-wrap mb-2">{c.content}</p>
         <div className="flex items-center gap-3">
           {depth < 2 && (
@@ -76,7 +119,7 @@ function Comment({ c, billId, onRefresh, depth=0 }: { c: Item; billId: string; o
           </div>
         )}
       </div>
-      {c.replies && showReplies && c.replies.map(r => <Comment key={r.id} c={r} billId={billId} onRefresh={onRefresh} depth={depth+1} />)}
+      {c.replies && showReplies && c.replies.map(r => <Comment key={r.id} c={r} billId={billId} onRefresh={onRefresh} depth={depth+1} isAdmin={isAdmin} />)}
     </div>
   )
 }
@@ -87,9 +130,17 @@ export default function DiscussionBoard({ billId }: { billId: string }) {
   const [text, setText] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
 
   async function load() {
-    try { const res = await fetch(`/api/bills/${billId}/discussions`); if(res.ok){const d=await res.json();setDiscussions(d.discussions)} } catch{} finally{setLoading(false)}
+    try {
+      const res = await fetch(`/api/bills/${billId}/discussions`)
+      if (res.ok) {
+        const d = await res.json()
+        setDiscussions(d.discussions)
+        setIsAdmin(d.isAdmin || false)
+      }
+    } catch {} finally { setLoading(false) }
   }
   useEffect(() => { load() }, [billId])
 
@@ -109,6 +160,11 @@ export default function DiscussionBoard({ billId }: { billId: string }) {
         <div className="flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-[--text-muted]" />
           <h2 className="font-display text-sm font-bold text-[--text]">Discussion</h2>
+          {isAdmin && (
+            <span className="badge bg-amber-50 text-amber-700 border border-amber-200 text-[10px]">
+              <ShieldAlert className="w-3 h-3" /> Admin
+            </span>
+          )}
         </div>
         <span className="text-xs text-[--text-muted]">{discussions.length} comment{discussions.length !== 1 ? 's' : ''}</span>
       </div>
@@ -142,7 +198,7 @@ export default function DiscussionBoard({ billId }: { billId: string }) {
           </div>
         ) : (
           <div className="divide-y divide-[--border]">
-            {discussions.map(d => <Comment key={d.id} c={d} billId={billId} onRefresh={load} />)}
+            {discussions.map(d => <Comment key={d.id} c={d} billId={billId} onRefresh={load} isAdmin={isAdmin} />)}
           </div>
         )}
       </div>
