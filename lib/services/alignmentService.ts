@@ -128,7 +128,7 @@ export class AlignmentService {
    * Returns the member's position or null if no roll call vote found.
    */
   private static async getMemberVoteOnBill(
-    congress: number,
+    congress: number | string,
     billType: string,
     billNumber: string,
     bioguideId: string,
