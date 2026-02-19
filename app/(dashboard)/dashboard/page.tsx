@@ -24,8 +24,8 @@ export default async function DashboardPage() {
   if (!user) redirect('/sign-in')
 
   const profile = await GamificationService.getCivicProfile(user.id)
-  const recommended = await GamificationService.getBillsForYou(user.id)
-  const activity = await GamificationService.getActivityFeed()
+  const recommended = await GamificationService.getBillsForYou(user.id, 5)
+  const activity = await GamificationService.getActivityFeed(15)
 
   // Strip check functions from badges for client serialization
   const serializedBadges = profile.badges.map(({ check, ...rest }) => rest)
@@ -83,15 +83,13 @@ export default async function DashboardPage() {
     }))
 
   const impactStats = {
-    alignmentPct: profile.totalVotes > 0 ? Math.min(Math.round((profile.totalVotes / (profile.totalVotes + 5)) * 100), 95) : 0,
+    alignmentPct: profile.stats.totalVotes > 0 ? Math.min(Math.round((profile.stats.totalVotes / (profile.stats.totalVotes + 5)) * 100), 95) : 0,
     billsInfluenced: userVoteCount,
     communityDiscussions: userDiscussionCount,
     representativeContacts: 0, // Future: track outbound contact actions
   }
 
-  const daysSinceJoin = Math.floor(
-    (Date.now() - new Date(user.createdAt).getTime()) / 86400000
-  )
+  const daysSinceJoin = profile.stats.joinedDaysAgo
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -103,7 +101,7 @@ export default async function DashboardPage() {
               Welcome back, {user.firstName || 'Citizen'}
             </h1>
             <p className="text-sm text-white/40">
-              Level {profile.level.level}: {profile.level.name} · {profile.totalXP} XP
+              {profile.level.emoji} {profile.level.name} · {profile.score} XP
               {profile.streak > 0 && (
                 <span className="inline-flex items-center gap-1 ml-3">
                   <Flame className="w-3.5 h-3.5 text-amber-400" /> {profile.streak}-day streak
@@ -117,8 +115,8 @@ export default async function DashboardPage() {
       {/* Quick stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: Vote, label: 'Votes', value: profile.totalVotes, color: 'text-[--accent]' },
-          { icon: MessageSquare, label: 'Comments', value: profile.totalComments, color: 'text-purple-600' },
+          { icon: Vote, label: 'Votes', value: profile.stats.totalVotes, color: 'text-[--accent]' },
+          { icon: MessageSquare, label: 'Comments', value: profile.stats.totalComments, color: 'text-purple-600' },
           { icon: Award, label: 'Badges', value: serializedBadges.filter((b: any) => b.earned).length, color: 'text-amber-600' },
           { icon: Calendar, label: 'Member for', value: daysSinceJoin < 1 ? 'Today' : `${daysSinceJoin}d`, color: 'text-emerald-600' },
         ].map(s => (
@@ -152,11 +150,14 @@ export default async function DashboardPage() {
 
       {/* Row 4: Score ring + Vote charts */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <CivicScoreRing profile={profile} />
-        <VoteCharts
-          votes={{ yes: profile.totalVotes > 0 ? Math.round(profile.totalVotes * 0.6) : 0, no: profile.totalVotes > 0 ? Math.round(profile.totalVotes * 0.3) : 0, abstain: profile.totalVotes > 0 ? Math.round(profile.totalVotes * 0.1) : 0 }}
-          policyAreas={profile.policyAreas}
+        <CivicScoreRing
+          score={profile.score}
+          level={profile.level}
+          nextLevel={profile.nextLevel}
+          progressToNext={profile.progressToNext}
+          streak={profile.streak}
         />
+        <VoteCharts stats={profile.stats} votesByPolicy={profile.votesByPolicy} />
       </div>
 
       {/* Badges */}
