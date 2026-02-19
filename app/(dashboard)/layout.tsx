@@ -4,6 +4,8 @@ import {
   Vote, LayoutDashboard, FileText, Newspaper, Grid3X3, Info,
   Landmark, GraduationCap, BarChart3,
 } from 'lucide-react'
+import Breadcrumbs from '@/components/ui/Breadcrumbs'
+import PageTransition from '@/components/ui/PageTransition'
 
 export default function DashboardLayout({
   children,
@@ -47,7 +49,10 @@ export default function DashboardLayout({
       </nav>
 
       <main className="max-w-6xl mx-auto px-5 py-8">
-        {children}
+        <Breadcrumbs />
+        <PageTransition>
+          {children}
+        </PageTransition>
       </main>
     </div>
   )
