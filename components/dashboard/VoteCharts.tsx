@@ -6,9 +6,9 @@ interface Props {
 }
 
 function DonutChart({ yes, no, abstain, total }: { yes: number; no: number; abstain: number; total: number }) {
-  if (total === 0) return <p className="text-sm text-[--text-muted] text-center py-6">No votes yet</p>
+  if (total === 0) return <p className="text-sm text-[--text-muted] text-center py-8">No votes yet</p>
 
-  const size = 120; const cx = 60; const cy = 60; const r = 45; const sw = 14
+  const size = 140; const cx = 70; const cy = 70; const r = 52; const sw = 16
   const circ = 2 * Math.PI * r
 
   const segments = [
@@ -19,7 +19,7 @@ function DonutChart({ yes, no, abstain, total }: { yes: number; no: number; abst
 
   let cumulative = 0
   return (
-    <div className="flex items-center gap-6">
+    <div className="flex flex-col sm:flex-row items-center gap-6">
       <div className="relative shrink-0">
         <svg width={size} height={size} className="-rotate-90">
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--surface-tertiary)" strokeWidth={sw} />
@@ -34,20 +34,20 @@ function DonutChart({ yes, no, abstain, total }: { yes: number; no: number; abst
           })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-display text-xl font-extrabold text-[--text]">{total}</span>
+          <span className="font-display text-2xl font-extrabold text-[--text]">{total}</span>
           <span className="text-[10px] text-[--text-muted]">votes</span>
         </div>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {[
           { label: 'Yes', v: yes, color: '#22C55E' },
           { label: 'No', v: no, color: '#E5484D' },
           { label: 'Abstain', v: abstain, color: '#8A8F98' },
         ].map(item => (
-          <div key={item.label} className="flex items-center gap-2.5">
-            <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
-            <span className="text-sm text-[--text] font-medium w-14">{item.label}</span>
-            <span className="text-sm font-semibold text-[--text]">{total > 0 ? Math.round((item.v / total) * 100) : 0}%</span>
+          <div key={item.label} className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
+            <span className="text-sm text-[--text] font-medium w-16">{item.label}</span>
+            <span className="text-sm font-bold text-[--text] w-10 text-right">{total > 0 ? Math.round((item.v / total) * 100) : 0}%</span>
             <span className="text-xs text-[--text-muted]">({item.v})</span>
           </div>
         ))}
@@ -57,7 +57,7 @@ function DonutChart({ yes, no, abstain, total }: { yes: number; no: number; abst
 }
 
 function PolicyBars({ data }: { data: Array<{ policy: string; count: number }> }) {
-  if (data.length === 0) return <p className="text-sm text-[--text-muted] text-center py-6">Vote on bills to see policy breakdown</p>
+  if (data.length === 0) return <p className="text-sm text-[--text-muted] text-center py-8">Vote on bills to see policy breakdown</p>
   const max = Math.max(...data.map(d => d.count))
 
   return (
@@ -80,13 +80,13 @@ function PolicyBars({ data }: { data: Array<{ policy: string; count: number }> }
 
 export default function VoteCharts({ stats, votesByPolicy }: Props) {
   return (
-    <div className="grid sm:grid-cols-2 gap-6">
+    <div className="grid md:grid-cols-2 gap-6">
       <div className="card p-6">
-        <h3 className="font-display text-sm font-bold text-[--text] mb-4">Vote distribution</h3>
+        <h3 className="font-display text-sm font-bold text-[--text] mb-5">Vote distribution</h3>
         <DonutChart yes={stats.yesVotes} no={stats.noVotes} abstain={stats.abstainVotes} total={stats.totalVotes} />
       </div>
       <div className="card p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-5">
           <h3 className="font-display text-sm font-bold text-[--text]">Policy areas</h3>
           <span className="badge bg-[--accent-light] text-[--accent]">{stats.policyAreas} explored</span>
         </div>
