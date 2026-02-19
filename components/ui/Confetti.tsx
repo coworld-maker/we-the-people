@@ -17,7 +17,7 @@ const COLORS = ['#635BFF', '#00D4AA', '#F5A623', '#E5484D', '#818CF8', '#38BDF8'
 
 export default function Confetti({ active, duration = 3000 }: ConfettiProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const animRef = useRef<number>()
+  const animRef = useRef<number | null>(null)
   const particles = useRef<Particle[]>([])
   const startTime = useRef<number>(0)
 
