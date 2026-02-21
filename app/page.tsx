@@ -2,8 +2,7 @@ import Link from 'next/link'
 import { auth } from '@clerk/nextjs/server'
 import {
   Vote, BookOpen, BarChart3, Shield, Users, ArrowRight,
-  CheckCircle2, MessageSquare, FileText, TrendingUp,
-  Star, Activity, Globe
+  MessageSquare, FileText, TrendingUp, Zap
 } from 'lucide-react'
 import TypewriterHero from '@/components/landing/TypewriterHero'
 
@@ -14,12 +13,8 @@ const FEATURES = [
   { icon: MessageSquare, title: 'Verified Discourse', desc: 'Debate the merits of bills with real, verified citizens.', colSpan: 'md:col-span-1' },
   { icon: TrendingUp, title: 'Civic Score', desc: 'Earn badges and level up your civic engagement profile.', colSpan: 'md:col-span-1' },
   { icon: BookOpen, title: 'Direct Sources', desc: 'Full legislative text pulled straight from Congress.gov.', colSpan: 'md:col-span-1' },
-  { icon: Users, title: 'National Sentiment', desc: 'Real-time heatmaps of how the country is voting.', colSpan: 'md:col-span-2 lg:col-span-1' },
+  { icon: Users, title: 'National Sentiment', desc: 'See how citizens across the country are voting on legislation.', colSpan: 'md:col-span-2 lg:col-span-1' },
 ]
-
-// Avatar initials as fallback instead of external images
-const AVATAR_COLORS = ['bg-blue-500', 'bg-purple-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500']
-const AVATAR_INITIALS = ['JM', 'SK', 'AR', 'TC', 'LP']
 
 export default async function LandingPage() {
   const { userId } = await auth()
@@ -71,10 +66,10 @@ export default async function LandingPage() {
 
         <div className="max-w-5xl mx-auto text-center relative z-10 flex flex-col items-center">
 
-          {/* Top App Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mb-8 backdrop-blur-md hover:bg-white/10 transition-colors cursor-default">
-            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-            <span className="text-sm font-medium text-white/90">Rated #1 Civic Engagement Platform</span>
+          {/* Badge — honest */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mb-8 backdrop-blur-md">
+            <Zap className="w-4 h-4 text-[--accent]" />
+            <span className="text-sm font-medium text-white/90">Free &amp; open source civic engagement</span>
           </div>
 
           <h1 className="font-display text-5xl sm:text-7xl lg:text-[5rem] font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60 leading-[1.1] tracking-tight mb-8">
@@ -82,62 +77,29 @@ export default async function LandingPage() {
           </h1>
 
           <p className="text-xl sm:text-2xl text-white/60 max-w-3xl mx-auto mb-10 leading-relaxed font-light">
-            Stop scrolling the news. Start shaping it. Join hundreds of thousands of Americans reading, voting, and discussing real legislation.
+            Read real legislation. Cast your vote. See how your views compare to Congress. All powered by AI and official data from Congress.gov.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
             <Link href={userId ? '/dashboard' : '/sign-up'} className="w-full sm:w-auto flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-full bg-gradient-to-r from-[--accent] to-blue-600 text-white shadow-xl shadow-[--accent]/20 hover:scale-105 hover:shadow-2xl hover:shadow-[--accent]/40 transition-all duration-300">
               Start voting now <ArrowRight className="w-5 h-5 ml-2" />
             </Link>
+            <Link href="/bills" className="w-full sm:w-auto flex items-center justify-center px-8 py-4 text-lg font-medium rounded-full border border-white/20 text-white/80 hover:bg-white/5 hover:text-white transition-all duration-300">
+              Browse bills
+            </Link>
           </div>
 
-          {/* Social Proof Avatars */}
-          <div className="mt-10 flex items-center gap-4 bg-white/5 border border-white/10 py-3 px-6 rounded-full backdrop-blur-sm">
-            <div className="flex -space-x-3">
-              {AVATAR_INITIALS.map((initials, i) => (
-                <div key={i} className={`w-10 h-10 rounded-full border-2 border-[#0A0A0A] ${AVATAR_COLORS[i]} flex items-center justify-center text-xs font-bold text-white`}>
-                  {initials}
-                </div>
-              ))}
-            </div>
-            <div className="text-left">
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((i) => <Star key={i} className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />)}
-              </div>
-              <p className="text-sm text-white/80 font-medium">Joined by 150,000+ citizens</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Floating Glassmorphism Card (Simulating Live Action) */}
-        <div className="hidden lg:flex absolute left-10 bottom-20 bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-2xl shadow-2xl animate-bounce" style={{ animationDuration: '4s' }}>
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
-              <Activity className="w-6 h-6 text-green-400" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-white">New vote cast in Ohio</p>
-              <p className="text-xs text-white/60">H.R. 815 · 2 seconds ago</p>
-            </div>
+          {/* Value props instead of fake social proof */}
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-white/50">
+            {['Free forever', 'No ads', 'Nonpartisan', 'Privacy-first'].map(item => (
+              <span key={item} className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-[--success] rounded-full" />
+                {item}
+              </span>
+            ))}
           </div>
         </div>
       </section>
-
-      {/* ── LIVE TICKER (Infinite Scroll Marquee) ── */}
-      <div className="w-full bg-[--accent] py-3 overflow-hidden border-y border-white/10 flex relative z-20">
-        <div className="flex whitespace-nowrap animate-marquee items-center gap-10 px-4">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="flex items-center gap-10">
-              <span className="flex items-center gap-2 text-white font-semibold"><Globe className="w-4 h-4" /> LIVE: Senate passes S. 1421</span>
-              <span className="w-1.5 h-1.5 bg-white rounded-full" />
-              <span className="text-white/80">Trending: 8,492 citizens debating H.R. 2</span>
-              <span className="w-1.5 h-1.5 bg-white rounded-full" />
-              <span className="text-white/80">Just In: AI Summary available for AI Regulation Act</span>
-              <span className="w-1.5 h-1.5 bg-white rounded-full" />
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* ── BENTO GRID FEATURES ── */}
       <section className="py-32 px-6 bg-black relative">
@@ -163,10 +125,55 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── CTA ── */}
+      {/* ── HOW IT WORKS ── */}
       <section className="py-32 px-6 bg-[#0A0A0A]">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="font-display text-4xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
+              Three steps to civic power.
+            </h2>
+            <p className="text-xl text-white/50 max-w-2xl mx-auto">No jargon. No spin. Just you and the legislation.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: BookOpen,
+                step: '01',
+                title: 'Read',
+                desc: 'AI breaks down complex legislation into clear, plain-language summaries with balanced pros and cons.',
+              },
+              {
+                icon: Vote,
+                step: '02',
+                title: 'Vote',
+                desc: 'Cast your position on real Congressional bills. Track your history and see how your views evolve.',
+              },
+              {
+                icon: BarChart3,
+                step: '03',
+                title: 'Compare',
+                desc: 'See your alignment score with your elected representatives based on actual roll call votes.',
+              },
+            ].map((item) => (
+              <div key={item.title} className="relative bg-[#111] border border-white/10 rounded-2xl p-8 group hover:border-white/20 transition-all">
+                <span className="absolute -top-3 -left-3 w-8 h-8 bg-[--accent] text-white text-xs font-bold rounded-full flex items-center justify-center font-display">
+                  {item.step}
+                </span>
+                <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-5 group-hover:bg-[--accent]/20 transition-colors">
+                  <item.icon className="w-6 h-6 text-[--accent]" />
+                </div>
+                <h3 className="font-display text-xl font-bold text-white mb-2">{item.title}</h3>
+                <p className="text-white/50 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA ── */}
+      <section className="py-32 px-6 bg-black">
         <div className="max-w-6xl mx-auto bg-gradient-to-br from-indigo-900 to-[--dark] rounded-[3rem] p-10 sm:p-20 text-center relative overflow-hidden shadow-2xl border border-white/10">
-          {/* Subtle noise texture via CSS gradient */}
           <div className="absolute inset-0 opacity-10 pointer-events-none"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E")`,
@@ -177,10 +184,10 @@ export default async function LandingPage() {
               Ready to take your seat at the table?
             </h2>
             <p className="text-2xl text-white/70 mb-12">
-              Free, private, and fiercely nonpartisan. Join the movement today.
+              Free, private, and fiercely nonpartisan.
             </p>
             <Link href={userId ? '/dashboard' : '/sign-up'} className="inline-flex items-center justify-center px-10 py-5 text-xl font-bold rounded-full bg-white text-black hover:scale-105 hover:bg-gray-100 transition-all shadow-xl shadow-white/10">
-              Unlock Democracy Now <ArrowRight className="w-6 h-6 ml-2" />
+              Get Started — It&apos;s Free <ArrowRight className="w-6 h-6 ml-2" />
             </Link>
           </div>
         </div>
