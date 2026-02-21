@@ -107,6 +107,11 @@
   50% { opacity: 0; }
 }
 
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
 .animate-in {
   animation: fadeIn 0.5s ease-out forwards;
 }
@@ -115,6 +120,9 @@
 }
 .animate-blink {
   animation: blink 0.8s step-end infinite;
+}
+.animate-marquee {
+  animation: marquee 20s linear infinite;
 }
 
 .delay-100 { animation-delay: 0.1s; }
