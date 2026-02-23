@@ -21,17 +21,14 @@ export default function TypewriterHero() {
     const current = PHRASES[phraseIndex]
 
     if (!isDeleting) {
-      // Typing
       setText(current.substring(0, charIndex + 1))
       setCharIndex(prev => prev + 1)
 
       if (charIndex + 1 === current.length) {
-        // Pause at end of phrase
         setTimeout(() => setIsDeleting(true), 2000)
         return
       }
     } else {
-      // Deleting
       setText(current.substring(0, charIndex - 1))
       setCharIndex(prev => prev - 1)
 
@@ -50,9 +47,16 @@ export default function TypewriterHero() {
   }, [tick, isDeleting])
 
   return (
-    <span className="text-[--accent]">
-      {text}
-      <span className="inline-block w-[3px] h-[1em] bg-[--accent] ml-0.5 align-middle animate-blink" />
+    <span className="text-[--accent] inline-grid">
+      {/* Invisible sizer: renders all phrases stacked, takes the height of the tallest */}
+      <span className="col-start-1 row-start-1 invisible pointer-events-none" aria-hidden="true">
+        {PHRASES.reduce((a, b) => a.length > b.length ? a : b)}
+      </span>
+      {/* Visible typed text */}
+      <span className="col-start-1 row-start-1">
+        {text}
+        <span className="inline-block w-[3px] h-[1em] bg-[--accent] ml-0.5 align-middle animate-blink" />
+      </span>
     </span>
   )
 }
