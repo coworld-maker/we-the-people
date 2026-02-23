@@ -45,11 +45,11 @@ export default function HomePage() {
             Democracy Unlocked
           </h1>
           
-          {/* Fixed height container to prevent layout shift */}
-          <div className="h-8 mb-8">
+          {/* Fixed container prevents layout shift */}
+          <div className="mb-8">
             <p className="text-xl text-gray-600">
-              Vote on{' '}
-              <span className="inline-block min-w-[280px] text-left">
+              Your Voice in Democracy - Vote on{' '}
+              <span className="inline-block align-bottom" style={{ width: '220px', textAlign: 'left' }}>
                 <span className="text-blue-600 font-semibold">
                   {typedText}
                   <span className="animate-pulse">|</span>
