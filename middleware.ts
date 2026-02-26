@@ -2,7 +2,8 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
 const isPublicRoute = createRouteMatcher([
   '/',                          // landing page
-  '/api/sync-congress-votes',   // sync endpoint (protected by CRON_SECRET instead)
+  '/api/sync-bills',            // bill sync (protected by CRON_SECRET instead)
+  '/api/sync-congress-votes',   // vote sync (protected by CRON_SECRET instead)
   '/api/alignment',             // alignment API
 ]);
 
