@@ -2,6 +2,10 @@ import { UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
 import {
   Vote, LayoutDashboard, FileText, Newspaper, Grid3X3, Info,
+  Landmark, GraduationCap, BarChart3, ScrollText,
+} from 'lucide-react'
+import {
+  Vote, LayoutDashboard, FileText, Newspaper, Grid3X3, Info,
   Landmark, GraduationCap, BarChart3,
 } from 'lucide-react'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
@@ -29,6 +33,7 @@ export default function DashboardLayout({
             <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
               <NavLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" />
               <NavLink href="/bills" icon={FileText} label="Bills" />
+              <NavLink href="/documents" icon={ScrollText} label="Documents" />
               <NavLink href="/policy-areas" icon={Grid3X3} label="Policy" />
               <NavLink href="/action-center" icon={Landmark} label="Action" />
               <NavLink href="/scorecards" icon={BarChart3} label="Scorecards" />
