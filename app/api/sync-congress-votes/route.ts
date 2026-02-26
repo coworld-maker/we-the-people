@@ -1,57 +1,23 @@
 // app/api/sync-congress-votes/route.ts
-// Syncs how Congress members voted on bills into the CongressVote table.
-//
-// Usage:
-//   POST /api/sync-congress-votes
-//   Body (JSON):
-//     { "billId": "119-hr-1234" }           ← sync one bill
-//     { "syncAll": true }                    ← sync all bills in DB (slow, use sparingly)
-//     { "congress": "119" }                  ← sync all bills from a given congress
-//
-// Protected: requires SYNC_SECRET header to match CRON_SECRET env var
-// Can also be triggered by a Vercel cron job.
-
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import {
-  fetchAllMemberVotesForBill,
-  getBillRollCallRefs,
-  getHouseMemberVotes,
-  getSenateMemberVotes,
-  type MemberVote,
-  type RollCallVoteRef,
-} from '@/lib/congress-votes'
+import { fetchAllMemberVotesForBill } from '@/lib/congress-votes'
 import { randomUUID } from 'crypto'
 
-// -----------------------------------------------------------------------
-// Auth guard — protect against unauthorized syncs
-// -----------------------------------------------------------------------
 function isAuthorized(req: NextRequest): boolean {
   const secret = req.headers.get('x-sync-secret')
   return secret === process.env.CRON_SECRET
 }
 
-// -----------------------------------------------------------------------
-// Parse billId → { congress, billType, billNumber }
-// billId format in DB: "{congress}-{billType}-{billNumber}"
-// e.g. "119-hr-1234" or "118-s-500"
-// -----------------------------------------------------------------------
-function parseBillId(billId: string): { congress: string; billType: string; billNumber: string } | null {
-  const parts = billId.split('-')
-  if (parts.length < 3) return null
-  const [congress, billType, ...rest] = parts
-  return { congress, billType, billNumber: rest.join('-') }
-}
-
-// -----------------------------------------------------------------------
-// Core sync function for a single bill
-// -----------------------------------------------------------------------
 async function syncBill(bill: { id: string; congress: string; billType: string; billNumber: string }) {
-  const { id: billId, congress, billType, billNumber } = bill
-  const results = await fetchAllMemberVotesForBill(congress, billType, billNumber)
+  const results = await fetchAllMemberVotesForBill(
+    bill.congress,
+    bill.billType,
+    bill.billNumber
+  )
 
   if (!results.length) {
-    return { billId, synced: 0, skipped: true, reason: 'no_roll_calls' }
+    return { billId: bill.id, synced: 0, skipped: true, reason: 'no_roll_calls' }
   }
 
   const { ref, members } = results[0]
@@ -60,12 +26,12 @@ async function syncBill(bill: { id: string; congress: string; billType: string; 
   for (const member of members) {
     try {
       await prisma.$executeRaw`
-        INSERT INTO public."CongressVote" 
+        INSERT INTO public."CongressVote"
           ("id", "bioguideId", "billId", "position", "chamber", "rollNumber", "congress", "session", "votedAt", "createdAt", "updatedAt")
         VALUES (
           ${randomUUID()},
           ${member.bioguideId},
-          ${billId},
+          ${bill.id},
           ${member.position},
           ${ref.chamber},
           ${ref.rollNumber},
@@ -83,16 +49,17 @@ async function syncBill(bill: { id: string; congress: string; billType: string; 
       `
       synced++
     } catch (err) {
-      console.error(`Failed to upsert vote for ${member.bioguideId} on ${billId}:`, err)
+      console.error(`Failed to upsert vote for ${member.bioguideId} on ${bill.id}:`, err)
     }
   }
 
-  return { billId, synced, chamber: ref.chamber, rollNumber: ref.rollNumber }
+  return { billId: bill.id, synced, chamber: ref.chamber, rollNumber: ref.rollNumber }
 }
 
-// -----------------------------------------------------------------------
-// POST handler
-// -----------------------------------------------------------------------
+// POST /api/sync-congress-votes
+// Body: { "billId": "cmlq6d9z6000104l5517420nv" }  ← single bill (DB cuid)
+//       { "congress": "119" }                        ← all bills from a congress
+//       { "syncAll": true }                          ← all bills (batched, slow)
 export async function POST(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -101,29 +68,30 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const { billId, syncAll, congress: congressFilter } = body
 
-  // --- Single bill sync ---
+  // --- Single bill ---
   if (billId) {
-    const parsed = parseBillId(billId)
-    if (!parsed) {
-      return NextResponse.json({ error: 'Invalid billId format. Expected: {congress}-{billType}-{billNumber}' }, { status: 400 })
+    const bill = await prisma.bill.findUnique({
+      where: { id: billId },
+      select: { id: true, congress: true, billType: true, billNumber: true },
+    })
+    if (!bill) {
+      return NextResponse.json({ error: `Bill not found: ${billId}` }, { status: 404 })
     }
-
     try {
-      const result = await syncBill({ id: billId, ...parsed })
+      const result = await syncBill(bill)
       return NextResponse.json({ success: true, result })
     } catch (err: any) {
       return NextResponse.json({ error: err.message }, { status: 500 })
     }
   }
 
-  // --- Sync all bills (or by congress) ---
+  // --- Batch sync ---
   if (syncAll || congressFilter) {
     const where = congressFilter ? { congress: String(congressFilter) } : {}
-
     const bills = await prisma.bill.findMany({
       where,
       select: { id: true, congress: true, billType: true, billNumber: true },
-      take: 100, // safety limit — run in batches
+      take: 100,
     })
 
     const results = []
@@ -134,8 +102,7 @@ export async function POST(req: NextRequest) {
         const result = await syncBill(bill)
         results.push(result)
         totalSynced += result.synced ?? 0
-        // Rate limit: Congress.gov allows 5000 req/hr
-        await new Promise(r => setTimeout(r, 300))
+        await new Promise(r => setTimeout(r, 300)) // stay under 5000 req/hr rate limit
       } catch (err: any) {
         results.push({ billId: bill.id, error: err.message })
       }
@@ -150,15 +117,12 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(
-    { error: 'Provide billId, syncAll: true, or congress: "119"' },
+    { error: 'Provide billId (DB cuid), congress: "119", or syncAll: true' },
     { status: 400 }
   )
 }
 
-// -----------------------------------------------------------------------
-// GET handler — check sync status for a bill
-// GET /api/sync-congress-votes?billId=119-hr-1234
-// -----------------------------------------------------------------------
+// GET /api/sync-congress-votes?billId=<cuid>  ← check sync status
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
