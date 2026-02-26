@@ -42,7 +42,7 @@ export class CongressAPI {
     }
   }
 
-  static async getRecentBills(congress: number = 118, limit: number = 20) {
+  static async getRecentBills(congress: number = 119, limit: number = 20) {
     const data = await this.makeRequest(
       `/bill/${congress}?limit=${limit}&sort=updateDate+desc`
     )
@@ -190,7 +190,7 @@ export class CongressAPI {
   }
 
   static async getCurrentMembers(chamber: 'house' | 'senate') {
-    const congress = 118
+    const congress = 119
     const data = await this.makeRequest(
       `/member/${congress}/${chamber}`
     )
