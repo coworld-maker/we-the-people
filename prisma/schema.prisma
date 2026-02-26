@@ -172,7 +172,24 @@ model Representative {
   @@index([state])
   @@index([bioguideId])
 }
+model CongressVote {
+  id          String    @id @default(cuid())
+  bioguideId  String
+  billId      String
+  position    String    // 'yea' | 'nay' | 'not_voting' | 'present'
+  chamber     String    // 'house' | 'senate'
+  rollNumber  Int?
+  congress    Int?
+  session     Int?
+  votedAt     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
+  @@unique([bioguideId, billId])
+  @@index([bioguideId])
+  @@index([billId])
+  @@index([position])
+}
 model Notification {
   id        String   @id @default(cuid())
   userId    String
