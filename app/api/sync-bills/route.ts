@@ -1,14 +1,4 @@
 // app/api/sync-bills/route.ts
-// Fetches bills from Congress.gov and saves them to the database.
-//
-// POST /api/sync-bills
-// Body:
-//   { "congress": 119, "limit": 50 }              ← fetch recent bills
-//   { "congress": 119, "policyArea": "Health" }    ← fetch by policy area
-//   { "congress": 119, "limit": 250, "offset": 0 } ← paginated full sync
-//
-// Protected by CRON_SECRET header
-
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
@@ -16,50 +6,39 @@ const CONGRESS_API_BASE = 'https://api.congress.gov/v3'
 const API_KEY = process.env.CONGRESS_API_KEY
 
 function isAuthorized(req: NextRequest): boolean {
-  const secret = req.headers.get('x-sync-secret')
-  return secret === process.env.CRON_SECRET
+  return req.headers.get('x-sync-secret') === process.env.CRON_SECRET
 }
 
 async function fetchBills(congress: number, limit: number, offset: number, policyArea?: string) {
   let url = `${CONGRESS_API_BASE}/bill/${congress}?limit=${limit}&offset=${offset}&sort=updateDate+desc&api_key=${API_KEY}&format=json`
   if (policyArea) url += `&policyArea=${encodeURIComponent(policyArea)}`
-
   const res = await fetch(url)
-  if (!res.ok) throw new Error(`Congress API error: ${res.status}`)
+  if (!res.ok) throw new Error(`Congress API error: ${res.status} - ${await res.text()}`)
   const data = await res.json()
   return data.bills ?? []
 }
 
 async function fetchBillDetails(congress: number, billType: string, billNumber: string) {
-  const url = `${CONGRESS_API_BASE}/bill/${congress}/${billType.toLowerCase()}/${billNumber}?api_key=${API_KEY}&format=json`
-  const res = await fetch(url)
-  if (!res.ok) return null
-  const data = await res.json()
-  return data.bill ?? null
+  try {
+    const url = `${CONGRESS_API_BASE}/bill/${congress}/${billType.toLowerCase()}/${billNumber}?api_key=${API_KEY}&format=json`
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.bill ?? null
+  } catch {
+    return null
+  }
 }
 
-function normalizeStatus(bill: any): string {
-  const actions = bill.latestAction?.text?.toLowerCase() ?? ''
-  if (bill.laws?.length > 0) return 'enacted'
-  if (actions.includes('became public law') || actions.includes('signed by president')) return 'enacted'
-  if (actions.includes('passed senate') && actions.includes('passed house')) return 'passed_both'
-  if (actions.includes('passed senate')) return 'passed_chamber'
-  if (actions.includes('passed house')) return 'passed_chamber'
-  if (actions.includes('referred to')) return 'in_committee'
-  if (actions.includes('reported')) return 'reported'
+function normalizeStatus(latestActionText: string, laws: any[]): string {
+  const text = latestActionText?.toLowerCase() ?? ''
+  if (laws?.length > 0) return 'enacted'
+  if (text.includes('became public law') || text.includes('signed by president')) return 'enacted'
+  if (text.includes('passed senate') && text.includes('passed house')) return 'passed_both'
+  if (text.includes('passed senate') || text.includes('passed house')) return 'passed_chamber'
+  if (text.includes('reported')) return 'reported'
+  if (text.includes('referred to')) return 'in_committee'
   return 'introduced'
-}
-
-function buildSponsors(bill: any): any {
-  if (!bill.sponsors?.length) return []
-  return bill.sponsors.map((s: any) => ({
-    bioguideId: s.bioguideId,
-    firstName: s.firstName,
-    lastName: s.lastName,
-    party: s.party,
-    state: s.state,
-    district: s.district,
-  }))
 }
 
 export async function POST(req: NextRequest) {
@@ -75,7 +54,7 @@ export async function POST(req: NextRequest) {
   const congress = body.congress ?? 119
   const limit = Math.min(body.limit ?? 50, 250)
   const offset = body.offset ?? 0
-  const policyArea = body.policyArea ?? undefined
+  const policyArea = body.policyArea
 
   let bills: any[]
   try {
@@ -87,36 +66,52 @@ export async function POST(req: NextRequest) {
   let created = 0
   let updated = 0
   let failed = 0
+  const errors: any[] = []
 
   for (const bill of bills) {
     try {
-      const billType = bill.type ?? bill.billType
-      const billNumber = String(bill.number ?? bill.billNumber)
+      // Congress API list-level uses: type, number, congress, title, introducedDate
+      const billType = (bill.type ?? bill.billType ?? 'HR').toUpperCase()
+      const billNumber = String(bill.number ?? bill.billNumber ?? '')
       const billCongress = String(bill.congress ?? congress)
 
-      // Fetch full details for richer data
+      if (!billNumber) throw new Error('Missing bill number')
+
+      // Fetch full details for richer data (sponsors, policyArea, etc.)
       const details = await fetchBillDetails(Number(billCongress), billType, billNumber)
-      const source = details ?? bill
+      const src = details ?? bill
+
+      // Safely parse date
+      const rawDate = src.introducedDate ?? bill.introducedDate
+      const introducedDate = rawDate ? new Date(rawDate) : new Date()
 
       const data = {
         congress: billCongress,
-        billType: billType.toUpperCase(),
+        billType,
         billNumber,
-        title: source.title ?? bill.title ?? 'Untitled',
-        shortTitle: source.shortTitle ?? null,
-        summary: source.summaries?.[0]?.text ?? null,
-        introducedDate: new Date(source.introducedDate ?? bill.introducedDate),
-        latestActionDate: source.latestAction?.actionDate
-          ? new Date(source.latestAction.actionDate)
+        title: src.title ?? bill.title ?? 'Untitled',
+        shortTitle: src.shortTitle ?? null,
+        summary: src.summaries?.[0]?.text ?? null,
+        introducedDate,
+        latestActionDate: src.latestAction?.actionDate
+          ? new Date(src.latestAction.actionDate)
           : null,
-        latestActionText: source.latestAction?.text ?? null,
-        status: normalizeStatus(source),
-        originChamber: source.originChamber ?? bill.originChamber ?? 'House',
-        policyArea: source.policyArea?.name ?? bill.policyArea?.name ?? null,
-        subjects: source.subjects?.map((s: any) => s.name ?? s) ?? [],
-        sponsors: buildSponsors(source),
-        cosponsors: source.cosponsors ?? null,
-        actions: source.actions ?? null,
+        latestActionText: src.latestAction?.text ?? null,
+        status: normalizeStatus(src.latestAction?.text ?? '', src.laws ?? []),
+        originChamber: src.originChamber ?? bill.originChamber ?? 'House',
+        policyArea: src.policyArea?.name ?? bill.policyArea?.name ?? null,
+        subjects: [],
+        sponsors: src.sponsors?.length
+          ? src.sponsors.map((s: any) => ({
+              bioguideId: s.bioguideId ?? '',
+              firstName: s.firstName ?? '',
+              lastName: s.lastName ?? '',
+              party: s.party ?? '',
+              state: s.state ?? '',
+            }))
+          : [],
+        cosponsors: null,
+        actions: null,
       }
 
       const existing = await prisma.bill.findUnique({
@@ -127,6 +122,7 @@ export async function POST(req: NextRequest) {
             billNumber: data.billNumber,
           },
         },
+        select: { id: true },
       })
 
       if (existing) {
@@ -137,11 +133,13 @@ export async function POST(req: NextRequest) {
         created++
       }
 
-      // Stay under rate limit
-      await new Promise(r => setTimeout(r, 200))
-    } catch (err) {
-      console.error('Failed to save bill:', err)
+      await new Promise(r => setTimeout(r, 150))
+    } catch (err: any) {
       failed++
+      errors.push({
+        bill: `${bill.type ?? '?'}${bill.number ?? '?'}`,
+        error: err.message,
+      })
     }
   }
 
@@ -152,5 +150,6 @@ export async function POST(req: NextRequest) {
     created,
     updated,
     failed,
+    sampleErrors: errors.slice(0, 3),
   })
 }
