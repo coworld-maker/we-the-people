@@ -1,9 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-})
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,17 +44,33 @@ Provide:
 4. How this section remains relevant today`
     }
 
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 800,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 800,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      }),
     })
 
-    const explanation = message.content
-      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-      .map(block => block.text)
-      .join('\n')
+    if (!res.ok) {
+      const err = await res.text()
+      console.error('Anthropic API error:', err)
+      return NextResponse.json({ error: 'Failed to generate explanation' }, { status: 500 })
+    }
+
+    const data = await res.json()
+
+    const explanation = data.content
+      ?.filter((block: { type: string }) => block.type === 'text')
+      .map((block: { text: string }) => block.text)
+      .join('\n') || 'Unable to generate explanation.'
 
     return NextResponse.json({ explanation })
   } catch (error) {
