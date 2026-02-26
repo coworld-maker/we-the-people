@@ -4,10 +4,6 @@ import {
   Vote, LayoutDashboard, FileText, Newspaper, Grid3X3, Info,
   Landmark, GraduationCap, BarChart3, ScrollText,
 } from 'lucide-react'
-import {
-  Vote, LayoutDashboard, FileText, Newspaper, Grid3X3, Info,
-  Landmark, GraduationCap, BarChart3,
-} from 'lucide-react'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
 import PageTransition from '@/components/ui/PageTransition'
 
