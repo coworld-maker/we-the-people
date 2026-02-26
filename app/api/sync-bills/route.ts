@@ -1,6 +1,7 @@
 // app/api/sync-bills/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 const CONGRESS_API_BASE = 'https://api.congress.gov/v3'
 const API_KEY = process.env.CONGRESS_API_KEY
@@ -110,8 +111,8 @@ export async function POST(req: NextRequest) {
               state: s.state ?? '',
             }))
           : [],
-        cosponsors: null,
-        actions: null,
+        cosponsors: Prisma.JsonNull,
+        actions: Prisma.JsonNull,
       }
 
       const existing = await prisma.bill.findUnique({
