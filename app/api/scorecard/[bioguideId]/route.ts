@@ -5,9 +5,9 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { bioguideId: string } }
+  { params }: { params: Promise<{ bioguideId: string }> }
 ) {
-  const { userId } = await auth()
+  const { bioguideId } = await params
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { bioguideId } = params
