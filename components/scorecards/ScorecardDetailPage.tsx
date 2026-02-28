@@ -127,7 +127,7 @@ export default function ScorecardDetailPage() {
   const tabs = [
     { id: 'voting', label: 'Voting Record', icon: BarChart3, count: data?.stats.totalVotesTracked },
     { id: 'positions', label: 'Key Positions', icon: Shield, count: data?.keyPositions.length },
-    { id: 'alignment', label: 'Your Alignment', icon: TrendingUp, count: data?.alignment.score !== null ? `${data.alignment.score}%` : null },
+    { id: 'alignment', label: 'Your Alignment', icon: TrendingUp, count: data?.alignment?.score != null ? `${data.alignment.score}%` : null },
     { id: 'community', label: 'Community', icon: Users, count: data?.communityComparison.length },
   ]
 
