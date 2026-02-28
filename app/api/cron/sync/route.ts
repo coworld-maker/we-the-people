@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { fetchAllMemberVotesForBill } from '@/lib/congress-votes'
 import { randomUUID } from 'crypto'
 
@@ -50,8 +51,8 @@ async function syncBills() {
         policyArea: bill.policyArea?.name ?? null,
         subjects: [],
         sponsors: [],
-        cosponsors: null,
-        actions: null,
+        cosponsors: Prisma.JsonNull,
+        actions: Prisma.JsonNull,
       }
 
       const existing = await prisma.bill.findUnique({
