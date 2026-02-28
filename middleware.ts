@@ -7,6 +7,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/cron/sync',             // daily cron job (protected by CRON_SECRET)
   '/api/alignment',             // alignment API
   '/api/debug-vote',            // temporary debug
+  '/api/scorecard/(.*)',
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
