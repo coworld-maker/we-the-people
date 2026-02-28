@@ -29,7 +29,7 @@ async function syncBill(bill: { id: string; congress: string; billType: string; 
         INSERT INTO public."CongressVote"
           ("id", "bioguideId", "billId", "position", "chamber", "rollNumber", "congress", "session", "votedAt", "createdAt", "updatedAt")
         VALUES (
-          ${randomUUID()},
+          ${`cv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`},
           ${member.bioguideId},
           ${bill.id},
           ${member.position},
