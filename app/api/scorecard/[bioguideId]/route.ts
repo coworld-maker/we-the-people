@@ -7,10 +7,10 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ bioguideId: string }> }
 ) {
-  const { bioguideId } = await params
+  const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { bioguideId } = params
+  const { bioguideId } = await params
 
   // Get user's DB id
   const user = await prisma.user.findUnique({
@@ -22,9 +22,6 @@ export async function GET(
   // 1. Voting records — how this member voted on bills in our DB
   const congressVotes = await prisma.congressVote.findMany({
     where: { bioguideId },
-    include: {
-      // We need bill info — join via billId
-    },
     orderBy: { votedAt: 'desc' },
     take: 50,
   })
@@ -106,7 +103,7 @@ export async function GET(
 
   const alignmentScore = total > 0 ? Math.round((matched / total) * 100) : null
 
-  // 4. Community comparison — how the district/community voted vs this member
+  // 4. Community comparison — how the community voted vs this member
   const communityComparison: any[] = []
   for (const v of votingRecords.slice(0, 10)) {
     if (!v.bill) continue
@@ -123,7 +120,8 @@ export async function GET(
       communityYeaPct,
       communityNayPct: Math.round((agg.noCount / agg.totalVotes) * 100),
       totalCommunityVotes: agg.totalVotes,
-      memberAlignedWithCommunity: (memberYea && communityYeaPct >= 50) || (!memberYea && communityYeaPct < 50),
+      memberAlignedWithCommunity:
+        (memberYea && communityYeaPct >= 50) || (!memberYea && communityYeaPct < 50),
     })
   }
 
