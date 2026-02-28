@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { fetchAllMemberVotesForBill } from '@/lib/congress-votes'
-import { createId } from '@paralleldrive/cuid2'
+
 
 function isAuthorized(req: NextRequest): boolean {
   const secret = req.headers.get('x-sync-secret')
