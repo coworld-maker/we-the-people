@@ -2,9 +2,11 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
 const isPublicRoute = createRouteMatcher([
   '/',                          // landing page
-  '/api/sync-bills',            // bill sync (protected by CRON_SECRET instead)
-  '/api/sync-congress-votes',   // vote sync (protected by CRON_SECRET instead)
+  '/api/sync-bills',            // bill sync (protected by CRON_SECRET)
+  '/api/sync-congress-votes',   // vote sync (protected by CRON_SECRET)
+  '/api/cron/sync',             // daily cron job (protected by CRON_SECRET)
   '/api/alignment',             // alignment API
+  '/api/debug-vote',            // temporary debug
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
