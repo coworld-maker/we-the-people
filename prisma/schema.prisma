@@ -1,27 +1,153 @@
-// ============================================================
-// PRISMA SCHEMA DIFF — paste these two models into your
-// prisma/schema.prisma, replacing the existing CongressVote
-// and Representative models.
-// ============================================================
-
-model CongressVote {
-  id          String   @id
-  bioguideId  String
-  billId      String
-  position    String   // "yea" | "nay" | "not_voting" | "present"
-  chamber     String?  // "House" | "Senate"   ← NEW
-  rollNumber  Int?     //                       ← NEW
-  congress    String?  // e.g. "119"           ← NEW
-  session     Int?     // 1 or 2               ← NEW
-  votedAt     DateTime
-  createdAt   DateTime @default(now())
-
-  @@unique([bioguideId, billId])
+generator client {
+  provider = "prisma-client-js"
 }
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Auth / Users ─────────────────────────────────────────────────────────────
+
+model User {
+  id          String   @id @default(cuid())
+  clerkId     String   @unique
+  email       String?
+  username    String?
+  firstName   String?
+  lastName    String?
+  imageUrl    String?
+
+  // Gamification
+  xp          Int      @default(0)
+  level       Int      @default(1)
+  civicScore  Int      @default(0)
+  badges      String[]
+
+  // Relations
+  votes         Vote[]
+  discussions   Discussion[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Bills ────────────────────────────────────────────────────────────────────
+
+model Bill {
+  id               String    @id @default(cuid())
+  congress         String
+  billType         String
+  billNumber       String
+  title            String
+  shortTitle       String?
+  summary          String?
+  aiSummary        String?
+  introducedDate   DateTime?
+  latestActionDate DateTime?
+  latestActionText String?
+  status           String    @default("introduced")
+  originChamber    String?
+  policyArea       String?
+  subjects         String[]
+  sponsors         Json?
+  cosponsors       Json?
+  actions          Json?
+  fullText         String?
+  aiAnalyzedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  votes         Vote[]
+  proCons       ProCon[]
+  impacts       Impact[]
+  discussions   Discussion[]
+  voteAggregate BillVoteAggregate?
+
+  @@unique([congress, billType, billNumber])
+}
+
+// ─── User Votes ───────────────────────────────────────────────────────────────
+
+model Vote {
+  id       String @id @default(cuid())
+  userId   String
+  billId   String
+  position String // "for" | "against" | "abstain"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, billId])
+}
+
+model BillVoteAggregate {
+  id           String @id @default(cuid())
+  billId       String @unique
+  forCount     Int    @default(0)
+  againstCount Int    @default(0)
+  abstainCount Int    @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+}
+
+// ─── AI Content ───────────────────────────────────────────────────────────────
+
+model ProCon {
+  id     String @id @default(cuid())
+  billId String
+  type   String // "pro" | "con"
+  text   String
+
+  createdAt DateTime @default(now())
+
+  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+}
+
+model Impact {
+  id       String @id @default(cuid())
+  billId   String
+  category String
+  text     String
+
+  createdAt DateTime @default(now())
+
+  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+}
+
+// ─── Discussions ──────────────────────────────────────────────────────────────
+
+model Discussion {
+  id        String  @id @default(cuid())
+  billId    String
+  userId    String
+  content   String
+  parentId  String?
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bill    Bill        @relation(fields: [billId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  Discussion?  @relation("Replies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies Discussion[] @relation("Replies")
+}
+
+// ─── Congress Members ─────────────────────────────────────────────────────────
 
 model Representative {
   id          String    @id @default(cuid())
-  bioguideId  String    @unique              // ← ensures upsert works
+  bioguideId  String    @unique
   firstName   String
   lastName    String
   fullName    String
@@ -32,6 +158,55 @@ model Representative {
   termStart   DateTime
   currentTerm Boolean   @default(true)
   committees  String[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Congress Roll Call Votes ─────────────────────────────────────────────────
+
+model CongressVote {
+  id         String   @id
+  bioguideId String
+  billId     String
+  position   String   // "yea" | "nay" | "not_voting" | "present"
+  chamber    String?  // "House" | "Senate"
+  rollNumber Int?
+  congress   String?  // "119"
+  session    Int?     // 1 or 2
+  votedAt    DateTime
+
+  createdAt DateTime @default(now())
+
+  @@unique([bioguideId, billId])
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
+  id      String  @id @default(cuid())
+  userId  String
+  type    String
+  title   String
+  message String?
+  read    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id       String  @id @default(cuid())
+  userId   String?
+  action   String
+  entity   String?
+  entityId String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
