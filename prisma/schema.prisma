@@ -71,7 +71,7 @@ model Bill {
   voteAggregate BillVoteAggregate?
   discussions   Discussion[]
   impacts       Impact[]
-  proCons       ProCon[]
+  prosCons      ProCon[]
   congressVotes CongressVote[]
   notifications Notification[]
 
