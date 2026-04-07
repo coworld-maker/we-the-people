@@ -45,9 +45,9 @@ model User {
 // ---------------------------------------------------------------------------
 model Bill {
   id               String    @id @default(cuid())
-  congress         Int
+  congress         String
   billType         String
-  billNumber       Int
+  billNumber       String
   title            String
   shortTitle       String?
   summary          String?
@@ -106,7 +106,7 @@ model CongressVote {
   votedAt    DateTime?
   chamber    String?
   rollNumber Int?
-  congress   Int?
+  congress   String?
   session    Int?
   createdAt  DateTime  @default(now())
 
