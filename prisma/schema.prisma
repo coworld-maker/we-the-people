@@ -1,212 +1,246 @@
+// prisma/schema.prisma
+// Ground-truth schema matching the actual Supabase DB columns.
+// datasource has NO url/directUrl so prisma generate never fails on missing env vars.
+// Runtime connection is handled by @prisma/adapter-pg (pg.Pool) in lib/prisma.ts.
+
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
-// ─── Auth / Users ─────────────────────────────────────────────────────────────
-
+// ---------------------------------------------------------------------------
+// User — encrypted email/zip storage
+// ---------------------------------------------------------------------------
 model User {
-  id          String   @id @default(cuid())
-  clerkId     String   @unique
-  email       String?
-  username    String?
-  firstName   String?
-  lastName    String?
-  imageUrl    String?
+  id                 String    @id @default(cuid())
+  clerkId            String    @unique
+  emailEncrypted     String
+  emailIv            String
+  emailTag           String
+  emailHash          String    @unique
+  zipCodeEncrypted   String?
+  zipCodeIv          String?
+  zipCodeTag         String?
+  firstName          String?
+  lastName           String?
+  profilePublic      Boolean   @default(false)
+  votesPublic        Boolean   @default(false)
+  emailNotifications Boolean   @default(true)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  // Gamification
-  xp          Int      @default(0)
-  level       Int      @default(1)
-  civicScore  Int      @default(0)
-  badges      String[]
-
-  // Relations
   votes         Vote[]
   discussions   Discussion[]
   notifications Notification[]
   auditLogs     AuditLog[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
-// ─── Bills ────────────────────────────────────────────────────────────────────
-
+// ---------------------------------------------------------------------------
+// Bill
+// ---------------------------------------------------------------------------
 model Bill {
   id               String    @id @default(cuid())
-  congress         String
+  congress         Int
   billType         String
-  billNumber       String
+  billNumber       Int
   title            String
   shortTitle       String?
   summary          String?
   aiSummary        String?
-  introducedDate   DateTime?
+  introducedDate   DateTime
   latestActionDate DateTime?
   latestActionText String?
-  status           String    @default("introduced")
-  originChamber    String?
+  status           String
+  originChamber    String
   policyArea       String?
-  subjects         String[]
-  sponsors         Json?
+  subjects         String[]  @default([])
+  sponsors         Json
   cosponsors       Json?
   actions          Json?
   fullText         String?
   aiAnalyzedAt     DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   votes         Vote[]
-  proCons       ProCon[]
-  impacts       Impact[]
-  discussions   Discussion[]
   voteAggregate BillVoteAggregate?
+  discussions   Discussion[]
+  impacts       Impact[]
+  proCons       ProCon[]
+  congressVotes CongressVote[]
+  notifications Notification[]
 
   @@unique([congress, billType, billNumber])
 }
 
-// ─── User Votes ───────────────────────────────────────────────────────────────
-
-model Vote {
-  id       String @id @default(cuid())
-  userId   String
-  billId   String
-  position String // "for" | "against" | "abstain"
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, billId])
-}
-
+// ---------------------------------------------------------------------------
+// BillVoteAggregate — denormalized vote counts per bill
+// ---------------------------------------------------------------------------
 model BillVoteAggregate {
-  id           String @id @default(cuid())
-  billId       String @unique
-  forCount     Int    @default(0)
-  againstCount Int    @default(0)
-  abstainCount Int    @default(0)
+  id           String    @id @default(cuid())
+  billId       String    @unique
+  yesCount     Int       @default(0)
+  noCount      Int       @default(0)
+  abstainCount Int       @default(0)
+  totalVotes   Int       @default(0)
+  lastVoteAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  updatedAt DateTime @updatedAt
-
-  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  bill Bill @relation(fields: [billId], references: [id])
 }
 
-// ─── AI Content ───────────────────────────────────────────────────────────────
-
-model ProCon {
-  id     String @id @default(cuid())
-  billId String
-  type   String // "pro" | "con"
-  text   String
-
-  createdAt DateTime @default(now())
-
-  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
-}
-
-model Impact {
-  id       String @id @default(cuid())
-  billId   String
-  category String
-  text     String
-
-  createdAt DateTime @default(now())
-
-  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
-}
-
-// ─── Discussions ──────────────────────────────────────────────────────────────
-
-model Discussion {
-  id        String  @id @default(cuid())
-  billId    String
-  userId    String
-  content   String
-  parentId  String?
-  isDeleted Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  bill    Bill        @relation(fields: [billId], references: [id], onDelete: Cascade)
-  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent  Discussion?  @relation("Replies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  replies Discussion[] @relation("Replies")
-}
-
-// ─── Congress Members ─────────────────────────────────────────────────────────
-
-model Representative {
-  id          String    @id @default(cuid())
-  bioguideId  String    @unique
-  firstName   String
-  lastName    String
-  fullName    String
-  party       String    // "D" | "R" | "I"
-  state       String
-  district    String?   // null for senators
-  chamber     String    // "House" | "Senate"
-  termStart   DateTime
-  currentTerm Boolean   @default(true)
-  committees  String[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// ─── Congress Roll Call Votes ─────────────────────────────────────────────────
-
+// ---------------------------------------------------------------------------
+// CongressVote — how each member of congress voted on a bill
+// ---------------------------------------------------------------------------
 model CongressVote {
-  id         String   @id
+  id         String    @id @default(cuid())
   bioguideId String
   billId     String
-  position   String   // "yea" | "nay" | "not_voting" | "present"
-  chamber    String?  // "House" | "Senate"
+  position   String
+  votedAt    DateTime?
+  chamber    String?
   rollNumber Int?
-  congress   String?  // "119"
-  session    Int?     // 1 or 2
-  votedAt    DateTime
+  congress   Int?
+  session    Int?
+  createdAt  DateTime  @default(now())
 
-  createdAt DateTime @default(now())
+  bill Bill @relation(fields: [billId], references: [id])
 
   @@unique([bioguideId, billId])
 }
 
-// ─── Notifications ────────────────────────────────────────────────────────────
-
-model Notification {
-  id      String  @id @default(cuid())
-  userId  String
-  type    String
-  title   String
-  message String?
-  read    Boolean @default(false)
-
+// ---------------------------------------------------------------------------
+// Discussion — threaded comments on bills
+// ---------------------------------------------------------------------------
+model Discussion {
+  id        String   @id @default(cuid())
+  billId    String
+  userId    String
+  parentId  String?
+  content   String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bill    Bill         @relation(fields: [billId], references: [id])
+  user    User         @relation(fields: [userId], references: [id])
+  parent  Discussion?  @relation("DiscussionReplies", fields: [parentId], references: [id])
+  replies Discussion[] @relation("DiscussionReplies")
 }
 
-// ─── Audit Log ────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Impact — AI-generated impact analysis per bill
+// ---------------------------------------------------------------------------
+model Impact {
+  id               String   @id @default(cuid())
+  billId           String
+  category         String
+  demographic      String?
+  impactType       String
+  shortDescription String
+  detailedAnalysis String
+  affectedGroups   String[] @default([])
+  confidence       Float?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-model AuditLog {
-  id       String  @id @default(cuid())
-  userId   String?
-  action   String
-  entity   String?
-  entityId String?
-  metadata Json?
+  bill Bill @relation(fields: [billId], references: [id])
+}
 
+// ---------------------------------------------------------------------------
+// Notification
+// ---------------------------------------------------------------------------
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  billId    String?
+  read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user User  @relation(fields: [userId], references: [id])
+  bill Bill? @relation(fields: [billId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// ProCon — pros and cons per bill
+// ---------------------------------------------------------------------------
+model ProCon {
+  id          String   @id @default(cuid())
+  billId      String
+  type        String
+  title       String
+  description String
+  category    String?
+  source      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bill Bill @relation(fields: [billId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// Representative
+// ---------------------------------------------------------------------------
+model Representative {
+  id          String   @id @default(cuid())
+  bioguideId  String   @unique
+  firstName   String
+  lastName    String
+  fullName    String
+  party       String
+  state       String
+  district    String?
+  chamber     String
+  termStart   DateTime
+  currentTerm Boolean  @default(true)
+  committees  String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Vote — user votes on bills (encrypted reasoning)
+// ---------------------------------------------------------------------------
+model Vote {
+  id                 String   @id @default(cuid())
+  userId             String
+  billId             String
+  position           String
+  reasoningEncrypted String?
+  reasoningIv        String?
+  reasoningTag       String?
+  isAnonymous        Boolean  @default(true)
+  confidence         Int?
+  ipHash             String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+  bill Bill @relation(fields: [billId], references: [id])
+
+  @@unique([userId, billId])
+}
+
+// ---------------------------------------------------------------------------
+// AuditLog
+// ---------------------------------------------------------------------------
+model AuditLog {
+  id            String   @id @default(cuid())
+  eventType     String
+  severity      String
+  userId        String?
+  ipAddressHash String?
+  metadata      Json?
+  message       String?
+  timestamp     DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
 }
