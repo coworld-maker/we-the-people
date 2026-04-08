@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
         const data = await fetchHouseVoteList(congress, session, offset);
 
         // Congress.gov response key is houseRollCallVotes
-        const voteList: any[] = data.houseRollCallVotes ?? data.votes ?? [];
+        const voteList: any[] = data.houseRollCallVotes ?? data.house_roll_call_votes ?? data.votes ?? [];
 
         if (voteList.length === 0) break;
 
@@ -206,15 +206,25 @@ export async function POST(req: NextRequest) {
           const billCongressMatch = xml.match(/<congress>(.*?)<\/congress>/);
           if (!billTypeMatch || !billNumMatch) continue;
 
-          const billType = (billTypeMatch[1] || '').trim().toUpperCase()
-            .replace('AMENDMENT', '')
-            .replace('RESOLUTION', 'SRES')
-            .trim();
+          // Normalize senate.gov document_type to match our DB billType values
+          // e.g. "S" → "S", "H.R." → "HR", "S.Res." → "SRES", "S.J.Res." → "SJRES"
+          const rawType = (billTypeMatch[1] || '').trim().toUpperCase()
+            .replace(/\./g, '')   // remove dots: "H.R." → "HR", "S.RES." → "SRES"
+            .replace(/\s+/g, ''); // remove spaces
+          // Map common variants
+          const billTypeMap: Record<string, string> = {
+            'HR': 'HR', 'HRES': 'HRES', 'HJRES': 'HJRES', 'HCONRES': 'HCONRES',
+            'S': 'S', 'SRES': 'SRES', 'SJRES': 'SJRES', 'SCONRES': 'SCONRES',
+            'SRES': 'SRES',
+          };
+          const billType = billTypeMap[rawType] ?? rawType;
           const billNumber = (billNumMatch[1] || '').trim();
           const billCongress = (billCongressMatch?.[1] || String(congress)).trim();
 
+          if (!billType || !billNumber) continue;
+
           const bill = await prisma.bill.findFirst({
-            where: { billNumber, congress: billCongress },
+            where: { billType, billNumber, congress: billCongress },
             select: { id: true },
           });
           if (!bill) continue;
@@ -228,7 +238,7 @@ export async function POST(req: NextRequest) {
           while ((m = memberRegex.exec(xml)) !== null) {
             const block = m[1];
             const get = (tag: string) => block.match(new RegExp(`<${tag}>(.*?)<\/${tag}>`))?.[1]?.trim() || '';
-            const bioguideId = get('lis_member_id') || get('bioguide_id');
+            const bioguideId = get('bioguide_id') || get('lis_member_id');
             const position = normalizePosition(get('vote_cast'));
             if (!bioguideId || !position) continue;
 
