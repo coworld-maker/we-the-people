@@ -17,26 +17,18 @@ function checkAuth(req: NextRequest): boolean {
 }
 
 // Build a LIS member ID → bioguide ID lookup map for current senators.
-// Senate.gov XML uses LIS IDs (e.g. "S399") but our DB uses bioguide IDs (e.g. "C001075").
+// Senate.gov XML uses LIS IDs (e.g. "S399") but our DB stores bioguide IDs (e.g. "C001075").
+// lisId is populated on the Representative table by sync-representatives.
 async function buildSenatorLisMap(): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   try {
-    let offset = 0;
-    while (true) {
-      const url = `${BASE_URL}/member?currentMember=true&chamber=senate&limit=250&offset=${offset}&format=json&api_key=${CONGRESS_API_KEY}`;
-      const res = await fetch(url, { next: { revalidate: 0 } });
-      if (!res.ok) break;
-      const data = await res.json();
-      const members: any[] = data.members ?? [];
-      for (const m of members) {
-        const lisId = m.lisId ?? m.lis_id;
-        const bioguideId = m.bioguideId;
-        if (lisId && bioguideId) {
-          map.set(String(lisId), bioguideId);
-        }
-      }
-      if (members.length < 250) break;
-      offset += 250;
+    const rows = await prisma.$queryRaw<{ bioguideId: string; lisId: string }[]>`
+      SELECT "bioguideId", "lisId"
+      FROM "Representative"
+      WHERE chamber = 'Senate' AND "lisId" IS NOT NULL
+    `;
+    for (const row of rows) {
+      map.set(row.lisId, row.bioguideId);
     }
   } catch (e) {
     console.error('[sync-congress-votes] Failed to build senator LIS map:', e);
