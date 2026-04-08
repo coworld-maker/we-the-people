@@ -196,6 +196,7 @@ model Representative {
   lastName    String
   fullName    String
   party       String
+  lisId       String?
   state       String
   district    String?
   chamber     String
