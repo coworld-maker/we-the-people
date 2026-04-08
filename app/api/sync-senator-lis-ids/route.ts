@@ -38,6 +38,16 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const onlyMissing = body.onlyMissing !== false; // default: only fill gaps
 
+  // Debug mode: return raw API response for one senator without saving
+  if (body.debug) {
+    const first = await prisma.representative.findFirst({ where: { chamber: 'Senate' }, select: { bioguideId: true } });
+    if (!first) return NextResponse.json({ error: 'no senators found' });
+    const url = `${BASE_URL}/member/${first.bioguideId}?format=json&api_key=${CONGRESS_API_KEY}`;
+    const res = await fetch(url, { next: { revalidate: 0 } });
+    const text = await res.text();
+    return NextResponse.json({ status: res.status, bioguideId: first.bioguideId, raw: JSON.parse(text) });
+  }
+
   const senators = await prisma.representative.findMany({
     where: {
       chamber: 'Senate',
