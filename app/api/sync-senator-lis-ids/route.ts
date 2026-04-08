@@ -38,14 +38,20 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const onlyMissing = body.onlyMissing !== false; // default: only fill gaps
 
-  // Debug mode: return raw API response for one senator without saving
+  // Debug mode: return raw Senate vote XML member block to inspect structure
   if (body.debug) {
-    const first = await prisma.representative.findFirst({ where: { chamber: 'Senate' }, select: { bioguideId: true } });
-    if (!first) return NextResponse.json({ error: 'no senators found' });
-    const url = `${BASE_URL}/member/${first.bioguideId}?format=json&api_key=${CONGRESS_API_KEY}`;
+    const url = `https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00010.xml`;
     const res = await fetch(url, { next: { revalidate: 0 } });
-    const text = await res.text();
-    return NextResponse.json({ status: res.status, bioguideId: first.bioguideId, raw: JSON.parse(text) });
+    const xml = await res.text();
+    // Return first 3 member blocks
+    const members: string[] = [];
+    const memberRegex = /<member>([\s\S]*?)<\/member>/g;
+    let m; let count = 0;
+    while ((m = memberRegex.exec(xml)) !== null && count < 3) {
+      members.push(m[0]);
+      count++;
+    }
+    return NextResponse.json({ status: res.status, members });
   }
 
   const senators = await prisma.representative.findMany({
