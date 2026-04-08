@@ -13,7 +13,7 @@ function checkAuth(req: NextRequest): boolean {
 }
 
 async function fetchMembers(offset = 0, limit = 250) {
-  const url = `${BASE_URL}/member?currentMember=true&limit=${limit}&offset=${offset}&api_key=${CONGRESS_API_KEY}`;
+  const url = `${BASE_URL}/member?currentMember=true&limit=${limit}&offset=${offset}&format=json&api_key=${CONGRESS_API_KEY}`;
   const res = await fetch(url, { next: { revalidate: 0 } });
   if (!res.ok) throw new Error(`Congress.gov members API error: ${res.status} ${await res.text()}`);
   return res.json();
