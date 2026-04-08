@@ -245,7 +245,6 @@ export async function POST(req: NextRequest) {
           const billTypeMap: Record<string, string> = {
             'HR': 'HR', 'HRES': 'HRES', 'HJRES': 'HJRES', 'HCONRES': 'HCONRES',
             'S': 'S', 'SRES': 'SRES', 'SJRES': 'SJRES', 'SCONRES': 'SCONRES',
-            'SRES': 'SRES',
           };
           const billType = billTypeMap[rawType] ?? rawType;
           const billNumber = (billNumMatch[1] || '').trim();
