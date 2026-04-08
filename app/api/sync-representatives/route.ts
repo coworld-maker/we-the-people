@@ -13,7 +13,7 @@ function checkAuth(req: NextRequest): boolean {
 }
 
 async function fetchMembers(offset = 0, limit = 250) {
-  const url = `${BASE_URL}/member?currentMember=true&limit=${limit}&offset=${offset}&format=json&api_key=${CONGRESS_API_KEY}`;
+  const url = `${BASE_URL}/member?currentMember=true&limit=${limit}&offset=${offset}&api_key=${CONGRESS_API_KEY}`;
   const res = await fetch(url, { next: { revalidate: 0 } });
   if (!res.ok) throw new Error(`Congress.gov members API error: ${res.status} ${await res.text()}`);
   return res.json();
@@ -112,7 +112,35 @@ export async function POST(req: NextRequest) {
       await new Promise(r => setTimeout(r, 250));
     }
 
-    return NextResponse.json({ success: true, synced: totalSynced });
+    // Second pass: fetch lisId for all senators via the member detail endpoint.
+    // Senate.gov vote XML uses LIS IDs (e.g. "S428"); we store them here so
+    // sync-congress-votes can translate them to bioguide IDs without extra API calls.
+    const senators = await prisma.representative.findMany({
+      where: { chamber: 'Senate' },
+      select: { bioguideId: true },
+    });
+
+    let lisIdsSynced = 0;
+    for (const senator of senators) {
+      try {
+        const url = `${BASE_URL}/member/${senator.bioguideId}?format=json&api_key=${CONGRESS_API_KEY}`;
+        const res = await fetch(url, { next: { revalidate: 0 } });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const lisId = data.member?.lisId ?? data.member?.identifiers?.lisId;
+        if (lisId) {
+          await prisma.$executeRawUnsafe(
+            `UPDATE "Representative" SET "lisId" = $1 WHERE "bioguideId" = $2`,
+            String(lisId),
+            senator.bioguideId
+          );
+          lisIdsSynced++;
+        }
+      } catch {}
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    return NextResponse.json({ success: true, synced: totalSynced, lisIdsSynced });
   } catch (error) {
     console.error('[sync-representatives] error:', error);
     return NextResponse.json(
