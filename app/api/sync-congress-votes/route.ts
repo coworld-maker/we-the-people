@@ -16,6 +16,34 @@ function checkAuth(req: NextRequest): boolean {
   return authHeader === `Bearer ${CRON_SECRET}` || secretHeader === CRON_SECRET;
 }
 
+// Build a LIS member ID → bioguide ID lookup map for current senators.
+// Senate.gov XML uses LIS IDs (e.g. "S399") but our DB uses bioguide IDs (e.g. "C001075").
+async function buildSenatorLisMap(): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  try {
+    let offset = 0;
+    while (true) {
+      const url = `${BASE_URL}/member?currentMember=true&chamber=senate&limit=250&offset=${offset}&format=json&api_key=${CONGRESS_API_KEY}`;
+      const res = await fetch(url, { next: { revalidate: 0 } });
+      if (!res.ok) break;
+      const data = await res.json();
+      const members: any[] = data.members ?? [];
+      for (const m of members) {
+        const lisId = m.lisId ?? m.lis_id;
+        const bioguideId = m.bioguideId;
+        if (lisId && bioguideId) {
+          map.set(String(lisId), bioguideId);
+        }
+      }
+      if (members.length < 250) break;
+      offset += 250;
+    }
+  } catch (e) {
+    console.error('[sync-congress-votes] Failed to build senator LIS map:', e);
+  }
+  return map;
+}
+
 // House: fetch paginated list of roll call votes for a congress/session
 async function fetchHouseVoteList(congress: number, session: number, offset = 0) {
   const url = `${BASE_URL}/house-vote/${congress}/${session}?limit=250&offset=${offset}&format=json&api_key=${CONGRESS_API_KEY}`;
@@ -90,7 +118,9 @@ export async function POST(req: NextRequest) {
   let totalMemberVotesSynced = 0;
   let rollCallsMatched = 0;
   let rollCallsProcessed = 0;
+  let rollCallsWithBillRef = 0;
   const errors: string[] = [];
+  const debugSamples: any[] = [];
 
   try {
     if (chamber === 'house' || chamber === 'both') {
@@ -113,7 +143,13 @@ export async function POST(req: NextRequest) {
 
           rollCallsProcessed++;
 
+          // Capture debug sample of first few votes to understand structure
+          if (debugSamples.length < 3) {
+            debugSamples.push({ rollNumber, keys: Object.keys(vote), billRef, voteType: vote.voteType ?? vote.type });
+          }
+
           if (!rollNumber || !billRef) continue;
+          rollCallsWithBillRef++;
 
           const billType = (billRef.type ?? billRef.billType ?? '').toUpperCase();
           const billNumber = String(billRef.number ?? billRef.billNumber ?? '');
@@ -186,6 +222,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (chamber === 'senate' || chamber === 'both') {
+      // Pre-build LIS→bioguide map so we can translate senate.gov member IDs
+      const lisMap = await buildSenatorLisMap();
       const senateVotes = await fetchSenateVoteList(congress, session);
       let senateProcessed = 0;
 
@@ -238,7 +276,9 @@ export async function POST(req: NextRequest) {
           while ((m = memberRegex.exec(xml)) !== null) {
             const block = m[1];
             const get = (tag: string) => block.match(new RegExp(`<${tag}>(.*?)<\/${tag}>`))?.[1]?.trim() || '';
-            const bioguideId = get('bioguide_id') || get('lis_member_id');
+            const rawId = get('lis_member_id') || get('bioguide_id');
+            // Translate LIS ID (e.g. "S399") to bioguide ID (e.g. "C001075") using the map
+            const bioguideId = rawId ? (lisMap.get(rawId) ?? rawId) : '';
             const position = normalizePosition(get('vote_cast'));
             if (!bioguideId || !position) continue;
 
@@ -276,7 +316,9 @@ export async function POST(req: NextRequest) {
       synced: totalMemberVotesSynced,
       rollCallsMatched,
       rollCallsProcessed,
-      errors: errors.slice(0, 10), // cap error list
+      rollCallsWithBillRef,
+      debugSamples,
+      errors: errors.slice(0, 10),
     });
   } catch (error) {
     console.error('[sync-congress-votes] fatal error:', error);
