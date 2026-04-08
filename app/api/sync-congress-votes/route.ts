@@ -18,7 +18,7 @@ function checkAuth(req: NextRequest): boolean {
 
 // House: fetch paginated list of roll call votes for a congress/session
 async function fetchHouseVoteList(congress: number, session: number, offset = 0) {
-  const url = `${BASE_URL}/house-vote/${congress}/${session}?limit=250&offset=${offset}&api_key=${CONGRESS_API_KEY}`;
+  const url = `${BASE_URL}/house-vote/${congress}/${session}?limit=250&offset=${offset}&format=json&api_key=${CONGRESS_API_KEY}`;
   const res = await fetch(url, { next: { revalidate: 0 } });
   if (!res.ok) throw new Error(`House vote list ${congress}/${session} offset=${offset}: ${res.status}`);
   return res.json();
@@ -26,7 +26,7 @@ async function fetchHouseVoteList(congress: number, session: number, offset = 0)
 
 // House: fetch individual member votes for a roll call
 async function fetchHouseMemberVotes(congress: number, session: number, rollNumber: number) {
-  const url = `${BASE_URL}/house-vote/${congress}/${session}/${rollNumber}/members?api_key=${CONGRESS_API_KEY}`;
+  const url = `${BASE_URL}/house-vote/${congress}/${session}/${rollNumber}/members?format=json&api_key=${CONGRESS_API_KEY}`;
   const res = await fetch(url, { next: { revalidate: 0 } });
   if (!res.ok) throw new Error(`House member votes roll=${rollNumber}: ${res.status}`);
   return res.json();
