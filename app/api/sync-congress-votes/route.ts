@@ -84,7 +84,12 @@ async function fetchSenateVoteList(congress: number, session: number): Promise<a
     const get = (tag: string) => block.match(new RegExp(`<${tag}>(.*?)<\/${tag}>`))?.[1]?.trim() || '';
     const rollNumber = parseInt(get('vote_number'));
     const docShort = get('document_short_title') || get('issue');
-    const date = get('vote_date');
+    // Fix 2-digit year: senate.gov uses "M/D/YY" format (e.g. "12/10/25" for Dec 10 2025)
+    const rawDate = get('vote_date');
+    const mmddyy = rawDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+    const date = mmddyy
+      ? `${mmddyy[1]}/${mmddyy[2]}/${parseInt(mmddyy[3]) < 50 ? 2000 + parseInt(mmddyy[3]) : 1900 + parseInt(mmddyy[3])}`
+      : rawDate;
     entries.push({ rollNumber, docShort, date });
   }
   return entries;
@@ -130,6 +135,7 @@ export async function POST(req: NextRequest) {
   let rollCallsWithBillRef = 0;
   const errors: string[] = [];
   const debugSamples: any[] = [];
+  let senatorMapDebug: { size: number; sampleKeys: string[] } | null = null;
 
   try {
     if (chamber === 'house' || chamber === 'both') {
@@ -233,6 +239,8 @@ export async function POST(req: NextRequest) {
     if (chamber === 'senate' || chamber === 'both') {
       // Pre-build lastName_state→bioguideId map from our DB (single query)
       const senatorNameMap = await buildSenatorNameMap();
+      // Debug: expose map size and a few sample keys in response
+      senatorMapDebug = { size: senatorNameMap.size, sampleKeys: [...senatorNameMap.keys()].slice(0, 5) };
       const senateVotes = await fetchSenateVoteList(congress, session);
       let senateProcessed = 0;
 
@@ -327,6 +335,7 @@ export async function POST(req: NextRequest) {
       rollCallsProcessed,
       rollCallsWithBillRef,
       debugSamples,
+      senatorMapDebug,
       errors: errors.slice(0, 10),
     });
   } catch (error) {
