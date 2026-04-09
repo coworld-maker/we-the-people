@@ -27,7 +27,6 @@ export async function GET(req: NextRequest) {
       lastName: true,
       party: true,
       state: true,
-      imageUrl: true,
     },
   });
 
