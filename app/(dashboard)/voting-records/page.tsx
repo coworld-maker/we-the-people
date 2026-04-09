@@ -4,7 +4,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 interface Senator {
   bioguideId: string;
@@ -13,7 +12,6 @@ interface Senator {
   lastName: string | null;
   party: string | null;
   state: string | null;
-  imageUrl: string | null;
 }
 
 interface Bill {
@@ -56,19 +54,6 @@ function SenatorAvatar({ senator }: { senator: Senator }) {
   const initials = `${senator.firstName?.[0] ?? ''}${senator.lastName?.[0] ?? ''}`;
   const party = senator.party ?? 'I';
   const bgColor = party === 'D' ? 'bg-blue-600' : party === 'R' ? 'bg-red-600' : 'bg-purple-600';
-
-  if (senator.imageUrl) {
-    return (
-      <Image
-        src={senator.imageUrl}
-        alt={senator.fullName ?? ''}
-        width={36}
-        height={36}
-        className="rounded-full object-cover ring-2 ring-white"
-        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-      />
-    );
-  }
   return (
     <div className={`w-9 h-9 rounded-full ${bgColor} flex items-center justify-center text-white text-xs font-bold ring-2 ring-white`}>
       {initials}
