@@ -38,20 +38,20 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const onlyMissing = body.onlyMissing !== false; // default: only fill gaps
 
-  // Debug mode: return raw Senate vote XML member block to inspect structure
+  // Debug mode: return raw vote MENU XML to inspect date format
   if (body.debug) {
-    const url = `https://www.senate.gov/legislative/LIS/roll_call_votes/vote1191/vote_119_1_00010.xml`;
+    const url = `https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_119_1.xml`;
     const res = await fetch(url, { next: { revalidate: 0 } });
     const xml = await res.text();
-    // Return first 3 member blocks
-    const members: string[] = [];
-    const memberRegex = /<member>([\s\S]*?)<\/member>/g;
+    // Return first 3 vote blocks to see date format
+    const votes: string[] = [];
+    const voteRegex = /<vote>([\s\S]*?)<\/vote>/g;
     let m; let count = 0;
-    while ((m = memberRegex.exec(xml)) !== null && count < 3) {
-      members.push(m[0]);
+    while ((m = voteRegex.exec(xml)) !== null && count < 3) {
+      votes.push(m[0]);
       count++;
     }
-    return NextResponse.json({ status: res.status, members });
+    return NextResponse.json({ status: res.status, votes });
   }
 
   const senators = await prisma.representative.findMany({
