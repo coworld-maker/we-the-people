@@ -16,22 +16,23 @@ function checkAuth(req: NextRequest): boolean {
   return authHeader === `Bearer ${CRON_SECRET}` || secretHeader === CRON_SECRET;
 }
 
-// Build a LIS member ID → bioguide ID lookup map for current senators.
-// Senate.gov XML uses LIS IDs (e.g. "S399") but our DB stores bioguide IDs (e.g. "C001075").
-// lisId is populated on the Representative table by sync-representatives.
-async function buildSenatorLisMap(): Promise<Map<string, string>> {
+// Build a "LASTNAME_STATE" → bioguide ID lookup map for current senators.
+// Senate.gov vote XML includes last_name and state for each member vote.
+// This is more reliable than LIS IDs since Congress.gov no longer exposes lisId.
+async function buildSenatorNameMap(): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   try {
-    const rows = await prisma.$queryRaw<{ bioguideId: string; lisId: string }[]>`
-      SELECT "bioguideId", "lisId"
-      FROM "Representative"
-      WHERE chamber = 'Senate' AND "lisId" IS NOT NULL
-    `;
-    for (const row of rows) {
-      map.set(row.lisId, row.bioguideId);
+    const senators = await prisma.representative.findMany({
+      where: { chamber: 'Senate' },
+      select: { bioguideId: true, lastName: true, state: true },
+    });
+    for (const s of senators) {
+      if (s.lastName && s.state) {
+        map.set(`${s.lastName.toUpperCase()}_${s.state.toUpperCase()}`, s.bioguideId);
+      }
     }
   } catch (e) {
-    console.error('[sync-congress-votes] Failed to build senator LIS map:', e);
+    console.error('[sync-congress-votes] Failed to build senator name map:', e);
   }
   return map;
 }
@@ -214,8 +215,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (chamber === 'senate' || chamber === 'both') {
-      // Pre-build LIS→bioguide map so we can translate senate.gov member IDs
-      const lisMap = await buildSenatorLisMap();
+      // Pre-build lastName_state→bioguideId map from our DB (single query)
+      const senatorNameMap = await buildSenatorNameMap();
       const senateVotes = await fetchSenateVoteList(congress, session);
       let senateProcessed = 0;
 
@@ -267,9 +268,10 @@ export async function POST(req: NextRequest) {
           while ((m = memberRegex.exec(xml)) !== null) {
             const block = m[1];
             const get = (tag: string) => block.match(new RegExp(`<${tag}>(.*?)<\/${tag}>`))?.[1]?.trim() || '';
-            const rawId = get('lis_member_id') || get('bioguide_id');
-            // Translate LIS ID (e.g. "S399") to bioguide ID (e.g. "C001075") using the map
-            const bioguideId = rawId ? (lisMap.get(rawId) ?? rawId) : '';
+            // Match senator to bioguide ID via lastName+state lookup in our DB map
+            const lastName = get('last_name').toUpperCase();
+            const state = get('state').toUpperCase();
+            const bioguideId = (lastName && state) ? (senatorNameMap.get(`${lastName}_${state}`) ?? '') : '';
             const position = normalizePosition(get('vote_cast'));
             if (!bioguideId || !position) continue;
 
