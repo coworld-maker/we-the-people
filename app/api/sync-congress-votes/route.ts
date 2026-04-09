@@ -16,9 +16,24 @@ function checkAuth(req: NextRequest): boolean {
   return authHeader === `Bearer ${CRON_SECRET}` || secretHeader === CRON_SECRET;
 }
 
-// Build a "LASTNAME_STATE" → bioguide ID lookup map for current senators.
-// Senate.gov vote XML includes last_name and state for each member vote.
-// This is more reliable than LIS IDs since Congress.gov no longer exposes lisId.
+// US state full name → 2-letter abbreviation (matches Senate.gov XML format)
+const STATE_ABBR: Record<string, string> = {
+  'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR', 'California': 'CA',
+  'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE', 'Florida': 'FL', 'Georgia': 'GA',
+  'Hawaii': 'HI', 'Idaho': 'ID', 'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA',
+  'Kansas': 'KS', 'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
+  'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS', 'Missouri': 'MO',
+  'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV', 'New Hampshire': 'NH', 'New Jersey': 'NJ',
+  'New Mexico': 'NM', 'New York': 'NY', 'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH',
+  'Oklahoma': 'OK', 'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
+  'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT', 'Vermont': 'VT',
+  'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV', 'Wisconsin': 'WI', 'Wyoming': 'WY',
+  'District of Columbia': 'DC', 'Puerto Rico': 'PR',
+};
+
+// Build a "LASTNAME_STATEABBR" → bioguide ID lookup map for current senators.
+// Senate.gov vote XML includes last_name and 2-letter state for each member vote.
+// Our DB stores full state names, so we convert them to abbreviations here.
 async function buildSenatorNameMap(): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   try {
@@ -28,7 +43,8 @@ async function buildSenatorNameMap(): Promise<Map<string, string>> {
     });
     for (const s of senators) {
       if (s.lastName && s.state) {
-        map.set(`${s.lastName.toUpperCase()}_${s.state.toUpperCase()}`, s.bioguideId);
+        const stateAbbr = STATE_ABBR[s.state] ?? s.state.toUpperCase().slice(0, 2);
+        map.set(`${s.lastName.toUpperCase()}_${stateAbbr}`, s.bioguideId);
       }
     }
   } catch (e) {
