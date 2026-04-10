@@ -70,13 +70,14 @@ async function fetchHouseMemberVotes(congress: number, session: number, rollNumb
 }
 
 // Senate: fetch roll call vote list XML and parse it
-async function fetchSenateVoteList(congress: number, session: number): Promise<any[]> {
+async function fetchSenateVoteList(congress: number, session: number): Promise<{ entries: any[]; sampleRawDates: string[] }> {
   const url = `https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_${congress}_${session}.xml`;
   const res = await fetch(url, { next: { revalidate: 0 } });
-  if (!res.ok) return [];
+  if (!res.ok) return { entries: [], sampleRawDates: [] };
   const xml = await res.text();
   // Parse vote entries: extract roll_number and document fields
   const entries: any[] = [];
+  const sampleRawDates: string[] = [];
   const voteRegex = /<vote>([\s\S]*?)<\/vote>/g;
   let match;
   while ((match = voteRegex.exec(xml)) !== null) {
@@ -84,15 +85,17 @@ async function fetchSenateVoteList(congress: number, session: number): Promise<a
     const get = (tag: string) => block.match(new RegExp(`<${tag}>(.*?)<\/${tag}>`))?.[1]?.trim() || '';
     const rollNumber = parseInt(get('vote_number'));
     const docShort = get('document_short_title') || get('issue');
-    // Fix 2-digit year: senate.gov uses "M/D/YY" format (e.g. "12/10/25" for Dec 10 2025)
+    // Capture raw date for debugging
     const rawDate = get('vote_date');
+    if (sampleRawDates.length < 5) sampleRawDates.push(`roll${rollNumber}:${rawDate}`);
+    // Fix 2-digit year: senate.gov uses "M/D/YY" format (e.g. "12/10/25" for Dec 10 2025)
     const mmddyy = rawDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
     const date = mmddyy
       ? `${mmddyy[1]}/${mmddyy[2]}/${parseInt(mmddyy[3]) < 50 ? 2000 + parseInt(mmddyy[3]) : 1900 + parseInt(mmddyy[3])}`
       : rawDate;
     entries.push({ rollNumber, docShort, date });
   }
-  return entries;
+  return { entries, sampleRawDates };
 }
 
 // Senate: fetch member votes for a specific roll call
@@ -135,6 +138,7 @@ export async function POST(req: NextRequest) {
   let rollCallsWithBillRef = 0;
   const errors: string[] = [];
   const debugSamples: any[] = [];
+  let sampleRawDates: string[] = [];
   let senatorMapDebug: { size: number; sampleKeys: string[] } | null = null;
 
   try {
@@ -241,7 +245,8 @@ export async function POST(req: NextRequest) {
       const senatorNameMap = await buildSenatorNameMap();
       // Debug: expose map size and a few sample keys in response
       senatorMapDebug = { size: senatorNameMap.size, sampleKeys: [...senatorNameMap.keys()].slice(0, 5) };
-      const senateVotes = await fetchSenateVoteList(congress, session);
+      const { entries: senateVotes, sampleRawDates: rawDateSamples } = await fetchSenateVoteList(congress, session);
+      sampleRawDates = rawDateSamples;
       let senateProcessed = 0;
 
       for (const vote of senateVotes) {
@@ -335,6 +340,7 @@ export async function POST(req: NextRequest) {
       rollCallsProcessed,
       rollCallsWithBillRef,
       debugSamples,
+      sampleRawDates,
       senatorMapDebug,
       errors: errors.slice(0, 10),
     });
