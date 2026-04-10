@@ -69,13 +69,26 @@ async function fetchHouseMemberVotes(congress: number, session: number, rollNumb
   return res.json();
 }
 
+// Month abbreviation → 0-based index (matches senate.gov "DD-Mon" format, e.g. "18-Dec")
+const MONTH_ABBR: Record<string, number> = {
+  Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+  Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
+};
+
+// The calendar year for a given congress session.
+// The 1st Congress began in 1789; each congress covers 2 years.
+// e.g. 119th Congress session 1 → 2025, session 2 → 2026
+function congressSessionYear(congress: number, session: number): number {
+  return 1789 + (congress - 1) * 2 + (session - 1);
+}
+
 // Senate: fetch roll call vote list XML and parse it
 async function fetchSenateVoteList(congress: number, session: number): Promise<{ entries: any[]; sampleRawDates: string[] }> {
   const url = `https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_${congress}_${session}.xml`;
   const res = await fetch(url, { next: { revalidate: 0 } });
   if (!res.ok) return { entries: [], sampleRawDates: [] };
   const xml = await res.text();
-  // Parse vote entries: extract roll_number and document fields
+  const year = congressSessionYear(congress, session);
   const entries: any[] = [];
   const sampleRawDates: string[] = [];
   const voteRegex = /<vote>([\s\S]*?)<\/vote>/g;
@@ -85,14 +98,23 @@ async function fetchSenateVoteList(congress: number, session: number): Promise<{
     const get = (tag: string) => block.match(new RegExp(`<${tag}>(.*?)<\/${tag}>`))?.[1]?.trim() || '';
     const rollNumber = parseInt(get('vote_number'));
     const docShort = get('document_short_title') || get('issue');
-    // Capture raw date for debugging
     const rawDate = get('vote_date');
     if (sampleRawDates.length < 5) sampleRawDates.push(`roll${rollNumber}:${rawDate}`);
-    // Fix 2-digit year: senate.gov uses "M/D/YY" format (e.g. "12/10/25" for Dec 10 2025)
-    const mmddyy = rawDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
-    const date = mmddyy
-      ? `${mmddyy[1]}/${mmddyy[2]}/${parseInt(mmddyy[3]) < 50 ? 2000 + parseInt(mmddyy[3]) : 1900 + parseInt(mmddyy[3])}`
-      : rawDate;
+
+    // senate.gov vote_menu uses "DD-Mon" format with no year (e.g. "18-Dec").
+    // We derive the year from congress/session: 119th session 1 → 2025.
+    let date: string;
+    const ddMon = rawDate.match(/^(\d{1,2})-([A-Za-z]{3})$/);
+    if (ddMon) {
+      const monthIdx = MONTH_ABBR[ddMon[2]];
+      if (monthIdx !== undefined) {
+        date = new Date(year, monthIdx, parseInt(ddMon[1])).toISOString();
+      } else {
+        date = rawDate;
+      }
+    } else {
+      date = rawDate; // fallback for unexpected formats
+    }
     entries.push({ rollNumber, docShort, date });
   }
   return { entries, sampleRawDates };
