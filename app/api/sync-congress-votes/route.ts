@@ -153,6 +153,8 @@ export async function POST(req: NextRequest) {
   // maxVotes caps how many roll calls we process per invocation to stay within Vercel's 60s limit
   const maxVotes = Number(body.maxVotes ?? 50);
   const chamber = (body.chamber as string | undefined) ?? 'house'; // 'house' | 'senate' | 'both'
+  // senateOffset: skip the N most recent Senate roll calls before starting (for pagination)
+  const senateOffset = Number(body.senateOffset ?? 0);
 
   let totalMemberVotesSynced = 0;
   let rollCallsMatched = 0;
@@ -267,7 +269,9 @@ export async function POST(req: NextRequest) {
       const senatorNameMap = await buildSenatorNameMap();
       // Debug: expose map size and a few sample keys in response
       senatorMapDebug = { size: senatorNameMap.size, sampleKeys: [...senatorNameMap.keys()].slice(0, 5) };
-      const { entries: senateVotes, sampleRawDates: rawDateSamples } = await fetchSenateVoteList(congress, session);
+      const { entries: senateVotesAll, sampleRawDates: rawDateSamples } = await fetchSenateVoteList(congress, session);
+      // Apply offset to skip already-processed recent votes
+      const senateVotes = senateVotesAll.slice(senateOffset);
       sampleRawDates = rawDateSamples;
       let senateProcessed = 0;
 
