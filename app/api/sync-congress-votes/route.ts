@@ -181,22 +181,26 @@ export async function POST(req: NextRequest) {
         for (const vote of voteList) {
           if (rollCallsProcessed >= maxVotes) break outerLoop;
 
-          const rollNumber: number = vote.rollNumber ?? vote.roll_number;
-          const billRef = vote.bill ?? vote.amendment?.bill;
+          // Congress.gov house-vote API uses rollCallNumber, legislationType, legislationNumber
+          const rollNumber: number = vote.rollCallNumber ?? vote.rollNumber ?? vote.roll_number;
+          // Try nested bill ref first, then top-level legislation fields
+          const billRef = vote.bill ?? vote.amendment?.bill ?? null;
+          const legType = (vote.legislationType ?? billRef?.type ?? billRef?.billType ?? '').trim().toUpperCase();
+          const legNumber = String(vote.legislationNumber ?? billRef?.number ?? billRef?.billNumber ?? '').trim();
 
           rollCallsProcessed++;
 
           // Capture debug sample of first few votes to understand structure
           if (debugSamples.length < 3) {
-            debugSamples.push({ rollNumber, keys: Object.keys(vote), billRef, voteType: vote.voteType ?? vote.type });
+            debugSamples.push({ rollNumber, keys: Object.keys(vote), legType, legNumber, voteType: vote.voteType ?? vote.type });
           }
 
-          if (!rollNumber || !billRef) continue;
+          if (!rollNumber || !legType || !legNumber) continue;
           rollCallsWithBillRef++;
 
-          const billType = (billRef.type ?? billRef.billType ?? '').toUpperCase();
-          const billNumber = String(billRef.number ?? billRef.billNumber ?? '');
-          const billCongress = String(billRef.congress ?? congress);
+          const billType = legType;
+          const billNumber = legNumber;
+          const billCongress = String(vote.congress ?? congress);
 
           if (!billType || !billNumber) continue;
 
