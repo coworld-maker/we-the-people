@@ -163,6 +163,7 @@ export async function POST(req: NextRequest) {
   const errors: string[] = [];
   const debugSamples: any[] = [];
   let sampleRawDates: string[] = [];
+  let memberDebug: any = null; // first member API response for House debugging
   let senatorMapDebug: { size: number; sampleKeys: string[] } | null = null;
 
   try {
@@ -217,19 +218,29 @@ export async function POST(req: NextRequest) {
           try {
             const memberData = await fetchHouseMemberVotes(congress, session, rollNumber);
 
+            // Capture first member API response for debugging
+            if (!memberDebug) {
+              memberDebug = {
+                rollNumber,
+                topLevelKeys: Object.keys(memberData ?? {}),
+                raw: JSON.stringify(memberData).slice(0, 500),
+              };
+            }
+
             // Handle nested response shape from Congress.gov
             const raw =
               memberData?.houseRollCallVote?.members?.member ??
+              memberData?.houseRollCallVotes?.members?.member ??
               memberData?.members?.member ??
               memberData?.members ??
               [];
-            const members: any[] = Array.isArray(raw) ? raw : [raw];
+            const members: any[] = Array.isArray(raw) ? raw : (raw ? [raw] : []);
 
-            const voteDate = vote.date ? new Date(vote.date) : new Date();
+            const voteDate = vote.startDate ? new Date(vote.startDate) : new Date();
 
             for (const member of members) {
-              const bioguideId = member.bioguideId;
-              const position = normalizePosition(member.votePosition ?? member.vote ?? '');
+              const bioguideId = member.bioguideId ?? member.bioGuideId;
+              const position = normalizePosition(member.votePosition ?? member.memberVote ?? member.vote ?? '');
               if (!bioguideId || !position) continue;
 
               // Upsert — ON CONFLICT on the unique (bioguideId, billId) index
@@ -370,6 +381,7 @@ export async function POST(req: NextRequest) {
       rollCallsProcessed,
       rollCallsWithBillRef,
       debugSamples,
+      memberDebug,
       sampleRawDates,
       senatorMapDebug,
       errors: errors.slice(0, 10),
