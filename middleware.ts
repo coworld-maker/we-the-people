@@ -2,6 +2,8 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
 const isPublicRoute = createRouteMatcher([
   '/',                          // landing page
+  '/sign-in(.*)',               // prevents redirect loop on mobile Safari
+  '/sign-up(.*)',               // prevents redirect loop on mobile Safari
   '/api/sync-bills',            // bill sync (protected by CRON_SECRET)
   '/api/sync-congress-votes',   // vote sync (protected by CRON_SECRET)
   '/api/cron/sync',             // daily cron job (protected by CRON_SECRET)
