@@ -218,29 +218,38 @@ export async function POST(req: NextRequest) {
           try {
             const memberData = await fetchHouseMemberVotes(congress, session, rollNumber);
 
-            // Capture first member API response for debugging
-            if (!memberDebug) {
-              memberDebug = {
-                rollNumber,
-                topLevelKeys: Object.keys(memberData ?? {}),
-                raw: JSON.stringify(memberData).slice(0, 500),
-              };
-            }
-
-            // Handle nested response shape from Congress.gov
+            // Congress.gov house-vote members API shape:
+            // { houseRollCallVoteMemberVotes: { results: [{ bioguideID, voteCast, ... }] } }
             const raw =
+              memberData?.houseRollCallVoteMemberVotes?.results ??
               memberData?.houseRollCallVote?.members?.member ??
-              memberData?.houseRollCallVotes?.members?.member ??
               memberData?.members?.member ??
               memberData?.members ??
               [];
             const members: any[] = Array.isArray(raw) ? raw : (raw ? [raw] : []);
 
+            // Capture first member API response for debugging
+            if (!memberDebug) {
+              const firstMember = members[0] ?? null;
+              memberDebug = {
+                rollNumber,
+                topLevelKeys: Object.keys(memberData ?? {}),
+                membersFound: members.length,
+                firstMemberKeys: firstMember ? Object.keys(firstMember) : [],
+                firstMemberSample: firstMember ? {
+                  bioguideID: firstMember.bioguideID,
+                  bioguideId: firstMember.bioguideId,
+                  voteCast: firstMember.voteCast,
+                  votePosition: firstMember.votePosition,
+                } : null,
+              };
+            }
+
             const voteDate = vote.startDate ? new Date(vote.startDate) : new Date();
 
             for (const member of members) {
-              const bioguideId = member.bioguideId ?? member.bioGuideId;
-              const position = normalizePosition(member.votePosition ?? member.memberVote ?? member.vote ?? '');
+              const bioguideId = member.bioguideID ?? member.bioguideId ?? member.bioGuideId;
+              const position = normalizePosition(member.voteCast ?? member.votePosition ?? member.vote ?? '');
               if (!bioguideId || !position) continue;
 
               // Upsert — ON CONFLICT on the unique (bioguideId, billId) index
