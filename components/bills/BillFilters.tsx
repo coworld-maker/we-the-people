@@ -27,11 +27,11 @@ export default function BillFilters() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[--text-muted]" />
         <input type="text" placeholder="Search bills..." value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-3 py-2 border border-[--border] rounded-lg text-sm text-[--text] placeholder-[--text-muted] bg-white focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
+          className="w-full pl-9 pr-3 py-2 border border-[--border] rounded-lg text-sm text-[--text] placeholder-[--text-muted] bg-[--surface] focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
         />
       </div>
       <select value={status} onChange={e => { setStatus(e.target.value); apply({ status: e.target.value }) }}
-        className="px-3 py-2 border border-[--border] rounded-lg text-sm text-[--text] bg-white cursor-pointer focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
+        className="px-3 py-2 border border-[--border] rounded-lg text-sm text-[--text] bg-[--surface] cursor-pointer focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
       >
         <option value="">All statuses</option>
         <option value="introduced">Introduced</option>
@@ -42,7 +42,7 @@ export default function BillFilters() {
         <option value="enacted">Enacted</option>
       </select>
       <select value={year} onChange={e => { setYear(e.target.value); apply({ year: e.target.value }) }}
-        className="px-3 py-2 border border-[--border] rounded-lg text-sm text-[--text] bg-white cursor-pointer focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
+        className="px-3 py-2 border border-[--border] rounded-lg text-sm text-[--text] bg-[--surface] cursor-pointer focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
       >
         <option value="">All years</option>
         {years.map(y => <option key={y} value={String(y)}>{y}</option>)}

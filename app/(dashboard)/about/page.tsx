@@ -13,14 +13,14 @@ export default function AboutPage() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Hero */}
-      <div className="hero-gradient rounded-2xl px-8 py-10 mb-10 text-center">
+      <div className="hero-gradient rounded-2xl px-5 py-8 sm:px-8 sm:py-10 mb-10 text-center">
         <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <Vote className="w-6 h-6 text-white" />
         </div>
-        <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-3">
+        <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-3">
           About Democracy Unlocked
         </h1>
-        <p className="text-white/40 text-lg max-w-xl mx-auto leading-relaxed">
+        <p className="text-white/70 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
           We believe democracy works better when citizens have the tools to understand,
           engage with, and influence the legislation that shapes their lives.
         </p>
@@ -189,9 +189,9 @@ export default function AboutPage() {
       </section>
 
       {/* CTA */}
-      <section className="hero-gradient rounded-2xl px-8 py-10 text-center">
+      <section className="hero-gradient rounded-2xl px-5 py-8 sm:px-8 sm:py-10 text-center">
         <h2 className="font-display text-2xl font-extrabold text-white mb-3">Ready to get involved?</h2>
-        <p className="text-white/40 mb-6">Start exploring legislation and casting your votes today.</p>
+        <p className="text-white/70 mb-6">Start exploring legislation and casting your votes today.</p>
         <Link href="/bills" className="btn-primary px-6 py-3 rounded-xl">
           Browse bills <ArrowRight className="w-4 h-4" />
         </Link>
