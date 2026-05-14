@@ -5,8 +5,8 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, TrendingUp, BarChart3, Users, Shield, FileText,
-  Check, X, Minus, ChevronDown, ChevronUp, ExternalLink,
-  Vote, AlertCircle, Loader2, Share2, CheckCheck, Building2,
+  Check, X, Minus, ChevronDown, ChevronUp,
+  Vote, AlertCircle, Loader2, Building2,
   CalendarDays, Activity,
 } from 'lucide-react'
 
@@ -142,7 +142,6 @@ export default function ScorecardDetailPage() {
   const [showAllVotes, setShowAllVotes] = useState(false)
   const [showAlignmentDetails, setShowAlignmentDetails] = useState(false)
   const [showCommittees, setShowCommittees] = useState(false)
-  const [copied, setCopied] = useState(false)
 
   // Fallback rep info from sessionStorage (from search page navigation)
   const [sessionRep, setSessionRep] = useState<any>(null)
@@ -161,18 +160,6 @@ export default function ScorecardDetailPage() {
       .finally(() => setLoading(false))
   }, [bioguideId])
 
-  function handleShare() {
-    const url = window.location.href
-    if (navigator.share) {
-      navigator.share({ title: repName, url })
-    } else {
-      navigator.clipboard.writeText(url).then(() => {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      })
-    }
-  }
-
   // Resolve rep info: API > sessionStorage
   const repProfile = data?.repProfile
   const repName = repProfile?.fullName ?? sessionRep?.name ?? 'Representative'
@@ -182,7 +169,6 @@ export default function ScorecardDetailPage() {
         : `U.S. Representative — ${repProfile.state}${repProfile.district ? ` District ${repProfile.district}` : ''}`)
     : sessionRep?.office ?? ''
   const repParty = repProfile?.party ?? sessionRep?.party ?? 'I'
-  const repWebsite = sessionRep?.website ?? null
   const committees = repProfile?.committees ?? []
 
   const partyColor = repParty === 'R' ? 'bg-red-500' : repParty === 'D' ? 'bg-blue-500' : 'bg-gray-400'
@@ -260,24 +246,6 @@ export default function ScorecardDetailPage() {
                 </div>
               </div>
 
-              {/* Action buttons */}
-              <div className="flex items-center gap-2 shrink-0 self-start">
-                <button onClick={handleShare}
-                  className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
-                >
-                  {copied
-                    ? <><CheckCheck className="w-3 h-3 text-emerald-600" /> Copied!</>
-                    : <><Share2 className="w-3 h-3" /> Share</>}
-                </button>
-                {repWebsite && (
-                  <a href={repWebsite} target="_blank" rel="noopener noreferrer"
-                    className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    <span className="hidden sm:inline">Official Site</span>
-                  </a>
-                )}
-              </div>
             </div>
 
             {/* Quick stats */}

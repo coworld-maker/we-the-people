@@ -111,22 +111,13 @@ export default function RepFinder() {
                           {rep.office} · {rep.state}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {rep.phone && (
-                          <a href={`tel:${rep.phone}`}
-                            className="badge bg-[--surface-secondary] text-[--text-secondary] border border-[--border] hover:border-[--accent] hover:text-[--accent] transition-colors"
-                          >
-                            Call
-                          </a>
-                        )}
-                        {rep.website && (
-                          <a href={rep.website} target="_blank" rel="noopener noreferrer"
-                            className="badge bg-[--accent-light] text-[--accent] hover:bg-[--accent] hover:text-white transition-colors"
-                          >
-                            Website <ExternalLink className="w-3 h-3" />
-                          </a>
-                        )}
-                      </div>
+                      {rep.phone && (
+                        <a href={`tel:${rep.phone}`}
+                          className="badge bg-[--surface-secondary] text-[--text-secondary] border border-[--border] hover:border-[--accent] hover:text-[--accent] transition-colors shrink-0"
+                        >
+                          Call
+                        </a>
+                      )}
                     </div>
                   ))}
                 </div>

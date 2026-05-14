@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ExternalLink, Phone, ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
 
 interface Representative {
@@ -82,14 +82,6 @@ function RepCard({ rep }: { rep: Representative }) {
         )}
       </div>
 
-      {/* Contact */}
-      {rep.website && (
-        <a href={rep.website} target="_blank" rel="noopener noreferrer"
-          className="shrink-0 bg-[--accent] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[--accent-hover] transition-colors"
-        >
-          Contact
-        </a>
-      )}
     </div>
   )
 }

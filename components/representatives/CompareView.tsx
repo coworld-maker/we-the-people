@@ -1,17 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, CheckCircle2, XCircle, MinusCircle, ChevronDown, ChevronUp, Users } from 'lucide-react'
+import { CheckCircle2, XCircle, MinusCircle, ChevronDown, ChevronUp, Users } from 'lucide-react'
 import Link from 'next/link'
 
 const STORAGE_KEY = 'my-reps-state'
-
-const STATES = [
-  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
-  'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
-  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT',
-  'VA','WA','WV','WI','WY','DC',
-]
 
 interface Comparison {
   billId: string
@@ -173,24 +166,29 @@ function RepCard({ rep }: { rep: Rep }) {
   )
 }
 
-export default function CompareView() {
-  const [state, setState] = useState('')
+interface CompareViewProps {
+  /** State code pre-selected by the map (e.g. 'CA'). Fetches automatically when it changes. */
+  selectedState?: string
+}
+
+export default function CompareView({ selectedState }: CompareViewProps) {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<{ reps: Rep[]; userVoteCount: number } | null>(null)
   const [error, setError] = useState('')
+  const [lastFetched, setLastFetched] = useState('')
 
-  // Restore saved state on first mount and auto-fetch
+  // Auto-fetch whenever selectedState changes (from map click or localStorage restore)
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved && STATES.includes(saved)) {
-      setState(saved)
-      fetchForState(saved)
+    const s = selectedState || localStorage.getItem(STORAGE_KEY) || ''
+    if (s && s !== lastFetched) {
+      fetchForState(s)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [selectedState])
 
   async function fetchForState(s: string) {
     if (!s) return
+    setLastFetched(s)
     setLoading(true); setError(''); setData(null)
     try {
       const res = await fetch(`/api/compare?state=${encodeURIComponent(s)}`)
@@ -204,46 +202,8 @@ export default function CompareView() {
     }
   }
 
-  async function handleSearch() {
-    if (!state) return
-    localStorage.setItem(STORAGE_KEY, state)
-    fetchForState(state)
-  }
-
-  function handleStateChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    setState(e.target.value)
-  }
-
   return (
     <div>
-      {/* State picker */}
-      <div className="flex gap-3 mb-8">
-        <select
-          value={state}
-          onChange={handleStateChange}
-          className="flex-1 max-w-[200px] px-3 py-2.5 border border-[--border] rounded-lg text-sm text-[--text] bg-white focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
-        >
-          <option value="">Select your state...</option>
-          {STATES.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <button
-          onClick={handleSearch}
-          disabled={loading || !state}
-          className="btn-primary px-5 disabled:opacity-50"
-        >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Loading
-            </span>
-          ) : (
-            <span className="flex items-center gap-2">
-              <Search className="w-3.5 h-3.5" /> Compare
-            </span>
-          )}
-        </button>
-      </div>
-
       {error && (
         <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-4">{error}</p>
       )}
