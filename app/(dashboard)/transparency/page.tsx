@@ -174,7 +174,7 @@ export default async function TransparencyPage() {
             { icon: Users, title: 'No astroturfing', desc: 'One account per person. Votes are rate-limited and monitored for suspicious patterns.' },
           ].map(item => (
             <div key={item.title} className="flex items-start gap-4 p-5 bg-[--surface-secondary] rounded-xl">
-              <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shrink-0 border border-[--border]">
+              <div className="w-9 h-9 bg-[--surface] rounded-lg flex items-center justify-center shrink-0 border border-[--border]">
                 <item.icon className="w-4 h-4 text-[--accent]" />
               </div>
               <div>

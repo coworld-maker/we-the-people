@@ -12,7 +12,7 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="min-h-screen bg-[--surface-secondary]">
-      <nav className="sticky top-0 z-50 bg-white border-b border-[--border] shadow-sm">
+      <nav className="sticky top-0 z-50 bg-[--surface] border-b border-[--border] shadow-sm">
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex items-center h-14 gap-3">
             {/* Logo */}
