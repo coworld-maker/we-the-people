@@ -2,10 +2,11 @@ import { UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
 import {
   Vote, LayoutDashboard, FileText, Newspaper, Grid3X3, Info,
-  Landmark, GraduationCap, BarChart3, ScrollText,
+  Landmark, GraduationCap, BarChart3, ScrollText, Users,
 } from 'lucide-react'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
 import PageTransition from '@/components/ui/PageTransition'
+import NavLink from '@/components/ui/NavLink'
 
 export default function DashboardLayout({
   children,
@@ -29,6 +30,8 @@ export default function DashboardLayout({
             <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
               <NavLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" />
               <NavLink href="/bills" icon={FileText} label="Bills" />
+              <NavLink href="/voting-records" icon={Vote} label="Votes" />
+              <NavLink href="/my-representatives" icon={Users} label="My Reps" />
               <NavLink href="/documents" icon={ScrollText} label="Documents" />
               <NavLink href="/policy-areas" icon={Grid3X3} label="Policy" />
               <NavLink href="/action-center" icon={Landmark} label="Action" />
@@ -56,16 +59,5 @@ export default function DashboardLayout({
         </PageTransition>
       </main>
     </div>
-  )
-}
-
-function NavLink({ href, icon: Icon, label }: { href: string; icon: any; label: string }) {
-  return (
-    <Link href={href}
-      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-[--text-secondary] hover:text-[--text] hover:bg-[--surface-secondary] rounded-md transition-colors whitespace-nowrap"
-    >
-      <Icon className="w-3.5 h-3.5" />
-      <span className="hidden lg:inline">{label}</span>
-    </Link>
   )
 }
