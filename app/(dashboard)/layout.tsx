@@ -1,12 +1,9 @@
 import { UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
-import {
-  Vote, LayoutDashboard, FileText, Newspaper, Grid3X3, Info,
-  Landmark, GraduationCap, BarChart3, ScrollText, ClipboardList, Users,
-} from 'lucide-react'
+import { Vote } from 'lucide-react'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
 import PageTransition from '@/components/ui/PageTransition'
-import NavLink from '@/components/ui/NavLink'
+import NavBar from '@/components/ui/NavBar'
 
 export default function DashboardLayout({
   children,
@@ -29,20 +26,7 @@ export default function DashboardLayout({
             </Link>
 
             {/* Nav links — flex-1 so it's bounded between logo and avatar */}
-            <div className="flex-1 min-w-0 flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
-              <NavLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" />
-              <NavLink href="/bills" icon={FileText} label="Bills" />
-              <NavLink href="/documents" icon={ScrollText} label="Documents" />
-              <NavLink href="/policy-areas" icon={Grid3X3} label="Policy" />
-              <NavLink href="/voting-records" icon={ClipboardList} label="Votes" />
-              <NavLink href="/my-representatives" icon={Users} label="My Reps" />
-              <NavLink href="/action-center" icon={Landmark} label="Action" />
-              <NavLink href="/scorecards" icon={BarChart3} label="Scorecards" />
-              <NavLink href="/learn" icon={GraduationCap} label="Learn" />
-              <NavLink href="/transparency" icon={BarChart3} label="Stats" />
-              <NavLink href="/news" icon={Newspaper} label="News" />
-              <NavLink href="/about" icon={Info} label="About" />
-            </div>
+            <NavBar />
 
             {/* Avatar */}
             <div className="shrink-0">
