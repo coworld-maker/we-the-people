@@ -17,6 +17,7 @@ import YourRepresentatives from '@/components/dashboard/YourRepresentatives'
 import VotingPatterns from '@/components/dashboard/VotingPatterns'
 import YourImpact from '@/components/dashboard/YourImpact'
 import ScrollReveal from '@/components/ui/ScrollReveal'
+import PersonalizedBills from '@/components/dashboard/PersonalizedBills'
 
 export default async function DashboardPage() {
   const { userId: clerkUserId } = await auth()
@@ -138,6 +139,11 @@ export default async function DashboardPage() {
             </div>
           ))}
         </div>
+      </ScrollReveal>
+
+      {/* Personalized bills / interest poll */}
+      <ScrollReveal delay={50}>
+        <PersonalizedBills />
       </ScrollReveal>
 
       {/* Row 1: Impact donut + Tracked Bills */}
