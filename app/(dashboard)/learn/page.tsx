@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { GraduationCap, Clock, ArrowRight, ChevronRight, Lightbulb } from 'lucide-react'
-import { CIVIC_CIVIC_GUIDES } from '@/lib/data/civic-guides'
+import { CIVIC_GUIDES } from '@/lib/data/civic-guides'
 
 export const metadata = {
   title: 'Learn | Democracy Unlocked',
