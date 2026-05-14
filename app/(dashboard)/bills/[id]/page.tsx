@@ -12,6 +12,13 @@ import BillFullText from '@/components/bills/BillFullText'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ExternalLink, Calendar, Zap } from 'lucide-react'
+import SectionNav from '@/components/ui/SectionNav'
+
+const SECTIONS = [
+  { id: 'summary', label: 'Summary' },
+  { id: 'arguments', label: 'Arguments' },
+  { id: 'discussion', label: 'Discussion' },
+]
 
 export default async function BillDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { userId } = await auth()
@@ -48,18 +55,18 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
       </Link>
 
       {/* Header */}
-      <div className="hero-gradient rounded-2xl px-8 py-7 mb-6">
+      <div className="hero-gradient rounded-2xl px-5 py-6 sm:px-8 sm:py-7 mb-6">
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <span className="badge bg-white/10 text-white border border-white/10">{bill.billType} {bill.billNumber}</span>
           <span className={`badge border ${st.cls}`}>{st.label}</span>
           {bill.policyArea && <span className="badge bg-[--accent]/20 text-[--accent-light] border border-[--accent]/20">{bill.policyArea}</span>}
-          <span className="badge bg-white/5 text-white/40 border border-white/5">{bill.congress}th Congress</span>
+          <span className="badge bg-white/5 text-white/60 border border-white/10">{bill.congress}th Congress</span>
         </div>
         <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-extrabold text-white leading-tight mb-3">
           {bill.shortTitle || bill.title}
         </h1>
-        {bill.shortTitle && bill.title !== bill.shortTitle && <p className="text-white/30 text-sm mb-3">{bill.title}</p>}
-        <div className="flex items-center gap-5 text-sm text-white/40 flex-wrap">
+        {bill.shortTitle && bill.title !== bill.shortTitle && <p className="text-white/60 text-sm mb-3">{bill.title}</p>}
+        <div className="flex items-center gap-5 text-sm text-white/70 flex-wrap">
           <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {new Date(bill.introducedDate).toLocaleDateString()}</span>
           <a href={congressGovUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-white transition-colors">
             <ExternalLink className="w-3.5 h-3.5" /> Congress.gov
@@ -68,17 +75,23 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
       </div>
 
       {bill.latestActionText && (
-        <div className="card p-4 mb-6 flex items-start gap-2">
+        <div className="card p-4 mb-4 flex items-start gap-2">
           <Zap className="w-4 h-4 text-[--accent] mt-0.5 shrink-0" />
           <p className="text-sm"><span className="font-semibold text-[--text]">Latest action:</span> <span className="text-[--text-secondary]">{bill.latestActionText}</span></p>
         </div>
       )}
 
+      <SectionNav sections={SECTIONS} />
+
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <AISummary billId={bill.id} aiSummary={(bill as any).aiSummary} officialSummary={bill.summary} aiAnalyzedAt={(bill as any).aiAnalyzedAt?.toISOString() || null} />
-          <ProsConsPanel prosCons={bill.prosCons as any} />
-          <ImpactPanel impacts={bill.impacts as any} />
+          <div id="summary" className="scroll-mt-20">
+            <AISummary billId={bill.id} aiSummary={(bill as any).aiSummary} officialSummary={bill.summary} aiAnalyzedAt={(bill as any).aiAnalyzedAt?.toISOString() || null} />
+          </div>
+          <div id="arguments" className="scroll-mt-20 space-y-6">
+            <ProsConsPanel prosCons={bill.prosCons as any} />
+            <ImpactPanel impacts={bill.impacts as any} />
+          </div>
           <BillFullText billId={bill.id} initialText={(bill as any).fullText || null} congressGovUrl={congressGovUrl} />
 
           {Array.isArray(bill.sponsors) && bill.sponsors.length > 0 && (
@@ -100,11 +113,17 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
             </div>
           )}
 
-          <DiscussionBoard billId={bill.id} />
+          <div id="discussion" className="scroll-mt-20">
+            <DiscussionBoard billId={bill.id} />
+          </div>
         </div>
 
-        <div className="space-y-6">
-          <VotingPanel billId={bill.id} currentVote={userVote ? { position: userVote.position, reasoning: userVote.reasoning || undefined } : undefined} />
+        <div className="space-y-6 order-first lg:order-last">
+          <VotingPanel
+            billId={bill.id}
+            currentVote={userVote ? { position: userVote.position, reasoning: userVote.reasoning || undefined } : undefined}
+            communityStats={{ yesCount: stats.yesCount, noCount: stats.noCount, abstainCount: stats.abstainCount, totalVotes }}
+          />
 
           {/* Vote stats */}
           <div className="card overflow-hidden">
