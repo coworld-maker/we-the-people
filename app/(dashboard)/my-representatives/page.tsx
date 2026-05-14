@@ -2,12 +2,18 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { Users, ArrowRight } from 'lucide-react'
 import CompareView from '@/components/representatives/CompareView'
+import SectionNav from '@/components/ui/SectionNav'
 import Link from 'next/link'
 
 export const metadata = {
   title: 'My Representatives | Democracy Unlocked',
   description: 'Compare your votes to how your representatives voted in Congress.',
 }
+
+const SECTIONS = [
+  { id: 'how-it-works', label: 'How It Works' },
+  { id: 'compare',      label: 'Compare My Votes' },
+]
 
 export default async function MyRepresentativesPage() {
   const { userId } = await auth()
@@ -24,15 +30,18 @@ export default async function MyRepresentativesPage() {
           <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-3">
             My Representatives
           </h1>
-          <p className="text-white/40 text-lg leading-relaxed">
+          <p className="text-white/70 text-lg leading-relaxed">
             Select your state to see how your positions on legislation align with your
             senators and house representatives' actual recorded votes in Congress.
           </p>
         </div>
       </div>
 
+      {/* In-page section navigation */}
+      <SectionNav sections={SECTIONS} />
+
       {/* How it works */}
-      <div className="card p-6 mb-8">
+      <section id="how-it-works" className="card p-6 mb-8 scroll-mt-20">
         <div className="grid md:grid-cols-3 gap-6">
           {[
             { step: '01', title: 'Pick your state', desc: 'We look up your current senators and representatives from our database.' },
@@ -54,10 +63,10 @@ export default async function MyRepresentativesPage() {
             Browse bills <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
-      </div>
+      </section>
 
       {/* Compare UI */}
-      <section>
+      <section id="compare" className="scroll-mt-20">
         <h2 className="font-display text-xl font-extrabold text-[--text] mb-5 flex items-center gap-2">
           <Users className="w-5 h-5 text-[--accent]" />
           Compare My Votes

@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, CheckCircle2, XCircle, MinusCircle, ChevronDown, ChevronUp, Users } from 'lucide-react'
 import Link from 'next/link'
+
+const STORAGE_KEY = 'my-reps-state'
 
 const STATES = [
   'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
@@ -177,11 +179,21 @@ export default function CompareView() {
   const [data, setData] = useState<{ reps: Rep[]; userVoteCount: number } | null>(null)
   const [error, setError] = useState('')
 
-  async function handleSearch() {
-    if (!state) return
+  // Restore saved state on first mount and auto-fetch
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved && STATES.includes(saved)) {
+      setState(saved)
+      fetchForState(saved)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function fetchForState(s: string) {
+    if (!s) return
     setLoading(true); setError(''); setData(null)
     try {
-      const res = await fetch(`/api/compare?state=${encodeURIComponent(state)}`)
+      const res = await fetch(`/api/compare?state=${encodeURIComponent(s)}`)
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Failed to load comparison')
       setData(json)
@@ -192,13 +204,23 @@ export default function CompareView() {
     }
   }
 
+  async function handleSearch() {
+    if (!state) return
+    localStorage.setItem(STORAGE_KEY, state)
+    fetchForState(state)
+  }
+
+  function handleStateChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    setState(e.target.value)
+  }
+
   return (
     <div>
       {/* State picker */}
       <div className="flex gap-3 mb-8">
         <select
           value={state}
-          onChange={e => setState(e.target.value)}
+          onChange={handleStateChange}
           className="flex-1 max-w-[200px] px-3 py-2.5 border border-[--border] rounded-lg text-sm text-[--text] bg-white focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
         >
           <option value="">Select your state...</option>

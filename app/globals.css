@@ -297,7 +297,13 @@ code, pre {
     box-shadow: var(--shadow-sm);
   }
   .card-interactive {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
     cursor: pointer;
+    transition: border-color var(--duration-base) var(--ease-out),
+                box-shadow var(--duration-base) var(--ease-out),
+                transform var(--duration-base) var(--ease-out);
   }
   .card-interactive:hover {
     border-color: var(--border-strong);
