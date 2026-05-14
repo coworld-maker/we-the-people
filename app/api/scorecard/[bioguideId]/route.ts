@@ -19,34 +19,66 @@ export async function GET(
   })
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
-  // 1. Voting records — how this member voted on bills in our DB
+  // ── 0. Rep profile from DB ─────────────────────────────────────────────────
+  const repProfile = await prisma.representative.findUnique({
+    where: { bioguideId },
+    select: {
+      bioguideId: true, firstName: true, lastName: true, fullName: true,
+      party: true, state: true, district: true, chamber: true,
+      termStart: true, committees: true,
+    },
+  })
+
+  // ── 1. Voting records ──────────────────────────────────────────────────────
   const congressVotes = await prisma.congressVote.findMany({
     where: { bioguideId },
     orderBy: { votedAt: 'desc' },
-    take: 50,
+    take: 100,
   })
 
-  // Get bill details for those votes
   const billIds = congressVotes.map(v => v.billId)
-  const bills = billIds.length > 0
-    ? await prisma.bill.findMany({
-        where: { id: { in: billIds } },
-        select: { id: true, title: true, billType: true, billNumber: true, policyArea: true, status: true, introducedDate: true },
-      })
-    : []
+
+  const [bills, sponsoredBillsRaw] = await Promise.all([
+    billIds.length > 0
+      ? prisma.bill.findMany({
+          where: { id: { in: billIds } },
+          select: {
+            id: true, title: true, shortTitle: true, billType: true,
+            billNumber: true, policyArea: true, status: true,
+            introducedDate: true, latestActionText: true,
+          },
+        })
+      : Promise.resolve([]),
+
+    // ── 5. Sponsored bills — JSON text search on sponsors field ───────────
+    prisma.$queryRaw<Array<{
+      id: string; title: string; shortTitle: string | null;
+      billType: string; billNumber: string; status: string;
+      policyArea: string | null; introducedDate: Date;
+    }>>`
+      SELECT id, title, "shortTitle", "billType", "billNumber",
+             status, "policyArea", "introducedDate"
+      FROM   "Bill"
+      WHERE  sponsors::text LIKE ${`%${bioguideId}%`}
+      ORDER  BY "introducedDate" DESC
+      LIMIT  20
+    `,
+  ])
 
   const billMap = new Map(bills.map(b => [b.id, b]))
 
-  const votingRecords = congressVotes.map(v => ({
-    billId: v.billId,
-    position: v.position,
-    chamber: v.chamber,
-    rollNumber: v.rollNumber,
-    votedAt: v.votedAt,
-    bill: billMap.get(v.billId) ?? null,
-  })).filter(v => v.bill !== null)
+  const votingRecords = congressVotes
+    .map(v => ({
+      billId: v.billId,
+      position: v.position,
+      chamber: v.chamber,
+      rollNumber: v.rollNumber,
+      votedAt: v.votedAt,
+      bill: billMap.get(v.billId) ?? null,
+    }))
+    .filter(v => v.bill !== null)
 
-  // 2. Key positions — aggregate votes by policy area
+  // ── 2. Key positions ───────────────────────────────────────────────────────
   const policyAreaMap: Record<string, { yea: number; nay: number; total: number }> = {}
   for (const v of votingRecords) {
     const area = v.bill?.policyArea ?? 'Other'
@@ -67,7 +99,7 @@ export async function GET(
     .sort((a, b) => b.totalVotes - a.totalVotes)
     .slice(0, 8)
 
-  // 3. Alignment score — compare user votes vs member votes
+  // ── 3. Alignment score ────────────────────────────────────────────────────
   const userVotes = await prisma.vote.findMany({
     where: { userId: user.id, billId: { in: billIds } },
     select: { billId: true, position: true },
@@ -76,8 +108,7 @@ export async function GET(
   const userVoteMap = new Map(userVotes.map(v => [v.billId, v.position]))
   const memberVoteMap = new Map(congressVotes.map(v => [v.billId, v.position]))
 
-  let matched = 0
-  let total = 0
+  let matched = 0, total = 0
   const alignmentDetails: any[] = []
 
   for (const [billId, userPos] of userVoteMap) {
@@ -90,20 +121,13 @@ export async function GET(
     const bill = billMap.get(billId)
     if (bill) {
       alignmentDetails.push({
-        billId,
-        billType: bill.billType,
-        billNumber: bill.billNumber,
-        billTitle: bill.title,
-        userPosition: userPos,
-        memberPosition: memberPos,
-        aligned,
+        billId, billType: bill.billType, billNumber: bill.billNumber,
+        billTitle: bill.title, userPosition: userPos, memberPosition: memberPos, aligned,
       })
     }
   }
 
-  const alignmentScore = total > 0 ? Math.round((matched / total) * 100) : null
-
-  // 4. Community comparison — how the community voted vs this member
+  // ── 4. Community comparison ────────────────────────────────────────────────
   const communityComparison: any[] = []
   for (const v of votingRecords.slice(0, 10)) {
     if (!v.bill) continue
@@ -125,22 +149,75 @@ export async function GET(
     })
   }
 
+  // ── 6. Party-line voting ───────────────────────────────────────────────────
+  // For each bill this rep voted (yea/nay only), find how their party voted
+  // majority, and check if the rep voted with it.
+  let partyLineMatched = 0, partyLineTotal = 0
+
+  if (repProfile && billIds.length > 0) {
+    const myParty = repProfile.party
+    // Get all party members' votes on these bills
+    const partyVotes = await prisma.congressVote.findMany({
+      where: {
+        billId: { in: billIds },
+        position: { in: ['yea', 'nay'] },
+      },
+      select: { billId: true, bioguideId: true, position: true },
+    })
+
+    // Build bill → { yeaIds, nayIds } for party members
+    const partyBillMap = new Map<string, { yea: Set<string>; nay: Set<string> }>()
+    for (const pv of partyVotes) {
+      if (!partyBillMap.has(pv.billId)) partyBillMap.set(pv.billId, { yea: new Set(), nay: new Set() })
+      const entry = partyBillMap.get(pv.billId)!
+      if (pv.position === 'yea') entry.yea.add(pv.bioguideId)
+      else entry.nay.add(pv.bioguideId)
+    }
+
+    // For each rep's yea/nay vote, check party majority
+    for (const v of congressVotes) {
+      if (v.position !== 'yea' && v.position !== 'nay') continue
+      const entry = partyBillMap.get(v.billId)
+      if (!entry) continue
+      const partyYea = entry.yea.size
+      const partyNay = entry.nay.size
+      if (partyYea === partyNay) continue // tie — skip
+      const partyMajority = partyYea > partyNay ? 'yea' : 'nay'
+      partyLineTotal++
+      if (v.position === partyMajority) partyLineMatched++
+    }
+  }
+
+  const partyLinePct = partyLineTotal > 0
+    ? Math.round((partyLineMatched / partyLineTotal) * 100)
+    : null
+
+  // ── Stats summary ──────────────────────────────────────────────────────────
+  const yeaCount = votingRecords.filter(v => v.position === 'yea').length
+  const nayCount = votingRecords.filter(v => v.position === 'nay').length
+  const notVotingCount = votingRecords.filter(v => v.position === 'not_voting').length
+  const totalVotesTracked = votingRecords.length
+  const participationRate = totalVotesTracked > 0
+    ? Math.round(((yeaCount + nayCount) / totalVotesTracked) * 100)
+    : null
+
   return NextResponse.json({
     bioguideId,
+    repProfile,
     votingRecords,
     keyPositions,
+    sponsoredBills: sponsoredBillsRaw,
     alignment: {
-      score: alignmentScore,
-      matched,
-      total,
-      details: alignmentDetails,
+      score: total > 0 ? Math.round((matched / total) * 100) : null,
+      matched, total, details: alignmentDetails,
     },
     communityComparison,
     stats: {
-      totalVotesTracked: votingRecords.length,
-      yeaCount: votingRecords.filter(v => v.position === 'yea').length,
-      nayCount: votingRecords.filter(v => v.position === 'nay').length,
-      notVotingCount: votingRecords.filter(v => v.position === 'not_voting').length,
+      totalVotesTracked,
+      yeaCount, nayCount, notVotingCount,
+      participationRate,
+      partyLinePct,
+      partyLineTotal,
     },
   })
 }
