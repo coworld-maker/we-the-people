@@ -10,62 +10,63 @@
 @layer base {
   :root {
     /* ── Core Palette ─────────────────────────────────────── */
-    --bg:               #0A0A0A;
-    --bg-subtle:        #0D0D0D;
-    --surface:          #111111;
-    --surface-secondary:#161616;
-    --surface-tertiary: #1C1C1C;
-    --surface-elevated: #202020;
+    --bg:               #F7F8FC;
+    --bg-subtle:        #F0F2F8;
+    --surface:          #FFFFFF;
+    --surface-secondary:#F1F3F9;
+    --surface-tertiary: #E8EBF4;
+    --surface-elevated: #FFFFFF;
+    --dark:             #1E293B;
 
     /* ── Borders ──────────────────────────────────────────── */
-    --border:           rgba(255, 255, 255, 0.07);
-    --border-subtle:    rgba(255, 255, 255, 0.04);
-    --border-medium:    rgba(255, 255, 255, 0.12);
-    --border-strong:    rgba(255, 255, 255, 0.20);
-    --border-focus:     rgba(99, 91, 255, 0.60);
+    --border:           rgba(15, 23, 42, 0.08);
+    --border-subtle:    rgba(15, 23, 42, 0.04);
+    --border-medium:    rgba(15, 23, 42, 0.12);
+    --border-strong:    rgba(15, 23, 42, 0.22);
+    --border-focus:     rgba(99, 91, 255, 0.50);
 
     /* ── Text ─────────────────────────────────────────────── */
-    --text:             #F4F4F5;
-    --text-secondary:   rgba(244, 244, 245, 0.60);
-    --text-muted:       rgba(244, 244, 245, 0.35);
-    --text-disabled:    rgba(244, 244, 245, 0.20);
-    --text-inverse:     #0A0A0A;
+    --text:             #0F172A;
+    --text-secondary:   #475569;
+    --text-muted:       #94A3B8;
+    --text-disabled:    #CBD5E1;
+    --text-inverse:     #FFFFFF;
 
     /* ── Accent — Indigo ──────────────────────────────────── */
     --accent:           #635BFF;
-    --accent-hover:     #7B74FF;
-    --accent-active:    #524AE8;
-    --accent-light:     rgba(99, 91, 255, 0.12);
-    --accent-lighter:   rgba(99, 91, 255, 0.06);
-    --accent-glow:      rgba(99, 91, 255, 0.25);
-    --accent-glow-lg:   rgba(99, 91, 255, 0.15);
+    --accent-hover:     #4F46E5;
+    --accent-active:    #4338CA;
+    --accent-light:     rgba(99, 91, 255, 0.10);
+    --accent-lighter:   rgba(99, 91, 255, 0.05);
+    --accent-glow:      rgba(99, 91, 255, 0.20);
+    --accent-glow-lg:   rgba(99, 91, 255, 0.10);
 
     /* ── Semantic Colors ──────────────────────────────────── */
-    --success:          #22C55E;
-    --success-light:    rgba(34, 197, 94, 0.10);
-    --warning:          #F59E0B;
-    --warning-light:    rgba(245, 158, 11, 0.10);
-    --danger:           #EF4444;
-    --danger-light:     rgba(239, 68, 68, 0.10);
-    --info:             #3B82F6;
-    --info-light:       rgba(59, 130, 246, 0.10);
+    --success:          #16A34A;
+    --success-light:    rgba(22, 163, 74, 0.10);
+    --warning:          #D97706;
+    --warning-light:    rgba(217, 119, 6, 0.10);
+    --danger:           #DC2626;
+    --danger-light:     rgba(220, 38, 38, 0.10);
+    --info:             #2563EB;
+    --info-light:       rgba(37, 99, 235, 0.10);
 
     /* Party colors */
-    --democrat:         #3B82F6;
-    --democrat-light:   rgba(59, 130, 246, 0.10);
-    --republican:       #EF4444;
-    --republican-light: rgba(239, 68, 68, 0.10);
-    --independent:      #A78BFA;
-    --independent-light:rgba(167, 139, 250, 0.10);
+    --democrat:         #2563EB;
+    --democrat-light:   rgba(37, 99, 235, 0.10);
+    --republican:       #DC2626;
+    --republican-light: rgba(220, 38, 38, 0.10);
+    --independent:      #7C3AED;
+    --independent-light:rgba(124, 58, 237, 0.10);
 
     /* ── Shadows ──────────────────────────────────────────── */
-    --shadow-xs:        0 1px 2px rgba(0, 0, 0, 0.40);
-    --shadow-sm:        0 2px 8px rgba(0, 0, 0, 0.50);
-    --shadow-md:        0 4px 16px rgba(0, 0, 0, 0.60);
-    --shadow-lg:        0 8px 32px rgba(0, 0, 0, 0.70);
-    --shadow-xl:        0 16px 48px rgba(0, 0, 0, 0.80);
-    --shadow-accent:    0 0 24px var(--accent-glow);
-    --shadow-accent-lg: 0 0 48px var(--accent-glow-lg);
+    --shadow-xs:        0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-sm:        0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-md:        0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+    --shadow-lg:        0 8px 24px rgba(15, 23, 42, 0.10), 0 4px 8px rgba(15, 23, 42, 0.05);
+    --shadow-xl:        0 16px 40px rgba(15, 23, 42, 0.12), 0 8px 16px rgba(15, 23, 42, 0.06);
+    --shadow-accent:    0 0 20px rgba(99, 91, 255, 0.18);
+    --shadow-accent-lg: 0 0 40px rgba(99, 91, 255, 0.12);
 
     /* ── Border Radius ────────────────────────────────────── */
     --radius-xs:  3px;
@@ -246,7 +247,7 @@ code, pre {
 
   /* Gradient text */
   .text-gradient {
-    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.70) 100%);
+    background: linear-gradient(135deg, var(--text) 0%, var(--text-secondary) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -637,6 +638,30 @@ code, pre {
   .dot-warning { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
   .dot-accent  { background: var(--accent);  box-shadow: 0 0 6px var(--accent-glow); }
   .dot-muted   { background: var(--border-strong); }
+
+  /* ── Hero gradient ──────────────────────────────────────── */
+  .hero-gradient {
+    background: linear-gradient(135deg, #635BFF 0%, #4338CA 40%, #1E1B4B 100%);
+  }
+
+  /* ── Lift — hover float effect ──────────────────────────── */
+  .lift {
+    transition: transform var(--duration-base) var(--ease-out),
+                box-shadow var(--duration-base) var(--ease-out);
+  }
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* ── Scrollbar hide ─────────────────────────────────────── */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* ── Animations ───────────────────────────────────────────── */
@@ -724,7 +749,7 @@ code, pre {
 
 /* Inert glass effect for overlays */
 .glass {
-  background: rgba(10, 10, 10, 0.80);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(16px) saturate(150%);
   -webkit-backdrop-filter: blur(16px) saturate(150%);
   border: 1px solid var(--border);
