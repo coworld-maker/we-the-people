@@ -2,14 +2,14 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
 const isPublicRoute = createRouteMatcher([
   '/',                          // landing page
-  '/sign-in(.*)',               // prevents redirect loop on mobile Safari
-  '/sign-up(.*)',               // prevents redirect loop on mobile Safari
+  '/sign-in(.*)',               // CRITICAL: prevents redirect loop on mobile Safari
+  '/sign-up(.*)',               // CRITICAL: prevents redirect loop on mobile Safari
   '/api/sync-bills',            // bill sync (protected by CRON_SECRET)
   '/api/sync-congress-votes',   // vote sync (protected by CRON_SECRET)
   '/api/cron/sync',             // daily cron job (protected by CRON_SECRET)
   '/api/alignment',             // alignment API
   '/api/debug-vote',            // temporary debug
-  '/api/scorecard/(.*)',
+  '/api/scorecard/(.*)',        // scorecard API
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

@@ -1,62 +1,74 @@
-'use client'
+'use client';
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react';
 
-const PHRASES = [
-  'Understand legislation.',
-  'Make your voice heard.',
-  'Hold Congress accountable.',
-  'Shape public policy.',
-  'Vote on real bills.',
-  'Engage with democracy.',
-]
+const ROTATING_WORDS = [
+  'your vote',
+  'your reps',
+  'every bill',
+  'real power',
+  'democracy',
+];
 
 export default function TypewriterHero() {
-  const [phraseIndex, setPhraseIndex] = useState(0)
-  const [charIndex, setCharIndex] = useState(0)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [text, setText] = useState('')
-
-  const tick = useCallback(() => {
-    const current = PHRASES[phraseIndex]
-
-    if (!isDeleting) {
-      setText(current.substring(0, charIndex + 1))
-      setCharIndex(prev => prev + 1)
-
-      if (charIndex + 1 === current.length) {
-        setTimeout(() => setIsDeleting(true), 2000)
-        return
-      }
-    } else {
-      setText(current.substring(0, charIndex - 1))
-      setCharIndex(prev => prev - 1)
-
-      if (charIndex - 1 === 0) {
-        setIsDeleting(false)
-        setPhraseIndex(prev => (prev + 1) % PHRASES.length)
-        return
-      }
-    }
-  }, [charIndex, isDeleting, phraseIndex])
+  const [wordIndex, setWordIndex] = useState(0);
+  const [displayed, setDisplayed] = useState('');
+  const [phase, setPhase] = useState<'typing' | 'pausing' | 'erasing'>('typing');
 
   useEffect(() => {
-    const speed = isDeleting ? 40 : 80
-    const timer = setTimeout(tick, speed)
-    return () => clearTimeout(timer)
-  }, [tick, isDeleting])
+    const word = ROTATING_WORDS[wordIndex];
+    let timeout: ReturnType<typeof setTimeout>;
+
+    if (phase === 'typing') {
+      if (displayed.length < word.length) {
+        timeout = setTimeout(() => {
+          setDisplayed(word.slice(0, displayed.length + 1));
+        }, 80);
+      } else {
+        timeout = setTimeout(() => setPhase('pausing'), 1800);
+      }
+    } else if (phase === 'pausing') {
+      timeout = setTimeout(() => setPhase('erasing'), 400);
+    } else {
+      // erasing
+      if (displayed.length > 0) {
+        timeout = setTimeout(() => {
+          setDisplayed(displayed.slice(0, -1));
+        }, 45);
+      } else {
+        setWordIndex((i) => (i + 1) % ROTATING_WORDS.length);
+        setPhase('typing');
+      }
+    }
+
+    return () => clearTimeout(timeout);
+  }, [displayed, phase, wordIndex]);
 
   return (
-    <span className="text-[--accent] inline-grid">
-      {/* Invisible sizer: renders all phrases stacked, takes the height of the tallest */}
-      <span className="col-start-1 row-start-1 invisible pointer-events-none" aria-hidden="true">
-        {PHRASES.reduce((a, b) => a.length > b.length ? a : b)}
+    <>
+      <span className="text-white">Understand </span>
+      <span
+        style={{
+          background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #34d399 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+        }}
+      >
+        {displayed}
       </span>
-      {/* Visible typed text */}
-      <span className="col-start-1 row-start-1">
-        {text}
-        <span className="inline-block w-[3px] h-[1em] bg-[--accent] ml-0.5 align-middle animate-blink" />
-      </span>
-    </span>
-  )
+      <span
+        style={{
+          display: 'inline-block',
+          width: '3px',
+          height: '0.85em',
+          background: '#60a5fa',
+          marginLeft: '2px',
+          verticalAlign: 'middle',
+          animation: 'blink 1s step-end infinite',
+        }}
+        aria-hidden
+      />
+    </>
+  );
 }
