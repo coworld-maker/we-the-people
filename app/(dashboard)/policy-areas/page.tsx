@@ -79,7 +79,7 @@ export default async function PolicyAreasPage() {
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
         {[
           { icon: FileText, label: 'Total bills', value: totalBills, accent: 'text-[--accent]' },
           { icon: Vote, label: 'Total votes', value: totalVotes, accent: 'text-purple-600' },
@@ -115,8 +115,8 @@ export default async function PolicyAreasPage() {
                 href={`/policy-areas/${encodeURIComponent(area.name)}`}
                 className="card-interactive p-5 group"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`badge ${cfg.bg} ${cfg.color} border ${cfg.border}`}>
+                <div className="flex items-start justify-between mb-3 gap-2">
+                  <div className={`badge ${cfg.bg} ${cfg.color} border ${cfg.border} text-left leading-snug`} style={{ whiteSpace: 'normal' }}>
                     {area.name}
                   </div>
                   <ChevronRight className="w-4 h-4 text-[--text-muted] group-hover:text-[--accent] transition-colors shrink-0 mt-0.5" />

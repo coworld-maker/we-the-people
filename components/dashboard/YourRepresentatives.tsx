@@ -94,6 +94,8 @@ function RepCard({ rep }: { rep: Representative }) {
   )
 }
 
+const STORAGE_KEY = 'my-reps-state'
+
 export default function YourRepresentatives({ userState }: { userState?: string | null }) {
   const [reps, setReps] = useState<Representative[]>([])
   const [loading, setLoading] = useState(false)
@@ -101,14 +103,16 @@ export default function YourRepresentatives({ userState }: { userState?: string 
   const [searched, setSearched] = useState(false)
 
   useEffect(() => {
-    if (userState) {
-      setState(userState)
-      fetchReps(userState)
+    const initial = userState || (typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) || '' : '')
+    if (initial) {
+      setState(initial)
+      fetchReps(initial)
     }
   }, [userState])
 
   async function fetchReps(st: string) {
     setLoading(true); setSearched(true)
+    if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, st)
     try {
       const res = await fetch(`/api/representatives?state=${encodeURIComponent(st)}`)
       if (res.ok) {
@@ -134,7 +138,7 @@ export default function YourRepresentatives({ userState }: { userState?: string 
         {!searched && !userState && (
           <div className="flex gap-2 mb-4">
             <select value={state} onChange={e => setState(e.target.value)}
-              className="flex-1 px-3 py-2 border border-[--border] rounded-lg text-sm text-[--text] bg-white focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
+              className="flex-1 px-3 py-2 border border-[--border] rounded-lg text-sm text-[--text] bg-[--surface] focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
             >
               <option value="">Select your state...</option>
               {states.map(s => <option key={s} value={s}>{s}</option>)}
