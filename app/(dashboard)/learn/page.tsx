@@ -117,14 +117,14 @@ export default async function LearnPage() {
   return (
     <div className="max-w-5xl mx-auto">
       {/* Hero */}
-      <div className="hero-gradient rounded-2xl px-8 py-10 mb-8 text-center">
+      <div className="hero-gradient rounded-2xl px-5 py-8 sm:px-8 sm:py-10 mb-8 text-center">
         <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
           <GraduationCap className="w-6 h-6 text-white" />
         </div>
-        <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-3">
+        <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-3">
           Civic Education Hub
         </h1>
-        <p className="text-white/40 text-lg max-w-xl mx-auto leading-relaxed">
+        <p className="text-white/70 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
           Short, clear explainers on how government works, how laws are made,
           and how to make your voice count.
         </p>

@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, TrendingUp, BarChart3, Users, Shield,
   Check, X, Minus, ChevronDown, ChevronUp, ExternalLink,
-  Vote, AlertCircle, Loader2
+  Vote, AlertCircle, Loader2, Share2, CheckCheck,
 } from 'lucide-react'
 
 interface ScorecardData {
@@ -104,6 +104,19 @@ export default function ScorecardDetailPage() {
   const [activeTab, setActiveTab] = useState<'voting' | 'positions' | 'alignment' | 'community'>('voting')
   const [showAllVotes, setShowAllVotes] = useState(false)
   const [showAlignmentDetails, setShowAlignmentDetails] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  function handleShare() {
+    const url = window.location.href
+    if (navigator.share) {
+      navigator.share({ title: rep?.name ?? 'Scorecard', url })
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      })
+    }
+  }
 
   useEffect(() => {
     // Get rep info from sessionStorage (passed from search page)
@@ -144,14 +157,21 @@ export default function ScorecardDetailPage() {
       {rep && (
         <div className="card overflow-hidden mb-6">
           <div className={`h-1 ${partyColor}`} />
-          <div className="p-6">
-            <div className="flex items-start gap-4">
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-lg shrink-0 ${partyColor}`}>
-                {rep.name.split(',')[0]?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '?'}
+          <div className="p-5 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+              {/* Avatar + name row on mobile */}
+              <div className="flex items-center gap-4 sm:contents">
+                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-white font-bold text-base sm:text-lg shrink-0 ${partyColor}`}>
+                  {rep.name.split(',')[0]?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '?'}
+                </div>
+                <div className="flex-1 sm:hidden">
+                  <h1 className="font-display text-lg font-extrabold text-[--text] leading-tight">{rep.name}</h1>
+                  <p className="text-xs text-[--text-secondary] mt-0.5">{rep.office}</p>
+                </div>
               </div>
               <div className="flex-1">
-                <h1 className="font-display text-2xl font-extrabold text-[--text]">{rep.name}</h1>
-                <p className="text-sm text-[--text-secondary]">{rep.office}</p>
+                <h1 className="hidden sm:block font-display text-2xl font-extrabold text-[--text]">{rep.name}</h1>
+                <p className="hidden sm:block text-sm text-[--text-secondary]">{rep.office}</p>
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <span className={`badge border text-xs ${
                     rep.party === 'R' ? 'bg-red-50 text-red-700 border-red-200'
@@ -173,41 +193,45 @@ export default function ScorecardDetailPage() {
                   )}
                 </div>
               </div>
-              {rep.website && (
-                <a href={rep.website} target="_blank" rel="noopener noreferrer"
-                  className="btn-secondary text-xs px-3 py-1.5 shrink-0"
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={handleShare}
+                  className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
                 >
-                  Official Site <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
+                  {copied ? <CheckCheck className="w-3 h-3 text-emerald-600" /> : <Share2 className="w-3 h-3" />}
+                  {copied ? 'Copied!' : 'Share'}
+                </button>
+                {rep.website && (
+                  <a href={rep.website} target="_blank" rel="noopener noreferrer"
+                    className="btn-secondary text-xs px-3 py-1.5"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    <span className="hidden sm:inline ml-1">Official Site</span>
+                  </a>
+                )}
+              </div>
             </div>
 
             {/* Quick stats */}
             {data && data.stats.totalVotesTracked > 0 && (
-              <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-[--border]">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-4 sm:mt-5 pt-4 sm:pt-5 border-t border-[--border]">
                 <div className="text-center">
-                  <div className="text-xl font-display font-extrabold text-emerald-600">
-                    {data.stats.totalVotesTracked > 0
-                      ? Math.round((data.stats.yeaCount / data.stats.totalVotesTracked) * 100)
-                      : 0}%
+                  <div className="text-lg sm:text-xl font-display font-extrabold text-emerald-600">
+                    {Math.round((data.stats.yeaCount / data.stats.totalVotesTracked) * 100)}%
                   </div>
-                  <div className="text-xs text-[--text-muted] mt-0.5">Voted Yea</div>
+                  <div className="text-[10px] sm:text-xs text-[--text-muted] mt-0.5">Yea</div>
                 </div>
                 <div className="text-center border-x border-[--border]">
-                  <div className="text-xl font-display font-extrabold text-red-600">
-                    {data.stats.totalVotesTracked > 0
-                      ? Math.round((data.stats.nayCount / data.stats.totalVotesTracked) * 100)
-                      : 0}%
+                  <div className="text-lg sm:text-xl font-display font-extrabold text-red-600">
+                    {Math.round((data.stats.nayCount / data.stats.totalVotesTracked) * 100)}%
                   </div>
-                  <div className="text-xs text-[--text-muted] mt-0.5">Voted Nay</div>
+                  <div className="text-[10px] sm:text-xs text-[--text-muted] mt-0.5">Nay</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-display font-extrabold text-[--text-muted]">
-                    {data.stats.totalVotesTracked > 0
-                      ? Math.round((data.stats.notVotingCount / data.stats.totalVotesTracked) * 100)
-                      : 0}%
+                  <div className="text-lg sm:text-xl font-display font-extrabold text-[--text-muted]">
+                    {Math.round((data.stats.notVotingCount / data.stats.totalVotesTracked) * 100)}%
                   </div>
-                  <div className="text-xs text-[--text-muted] mt-0.5">Not Voting</div>
+                  <div className="text-[10px] sm:text-xs text-[--text-muted] mt-0.5">Absent</div>
                 </div>
               </div>
             )}
@@ -216,20 +240,20 @@ export default function ScorecardDetailPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-[--surface-secondary] rounded-xl mb-6 overflow-x-auto">
+      <div className="flex gap-1 p-1 bg-[--surface-secondary] rounded-xl mb-6 overflow-x-auto scrollbar-hide">
         {tabs.map(tab => (
           <button key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex-1 justify-center ${
+            className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex-1 justify-center min-w-[60px] ${
               activeTab === tab.id
                 ? 'bg-white text-[--text] shadow-sm'
                 : 'text-[--text-secondary] hover:text-[--text]'
             }`}
           >
-            <tab.icon className="w-3.5 h-3.5" />
-            {tab.label}
+            <tab.icon className="w-3.5 h-3.5 shrink-0" />
+            <span>{tab.label}</span>
             {tab.count !== undefined && tab.count !== null && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full hidden sm:inline-block ${
                 activeTab === tab.id ? 'bg-[--accent] text-white' : 'bg-[--surface-tertiary] text-[--text-muted]'
               }`}>
                 {tab.count}

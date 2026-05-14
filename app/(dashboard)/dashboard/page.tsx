@@ -97,13 +97,13 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Welcome */}
-      <div className="hero-gradient rounded-2xl px-8 py-7">
+      <div className="hero-gradient rounded-2xl px-5 py-6 sm:px-8 sm:py-7">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-display text-xl font-extrabold text-white mb-1">
               Welcome back, {user.firstName || 'Citizen'}
             </h1>
-            <p className="text-sm text-white/40">
+            <p className="text-sm text-white/70">
               {profile.level.emoji} {profile.level.name} · {profile.score} XP
               {profile.streak > 0 && (
                 <span className="inline-flex items-center gap-1 ml-3">
@@ -206,9 +206,9 @@ export default async function DashboardPage() {
               <div className="relative pl-6 border-l-2 border-[--surface-tertiary] space-y-4">
                 {profile.recentActivity.slice(0, 8).map((a, i) => (
                   <div key={i} className="relative">
-                    <div className="absolute -left-[25px] w-3 h-3 bg-white border-2 border-[--accent] rounded-full" />
-                    <div className="flex items-center gap-3">
-                      <p className="text-sm text-[--text]">{a.text}</p>
+                    <div className="absolute -left-[25px] top-1 w-3 h-3 bg-white border-2 border-[--accent] rounded-full" />
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                      <p className="text-sm text-[--text] leading-snug">{a.text}</p>
                       <span className="text-xs text-[--text-muted] shrink-0">{new Date(a.date).toLocaleDateString()}</span>
                     </div>
                   </div>

@@ -55,14 +55,14 @@ export default async function TransparencyPage() {
   return (
     <div className="max-w-5xl mx-auto">
       {/* Hero */}
-      <div className="hero-gradient rounded-2xl px-8 py-10 mb-8 text-center">
+      <div className="hero-gradient rounded-2xl px-5 py-8 sm:px-8 sm:py-10 mb-8 text-center">
         <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
           <Eye className="w-6 h-6 text-white" />
         </div>
-        <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-3">
+        <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-3">
           Transparency Dashboard
         </h1>
-        <p className="text-white/40 text-lg max-w-xl mx-auto leading-relaxed">
+        <p className="text-white/70 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
           Full visibility into platform engagement, data sources, and methodology.
           We believe trust is built through transparency.
         </p>
@@ -129,7 +129,7 @@ export default async function TransparencyPage() {
               return (
                 <div key={area.policyArea}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-[--text] font-medium truncate max-w-[70%]">{area.policyArea}</span>
+                    <span className="text-sm text-[--text] font-medium truncate max-w-[55%] sm:max-w-[70%]">{area.policyArea}</span>
                     <span className="text-sm font-semibold text-[--accent]">{area._count.policyArea}</span>
                   </div>
                   <div className="h-2 rounded-full bg-[--surface-tertiary] overflow-hidden">

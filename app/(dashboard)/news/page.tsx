@@ -148,7 +148,7 @@ export default async function NewsPage() {
                         </p>
                       )}
                       {bill.latestActionDate && (
-                        <p className="text-[10px] text-[--text-muted] mt-1.5 flex items-center gap-1">
+                        <p className="text-xs text-[--text-muted] mt-1.5 flex items-center gap-1">
                           <Clock className="w-3 h-3" /> {new Date(bill.latestActionDate).toLocaleDateString()}
                         </p>
                       )}
@@ -214,7 +214,7 @@ export default async function NewsPage() {
                 <Link key={bill.id} href={`/bills/${bill.id}`}
                   className="group flex items-start gap-3 px-6 py-4 hover:bg-[--surface-secondary] transition-colors"
                 >
-                  <span className="font-display text-base font-extrabold text-[--surface-tertiary] mt-0.5 w-5 text-center shrink-0">
+                  <span className="font-display text-base font-extrabold text-[--text-muted] mt-0.5 w-5 text-center shrink-0">
                     {i + 1}
                   </span>
                   <div className="flex-1 min-w-0">

@@ -19,14 +19,14 @@ export default async function ActionCenterPage() {
   return (
     <div className="max-w-5xl mx-auto">
       {/* Hero */}
-      <div className="hero-gradient rounded-2xl px-8 py-10 mb-8 text-center">
+      <div className="hero-gradient rounded-2xl px-5 py-8 sm:px-8 sm:py-10 mb-8 text-center">
         <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
           <Landmark className="w-6 h-6 text-white" />
         </div>
-        <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-3">
+        <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-3">
           Civic Action Center
         </h1>
-        <p className="text-white/40 text-lg max-w-xl mx-auto leading-relaxed">
+        <p className="text-white/70 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
           Everything you need to participate in democracy — from voter registration
           to contacting your representatives.
         </p>
@@ -178,9 +178,9 @@ export default async function ActionCenterPage() {
               { date: 'November (even years)', event: 'General elections', desc: 'Federal elections for Congress, and presidential elections every 4 years.' },
               { date: 'Year-round', event: 'Local elections', desc: 'City councils, school boards, and ballot measures happen throughout the year.' },
             ].map((item, i) => (
-              <div key={i} className="flex items-start gap-4 px-6 py-4">
-                <div className="w-24 shrink-0">
-                  <span className="badge bg-[--accent-light] text-[--accent]">{item.date}</span>
+              <div key={i} className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 px-5 py-4 sm:px-6">
+                <div className="shrink-0">
+                  <span className="badge bg-[--accent-light] text-[--accent] whitespace-nowrap">{item.date}</span>
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-[--text]">{item.event}</h3>
@@ -193,7 +193,7 @@ export default async function ActionCenterPage() {
       </section>
 
       {/* CTA */}
-      <div className="card p-8 text-center bg-[--surface-secondary]">
+      <div className="card p-6 sm:p-8 text-center bg-[--surface-secondary]">
         <h3 className="font-display text-lg font-bold text-[--text] mb-2">Ready to make your voice heard?</h3>
         <p className="text-sm text-[--text-secondary] mb-5">
           Start by exploring current legislation and casting your votes.
