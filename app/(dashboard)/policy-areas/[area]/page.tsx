@@ -47,12 +47,12 @@ export default async function PolicyAreaDetailPage({
       </Link>
 
       {/* Header */}
-      <div className="hero-gradient rounded-2xl px-8 py-7 mb-6">
+      <div className="hero-gradient rounded-2xl px-5 py-6 sm:px-8 sm:py-7 mb-6">
         <div className="badge bg-white/10 text-white/80 border border-white/10 mb-3">Policy Area</div>
         <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
           {policyArea}
         </h1>
-        <div className="flex items-center gap-6 text-sm text-white/40">
+        <div className="flex items-center gap-6 text-sm text-white/70">
           <span>{bills.length} bill{bills.length !== 1 ? 's' : ''}</span>
           <span>{totalVotes} citizen vote{totalVotes !== 1 ? 's' : ''}</span>
         </div>
