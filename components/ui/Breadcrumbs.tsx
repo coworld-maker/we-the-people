@@ -9,6 +9,8 @@ const LABEL_MAP: Record<string, string> = {
   bills: 'Bills',
   'policy-areas': 'Policy Areas',
   'action-center': 'Action Center',
+  'voting-records': 'Voting Records',
+  'my-representatives': 'My Representatives',
   documents: 'Founding Documents',
   scorecards: 'Scorecards',
   learn: 'Learn',
