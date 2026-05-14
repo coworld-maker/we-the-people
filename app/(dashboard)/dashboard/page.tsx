@@ -206,7 +206,7 @@ export default async function DashboardPage() {
               <div className="relative pl-6 border-l-2 border-[--surface-tertiary] space-y-4">
                 {profile.recentActivity.slice(0, 8).map((a, i) => (
                   <div key={i} className="relative">
-                    <div className="absolute -left-[25px] top-1 w-3 h-3 bg-white border-2 border-[--accent] rounded-full" />
+                    <div className="absolute -left-[25px] top-1 w-3 h-3 bg-[--surface] border-2 border-[--accent] rounded-full" />
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                       <p className="text-sm text-[--text] leading-snug">{a.text}</p>
                       <span className="text-xs text-[--text-muted] shrink-0">{new Date(a.date).toLocaleDateString()}</span>

@@ -49,7 +49,7 @@ export default function ImpactPanel({ impacts }: { impacts: Impact[] }) {
                   {isOpen ? <ChevronUp className="w-3.5 h-3.5 text-[--text-muted] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[--text-muted] shrink-0" />}
                 </button>
                 {isOpen && (
-                  <div className="px-4 pb-4 pt-2 bg-white border-t border-[--border]">
+                  <div className="px-4 pb-4 pt-2 bg-[--surface] border-t border-[--border]">
                     <p className="text-sm text-[--text-secondary] leading-relaxed mb-3">{imp.detailedAnalysis}</p>
                     {imp.affectedGroups?.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">

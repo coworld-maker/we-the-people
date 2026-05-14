@@ -33,7 +33,7 @@ export default function ProsConsPanel({ prosCons }: { prosCons: ProCon[] }) {
                 <div key={p.id} className="p-4 bg-emerald-50/60 rounded-lg border border-emerald-100">
                   <div className="flex items-center gap-2 mb-1.5">
                     <h4 className="text-sm font-semibold text-[--text]">{p.title}</h4>
-                    <span className="badge bg-white text-[--text-secondary] border border-[--border] text-[10px]">{p.category}</span>
+                    <span className="badge bg-[--surface] text-[--text-secondary] border border-[--border] text-[10px]">{p.category}</span>
                   </div>
                   <p className="text-sm text-[--text-secondary] leading-relaxed">{p.description}</p>
                 </div>
@@ -52,7 +52,7 @@ export default function ProsConsPanel({ prosCons }: { prosCons: ProCon[] }) {
                 <div key={c.id} className="p-4 bg-red-50/60 rounded-lg border border-red-100">
                   <div className="flex items-center gap-2 mb-1.5">
                     <h4 className="text-sm font-semibold text-[--text]">{c.title}</h4>
-                    <span className="badge bg-white text-[--text-secondary] border border-[--border] text-[10px]">{c.category}</span>
+                    <span className="badge bg-[--surface] text-[--text-secondary] border border-[--border] text-[10px]">{c.category}</span>
                   </div>
                   <p className="text-sm text-[--text-secondary] leading-relaxed">{c.description}</p>
                 </div>
