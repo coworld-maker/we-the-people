@@ -50,7 +50,7 @@ export default function RepFinder() {
           <div className="flex-1">
             <label className="text-xs font-medium text-[--text-muted] uppercase tracking-wider mb-1.5 block">State</label>
             <select value={state} onChange={e => setState(e.target.value)}
-              className="w-full px-3 py-2.5 border border-[--border] rounded-lg text-sm text-[--text] bg-white cursor-pointer focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
+              className="w-full px-3 py-2.5 border border-[--border] rounded-lg text-sm text-[--text] bg-[--surface] cursor-pointer focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
             >
               <option value="">Select your state...</option>
               {states.map(s => <option key={s} value={s}>{s}</option>)}
@@ -148,17 +148,17 @@ export default function RepFinder() {
         <p className="text-xs text-[--text-muted] mb-2">You can also look up representatives directly:</p>
         <div className="flex flex-wrap gap-2">
           <a href="https://www.congress.gov/members/find-your-member" target="_blank" rel="noopener noreferrer"
-            className="badge bg-white text-[--text-secondary] border border-[--border] hover:border-[--accent] hover:text-[--accent] transition-colors"
+            className="badge bg-[--surface] text-[--text-secondary] border border-[--border] hover:border-[--accent] hover:text-[--accent] transition-colors"
           >
             Congress.gov <ExternalLink className="w-3 h-3" />
           </a>
           <a href="https://www.senate.gov/senators/senators-contact.htm" target="_blank" rel="noopener noreferrer"
-            className="badge bg-white text-[--text-secondary] border border-[--border] hover:border-[--accent] hover:text-[--accent] transition-colors"
+            className="badge bg-[--surface] text-[--text-secondary] border border-[--border] hover:border-[--accent] hover:text-[--accent] transition-colors"
           >
             Senate.gov <ExternalLink className="w-3 h-3" />
           </a>
           <a href="https://www.house.gov/representatives/find-your-representative" target="_blank" rel="noopener noreferrer"
-            className="badge bg-white text-[--text-secondary] border border-[--border] hover:border-[--accent] hover:text-[--accent] transition-colors"
+            className="badge bg-[--surface] text-[--text-secondary] border border-[--border] hover:border-[--accent] hover:text-[--accent] transition-colors"
           >
             House.gov <ExternalLink className="w-3 h-3" />
           </a>

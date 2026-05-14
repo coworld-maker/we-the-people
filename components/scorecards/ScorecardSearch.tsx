@@ -100,7 +100,7 @@ export default function ScorecardSearch() {
     <div>
       <div className="flex gap-3 mb-6">
         <select value={state} onChange={e => setState(e.target.value)}
-          className="flex-1 max-w-[200px] px-3 py-2.5 border border-[--border] rounded-lg text-sm text-[--text] bg-white focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
+          className="flex-1 max-w-[200px] px-3 py-2.5 border border-[--border] rounded-lg text-sm text-[--text] bg-[--surface] focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
         >
           <option value="">Select state...</option>
           {states.map(s => <option key={s} value={s}>{s}</option>)}
