@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import USStateMap from '@/components/ui/USStateMap'
 import CompareView from './CompareView'
-import { MapPin } from 'lucide-react'
+import { MapPin, ArrowRight } from 'lucide-react'
 
 const STORAGE_KEY = 'my-reps-state'
 
@@ -39,9 +40,17 @@ export default function MapAndCompare() {
           <MapPin className="w-4 h-4 text-[--accent]" />
           <h2 className="font-display text-sm font-bold text-[--text]">Select your state</h2>
           {selectedState && (
-            <span className="ml-auto badge bg-[--accent-light] text-[--accent]">
-              {selectedState}
-            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="badge bg-[--accent-light] text-[--accent]">
+                {selectedState}
+              </span>
+              <Link
+                href={`/states/${selectedState}`}
+                className="flex items-center gap-1 text-xs font-semibold text-[--accent] hover:text-[--accent-hover] transition-colors"
+              >
+                View activity <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
           )}
         </div>
         <USStateMap selected={selectedState} onSelect={handleSelect} />

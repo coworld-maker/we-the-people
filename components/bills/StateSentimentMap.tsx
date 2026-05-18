@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { geoAlbersUsa, geoPath } from 'd3-geo'
 import { feature } from 'topojson-client'
 import type { Feature, FeatureCollection, Geometry } from 'geojson'
@@ -74,6 +75,7 @@ function colorFor(b: StateBreakdown | undefined): { fill: string; opacity: numbe
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function StateSentimentMap({ byState, totalVotes }: Props) {
+  const router = useRouter()
   const [features, setFeatures] = useState<StateFeature[] | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
   const [error, setError] = useState(false)
@@ -155,10 +157,11 @@ export default function StateSentimentMap({ byState, totalVotes }: Props) {
               strokeWidth={isHovered ? 1.5 : 0.5}
               onMouseEnter={() => setHovered(code)}
               onMouseLeave={() => setHovered(null)}
-              style={{ cursor: data ? 'pointer' : 'default', transition: 'opacity 100ms' }}
+              onClick={() => router.push(`/states/${code}`)}
+              style={{ cursor: 'pointer', transition: 'opacity 100ms' }}
             >
               <title>
-                {STATE_NAMES[code]}: {data ? `${data.yes}–${data.no}–${data.abstain} (${data.total} votes)` : 'No votes yet'}
+                {STATE_NAMES[code]}: {data ? `${data.yes}–${data.no}–${data.abstain} (${data.total} votes)` : 'No votes yet'} — click for state page
               </title>
             </path>
           )

@@ -178,9 +178,15 @@ export default function YourRepresentatives({ userState }: { userState?: string 
         )}
 
         {reps.length > 0 && (
-          <Link href="/scorecards" className="block text-center text-xs font-semibold text-[--accent] hover:text-[--accent-hover] mt-4 transition-colors">
-            View full scorecards →
-          </Link>
+          <div className="mt-4 flex items-center justify-center gap-4 text-xs font-semibold">
+            <Link href={`/states/${state}`} className="text-[--accent] hover:text-[--accent-hover] transition-colors">
+              {state} activity →
+            </Link>
+            <span className="text-[--text-muted]">·</span>
+            <Link href="/scorecards" className="text-[--accent] hover:text-[--accent-hover] transition-colors">
+              Full scorecards →
+            </Link>
+          </div>
         )}
       </div>
     </div>
