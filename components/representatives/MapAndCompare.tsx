@@ -19,6 +19,12 @@ export default function MapAndCompare() {
   function handleSelect(code: string) {
     setSelectedState(code)
     localStorage.setItem(STORAGE_KEY, code)
+    // Persist to server for state-level sentiment aggregation (fire-and-forget)
+    fetch('/api/user/state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ state: code }),
+    }).catch(() => {})
     // Scroll to the results section after a brief tick
     setTimeout(() => {
       document.getElementById('compare')?.scrollIntoView({ behavior: 'smooth', block: 'start' })

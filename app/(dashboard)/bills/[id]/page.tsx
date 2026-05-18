@@ -13,10 +13,12 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ExternalLink, Calendar, Zap } from 'lucide-react'
 import SectionNav from '@/components/ui/SectionNav'
+import BillStateSentiment from '@/components/bills/BillStateSentiment'
 
 const SECTIONS = [
-  { id: 'summary', label: 'Summary' },
-  { id: 'arguments', label: 'Arguments' },
+  { id: 'summary',    label: 'Summary' },
+  { id: 'arguments',  label: 'Arguments' },
+  { id: 'sentiment',  label: 'By State' },
   { id: 'discussion', label: 'Discussion' },
 ]
 
@@ -91,6 +93,9 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
           <div id="arguments" className="scroll-mt-20 space-y-6">
             <ProsConsPanel prosCons={bill.prosCons as any} />
             <ImpactPanel impacts={bill.impacts as any} />
+          </div>
+          <div id="sentiment" className="scroll-mt-20">
+            <BillStateSentiment billId={bill.id} />
           </div>
           <BillFullText billId={bill.id} initialText={(bill as any).fullText || null} congressGovUrl={congressGovUrl} />
 

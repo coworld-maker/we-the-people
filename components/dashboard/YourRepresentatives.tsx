@@ -111,6 +111,12 @@ export default function YourRepresentatives({ userState }: { userState?: string 
     setLoading(true); setSearched(true); setMapOpen(false)
     setState(st)
     if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, st)
+    // Save to server (fire-and-forget) for state-level sentiment aggregation
+    fetch('/api/user/state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ state: st }),
+    }).catch(() => {})
     try {
       const res = await fetch(`/api/representatives?state=${encodeURIComponent(st)}`)
       if (res.ok) {
