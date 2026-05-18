@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, MapPin, Edit3 } from 'lucide-react'
 import Link from 'next/link'
+import USStateMap from '@/components/ui/USStateMap'
 
 interface Representative {
   name: string; office: string; party: string; state: string
@@ -93,17 +94,22 @@ export default function YourRepresentatives({ userState }: { userState?: string 
   const [loading, setLoading] = useState(false)
   const [state, setState] = useState(userState || '')
   const [searched, setSearched] = useState(false)
+  const [mapOpen, setMapOpen] = useState(false)
 
   useEffect(() => {
     const initial = userState || (typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) || '' : '')
     if (initial) {
       setState(initial)
       fetchReps(initial)
+    } else {
+      // No saved state — show the map by default so users can pick
+      setMapOpen(true)
     }
   }, [userState])
 
   async function fetchReps(st: string) {
-    setLoading(true); setSearched(true)
+    setLoading(true); setSearched(true); setMapOpen(false)
+    setState(st)
     if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, st)
     try {
       const res = await fetch(`/api/representatives?state=${encodeURIComponent(st)}`)
@@ -114,35 +120,36 @@ export default function YourRepresentatives({ userState }: { userState?: string 
     } catch {} finally { setLoading(false) }
   }
 
-  const states = [
-    'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
-    'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
-    'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
-  ]
-
   return (
     <div className="card overflow-hidden">
-      <div className="px-6 py-4 border-b border-[--border]">
-        <h2 className="font-display text-base font-bold text-[--text]">Your Representatives</h2>
-      </div>
-      <div className="p-5">
-        {/* State selector (if no state set) */}
-        {!searched && !userState && (
-          <div className="flex gap-2 mb-4">
-            <select value={state} onChange={e => setState(e.target.value)}
-              className="flex-1 px-3 py-2 border border-[--border] rounded-lg text-sm text-[--text] bg-[--surface] focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
+      <div className="px-6 py-4 border-b border-[--border] flex items-center gap-2">
+        <h2 className="font-display text-base font-bold text-[--text] flex-1">Your Representatives</h2>
+        {state && (
+          <>
+            <span className="badge bg-[--accent-light] text-[--accent] text-[10px]">{state}</span>
+            <button
+              onClick={() => setMapOpen(o => !o)}
+              className="flex items-center gap-1 text-xs font-semibold text-[--text-muted] hover:text-[--accent] transition-colors"
+              title="Change state"
             >
-              <option value="">Select your state...</option>
-              {states.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <button onClick={() => state && fetchReps(state)} disabled={!state || loading}
-              className="btn-primary px-4 text-sm disabled:opacity-50"
-            >
-              {loading ? 'Loading...' : 'Find'}
+              <Edit3 className="w-3 h-3" /> {mapOpen ? 'Hide map' : 'Change'}
             </button>
-          </div>
+          </>
         )}
+      </div>
 
+      {/* State picker map (collapsible) */}
+      {mapOpen && (
+        <div className="px-5 py-4 border-b border-[--border] bg-[--surface-secondary]/40">
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin className="w-3.5 h-3.5 text-[--accent]" />
+            <p className="text-xs font-semibold text-[--text]">Tap your state on the map</p>
+          </div>
+          <USStateMap selected={state} onSelect={fetchReps} />
+        </div>
+      )}
+
+      <div className="p-5">
         {loading && (
           <div className="text-center py-6">
             <span className="w-5 h-5 border-2 border-[--accent]/30 border-t-[--accent] rounded-full animate-spin inline-block" />
@@ -158,6 +165,10 @@ export default function YourRepresentatives({ userState }: { userState?: string 
 
         {!loading && searched && reps.length === 0 && (
           <p className="text-sm text-[--text-muted] text-center py-4">No representatives found.</p>
+        )}
+
+        {!loading && !searched && !mapOpen && (
+          <p className="text-sm text-[--text-muted] text-center py-4">Tap a state on the map above to load your representatives.</p>
         )}
 
         {reps.length > 0 && (

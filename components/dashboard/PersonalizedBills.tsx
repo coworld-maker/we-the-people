@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Sparkles, ChevronRight, ArrowRight, RefreshCw } from 'lucide-react'
+import { Sparkles, ChevronRight, ArrowRight, RefreshCw, Plus, X } from 'lucide-react'
 
 // ── Interest config ──────────────────────────────────────────────────────────
 
@@ -39,7 +39,7 @@ interface Bill {
   billNumber: string
   status: string
   policyArea: string | null
-  _count: { votes: number }
+  _count: { votes: number; discussions: number }
 }
 
 const STATUS_CLS: Record<string, string> = {
@@ -116,14 +116,90 @@ function PollCard({ onSave }: { onSave: (labels: string[]) => void }) {
   )
 }
 
+// ── Inferred-interest suggestion banner ──────────────────────────────────────
+
+function SuggestionBanner({
+  saved,
+  onAdd,
+}: {
+  saved: string[]
+  onAdd: (labels: string[]) => void
+}) {
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [dismissed, setDismissed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/user/inferred-interests')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (cancelled || !d) return
+        if (d.totalVotes < 5) return // need a baseline before inferring
+        // Map policy areas → Interest labels, filter out ones already saved
+        const candidates: string[] = []
+        for (const { area } of d.topAreas) {
+          const match = INTERESTS.find(i => i.area === area)
+          if (match && !saved.includes(match.label)) candidates.push(match.label)
+        }
+        setSuggestions(candidates.slice(0, 3))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [saved])
+
+  if (dismissed || suggestions.length === 0) return null
+
+  return (
+    <div className="px-5 py-3 bg-[--accent-light]/40 border-b border-[--accent]/10 flex items-start gap-3">
+      <Sparkles className="w-3.5 h-3.5 text-[--accent] shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-[--text] mb-2">
+          Based on your votes, you might also be interested in:
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {suggestions.map(label => {
+            const int = INTERESTS.find(i => i.label === label)
+            return (
+              <button
+                key={label}
+                onClick={() => onAdd([label])}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[--surface] text-[--accent] border border-[--accent]/30 hover:bg-[--accent] hover:text-white transition-colors"
+              >
+                <Plus className="w-3 h-3" /> {int?.emoji} {label}
+              </button>
+            )
+          })}
+          {suggestions.length > 1 && (
+            <button
+              onClick={() => onAdd(suggestions)}
+              className="px-2.5 py-1 rounded-full text-[11px] font-semibold text-[--text-secondary] hover:text-[--accent] transition-colors"
+            >
+              Add all
+            </button>
+          )}
+        </div>
+      </div>
+      <button
+        onClick={() => setDismissed(true)}
+        className="text-[--text-muted] hover:text-[--text] transition-colors shrink-0"
+        aria-label="Dismiss suggestions"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  )
+}
+
 // ── Bills list ───────────────────────────────────────────────────────────────
 
 function BillsList({
   interests,
   onReset,
+  onAdd,
 }: {
   interests: string[]
   onReset: () => void
+  onAdd: (labels: string[]) => void
 }) {
   const [bills, setBills] = useState<Bill[]>([])
   const [loading, setLoading] = useState(true)
@@ -159,6 +235,9 @@ function BillsList({
           <RefreshCw className="w-3 h-3" /> Update
         </button>
       </div>
+
+      {/* Inferred-interest suggestions (shown only when relevant) */}
+      <SuggestionBanner saved={interests} onAdd={onAdd} />
 
       {/* Interest chips */}
       <div className="px-5 pt-3 pb-1 flex flex-wrap gap-1.5">
@@ -206,8 +285,13 @@ function BillsList({
                   <p className="text-sm font-medium text-[--text] group-hover:text-[--accent] transition-colors leading-snug line-clamp-2">
                     {bill.shortTitle || bill.title}
                   </p>
-                  {bill._count.votes > 0 && (
-                    <p className="text-[10px] text-[--text-muted] mt-0.5">{bill._count.votes} citizen votes</p>
+                  {(bill._count.votes > 0 || bill._count.discussions > 0) && (
+                    <p className="text-[10px] text-[--text-muted] mt-0.5 flex items-center gap-2">
+                      {bill._count.votes > 0 && <span>{bill._count.votes} {bill._count.votes === 1 ? 'vote' : 'votes'}</span>}
+                      {bill._count.discussions > 0 && (
+                        <span>· {bill._count.discussions} {bill._count.discussions === 1 ? 'comment' : 'comments'}</span>
+                      )}
+                    </p>
                   )}
                 </div>
                 <ChevronRight className="w-4 h-4 text-[--text-muted] group-hover:text-[--accent] transition-colors shrink-0" />
@@ -265,6 +349,12 @@ export default function PersonalizedBills() {
     setSkipped(false)
   }
 
+  function handleAdd(labels: string[]) {
+    const merged = Array.from(new Set([...interests, ...labels]))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+    setInterests(merged)
+  }
+
   // Avoid flash of poll before localStorage is read
   if (!loaded) return null
 
@@ -273,7 +363,7 @@ export default function PersonalizedBills() {
 
   // Interests saved → show recommended bills
   if (interests.length > 0) {
-    return <BillsList interests={interests} onReset={handleReset} />
+    return <BillsList interests={interests} onReset={handleReset} onAdd={handleAdd} />
   }
 
   // No interests yet → show poll
