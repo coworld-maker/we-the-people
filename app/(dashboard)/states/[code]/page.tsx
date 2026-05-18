@@ -6,6 +6,7 @@ import {
   Building2, Calendar, Check, X, Minus,
 } from 'lucide-react'
 import { headers } from 'next/headers'
+import StateLegBills from '@/components/states/StateLegBills'
 
 const STATE_NAMES: Record<string, string> = {
   AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',
@@ -207,6 +208,9 @@ export default async function StatePage({ params }: { params: Promise<{ code: st
               </div>
             </div>
           )}
+
+          {/* State legislature bills (renders only if OPENSTATES_API_KEY is set) */}
+          <StateLegBills stateCode={code} stateName={stateName} />
 
           {/* Rep recent activity */}
           {repActivity.length > 0 && (

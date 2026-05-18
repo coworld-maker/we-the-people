@@ -1,8 +1,9 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { BillService } from '@/lib/services/billService'
+import prisma from '@/lib/prisma'
 import Link from 'next/link'
-import { ChevronRight, FileText, Calendar, Vote as VoteIcon } from 'lucide-react'
+import { ChevronRight, FileText, Calendar, Vote as VoteIcon, MapPin } from 'lucide-react'
 import BillFilters from '@/components/bills/BillFilters'
 
 export default async function BillsPage({
@@ -18,9 +19,15 @@ export default async function BillsPage({
   const limit = 20
   const offset = (page - 1) * limit
 
-  const { bills, total } = await BillService.getBills({
-    search: params.search, status: params.status, year: params.year, limit, offset,
-  })
+  // Fetch user's home state in parallel with bills so we can render the
+  // "Affects [STATE]" badge inline without a client roundtrip
+  const [userRow, { bills, total }] = await Promise.all([
+    prisma.user.findUnique({ where: { clerkId: userId }, select: { state: true } }),
+    BillService.getBills({
+      search: params.search, status: params.status, year: params.year, limit, offset,
+    }),
+  ])
+  const userState = userRow?.state ?? null
 
   const totalPages = Math.ceil(total / limit)
 
@@ -65,6 +72,13 @@ export default async function BillsPage({
         <div className="space-y-3">
           {bills.map((bill: any) => {
             const st = statusLabels[bill.status] || statusLabels.introduced
+            // "Affects your state" badge — shown when this bill's AI-generated state-impact
+            // score for the user's home state is at least 0.6 (moderate-to-high impact)
+            const stateImpactScore =
+              userState && bill.stateImpacts && typeof bill.stateImpacts === 'object'
+                ? (bill.stateImpacts as Record<string, { score: number }>)[userState]?.score
+                : undefined
+            const affectsYourState = typeof stateImpactScore === 'number' && stateImpactScore >= 0.6
             return (
               <Link key={bill.id} href={`/bills/${bill.id}`}
                 className="group card-interactive flex items-center gap-4 p-5"
@@ -74,6 +88,11 @@ export default async function BillsPage({
                     <span className="badge bg-[--dark] text-white">{bill.billType} {bill.billNumber}</span>
                     <span className={`badge border ${st.cls}`}>{st.label}</span>
                     {bill.policyArea && <span className="badge bg-[--accent-light] text-[--accent]">{bill.policyArea}</span>}
+                    {affectsYourState && (
+                      <span className="badge bg-orange-50 text-orange-700 border border-orange-200 flex items-center gap-1">
+                        <MapPin className="w-2.5 h-2.5" /> Affects {userState}
+                      </span>
+                    )}
                   </div>
                   <h2 className="text-sm font-semibold text-[--text] group-hover:text-[--accent] transition-colors leading-snug mb-1">
                     {bill.shortTitle || bill.title}

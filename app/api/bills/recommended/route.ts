@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     select: {
       id: true, title: true, shortTitle: true,
       billType: true, billNumber: true, status: true, policyArea: true,
-      introducedDate: true,
+      introducedDate: true, stateImpacts: true,
       _count: { select: { votes: true, discussions: true } },
     },
   })

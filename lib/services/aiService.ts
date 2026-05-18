@@ -151,4 +151,60 @@ Provide 3-4 pros, 3-4 cons, 4-5 impacts. Be balanced.`
 
     console.log(`✓ Saved analysis for bill ${billId}: ${analysis.pros.length} pros, ${analysis.cons.length} cons, ${analysis.impacts?.length || 0} impacts`)
   }
+
+  /**
+   * Generate per-state impact scores for a bill. Returns a map of
+   * 2-letter state code → { score: 0-1, reason: short string }.
+   * Score interpretation:
+   *   0.7+  high impact (state is heavily affected)
+   *   0.4–0.7 moderate impact
+   *   0.0–0.4 low/baseline impact
+   */
+  static async analyzeStateImpact(billId: string): Promise<Record<string, { score: number; reason: string }>> {
+    const bill = await prisma.bill.findUnique({
+      where: { id: billId },
+      select: {
+        title: true, shortTitle: true, summary: true, aiSummary: true,
+        policyArea: true, subjects: true, billType: true, billNumber: true,
+      },
+    })
+    if (!bill) throw new Error('Bill not found')
+
+    const description = [
+      bill.aiSummary,
+      bill.summary,
+      bill.policyArea && `Policy area: ${bill.policyArea}`,
+      bill.subjects.length > 0 && `Subjects: ${bill.subjects.join(', ')}`,
+    ].filter(Boolean).join('\n\n')
+
+    const systemPrompt = `You are a nonpartisan policy analyst. Estimate how much each U.S. state would be affected by a federal bill, considering: industries concentrated in the state, demographic makeup, geography (coastal, agricultural, urban), and historical engagement with the policy area. Be objective — do not infer political support, only material impact.
+
+Return ONLY valid JSON, no prose. Schema:
+{ "impacts": [ { "state": "CA", "score": 0.85, "reason": "Largest agricultural producer; bill directly affects subsidies" }, ... ] }
+
+Include all 50 states + DC. Score is 0.0 to 1.0. Keep reasons under 90 characters. Use 0.3 as the "no special impact" baseline.`
+
+    const userPrompt = `Bill: ${bill.billType} ${bill.billNumber} — ${bill.shortTitle || bill.title}\n\n${description || 'No description available.'}`
+
+    const raw = await callClaude(userPrompt, systemPrompt)
+
+    // Strip code fences if present
+    const jsonStr = raw.replace(/^```(?:json)?/m, '').replace(/```$/m, '').trim()
+    const parsed = JSON.parse(jsonStr) as { impacts: Array<{ state: string; score: number; reason: string }> }
+
+    const out: Record<string, { score: number; reason: string }> = {}
+    for (const item of parsed.impacts || []) {
+      const code = item.state.toUpperCase().trim()
+      if (!/^[A-Z]{2}$/.test(code)) continue
+      const score = Math.max(0, Math.min(1, Number(item.score) || 0))
+      out[code] = { score, reason: (item.reason || '').slice(0, 120) }
+    }
+
+    await prisma.bill.update({
+      where: { id: billId },
+      data: { stateImpacts: out, stateImpactsAt: new Date() },
+    })
+
+    return out
+  }
 }

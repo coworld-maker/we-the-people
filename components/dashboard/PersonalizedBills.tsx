@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Sparkles, ChevronRight, ArrowRight, RefreshCw, Plus, X } from 'lucide-react'
+import { Sparkles, ChevronRight, ArrowRight, RefreshCw, Plus, X, MapPin } from 'lucide-react'
 
 // ── Interest config ──────────────────────────────────────────────────────────
 
@@ -39,6 +39,7 @@ interface Bill {
   billNumber: string
   status: string
   policyArea: string | null
+  stateImpacts?: Record<string, { score: number; reason: string }> | null
   _count: { votes: number; discussions: number }
 }
 
@@ -203,6 +204,15 @@ function BillsList({
 }) {
   const [bills, setBills] = useState<Bill[]>([])
   const [loading, setLoading] = useState(true)
+  const [userState, setUserState] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Fetch user's state once so we can render the "Affects [STATE]" badge
+    fetch('/api/user/state')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setUserState(d.state ?? null))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const areas = interests
@@ -273,6 +283,11 @@ function BillsList({
         <div className="divide-y divide-[--border]">
           {bills.map(bill => {
             const cls = STATUS_CLS[bill.status] || STATUS_CLS.introduced
+            const stateScore =
+              userState && bill.stateImpacts && typeof bill.stateImpacts === 'object'
+                ? bill.stateImpacts[userState]?.score
+                : undefined
+            const affectsYourState = typeof stateScore === 'number' && stateScore >= 0.6
             return (
               <Link key={bill.id} href={`/bills/${bill.id}`}
                 className="group flex items-center gap-3 px-5 py-3.5 hover:bg-[--surface-secondary] transition-colors"
@@ -281,6 +296,11 @@ function BillsList({
                   <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                     <span className="badge bg-[--dark] text-white text-[10px]">{bill.billType} {bill.billNumber}</span>
                     <span className={`badge border text-[10px] ${cls}`}>{statusLabel(bill.status)}</span>
+                    {affectsYourState && (
+                      <span className="badge bg-orange-50 text-orange-700 border border-orange-200 text-[10px] flex items-center gap-0.5">
+                        <MapPin className="w-2.5 h-2.5" /> Affects {userState}
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm font-medium text-[--text] group-hover:text-[--accent] transition-colors leading-snug line-clamp-2">
                     {bill.shortTitle || bill.title}

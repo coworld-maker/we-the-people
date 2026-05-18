@@ -14,6 +14,7 @@ import Link from 'next/link'
 import { ArrowLeft, ExternalLink, Calendar, Zap } from 'lucide-react'
 import SectionNav from '@/components/ui/SectionNav'
 import BillStateSentiment from '@/components/bills/BillStateSentiment'
+import BillImpactMap from '@/components/bills/BillImpactMap'
 
 const SECTIONS = [
   { id: 'summary',    label: 'Summary' },
@@ -94,8 +95,9 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
             <ProsConsPanel prosCons={bill.prosCons as any} />
             <ImpactPanel impacts={bill.impacts as any} />
           </div>
-          <div id="sentiment" className="scroll-mt-20">
+          <div id="sentiment" className="scroll-mt-20 grid md:grid-cols-2 gap-6">
             <BillStateSentiment billId={bill.id} />
+            <BillImpactMap billId={bill.id} />
           </div>
           <BillFullText billId={bill.id} initialText={(bill as any).fullText || null} congressGovUrl={congressGovUrl} />
 

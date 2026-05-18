@@ -9,6 +9,7 @@ import {
   Vote, AlertCircle, Loader2, Building2,
   CalendarDays, Activity,
 } from 'lucide-react'
+import StateAlignmentCard from './StateAlignmentCard'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -478,6 +479,11 @@ export default function ScorecardDetailPage() {
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* State alignment — how often the rep voted with citizens in their state */}
+              <div className="px-5 sm:px-6 py-4 border-t border-[--border]">
+                <StateAlignmentCard bioguideId={bioguideId} />
               </div>
             </div>
           )}

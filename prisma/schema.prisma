@@ -65,6 +65,8 @@ model Bill {
   actions          Json?
   fullText         String?
   aiAnalyzedAt     DateTime?
+  stateImpacts     Json?     // { CA: { score: 0.8, reason: '...' }, TX: { ... }, ... } — per-state impact scores from AI analysis
+  stateImpactsAt   DateTime? // when stateImpacts was generated
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
