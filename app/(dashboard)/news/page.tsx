@@ -247,7 +247,7 @@ export default async function NewsPage() {
             <div className="space-y-2">
               {[
                 { href: '/bills', label: 'All bills', desc: 'Browse and vote on legislation' },
-                { href: '/bills?groupBy=policy', label: 'Policy areas', desc: 'Bills organized by topic' },
+                { href: '/policy-areas', label: 'Policy areas', desc: 'Bills organized by topic' },
                 { href: '/dashboard', label: 'Your dashboard', desc: 'Civic score and activity' },
                 { href: '/about', label: 'About', desc: 'Our mission and principles' },
               ].map(link => (
