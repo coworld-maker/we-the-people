@@ -133,6 +133,11 @@ export class BillService {
     year?: string
     limit?: number
     offset?: number
+    // State / user-aware filters
+    affectsState?: string       // 2-letter code — only bills where stateImpacts[code].score >= 0.6
+    votedInState?: string       // 2-letter code — only bills with at least one citizen vote from this state
+    votedByUserId?: string      // internal User.id — only bills this user has voted on
+    notVotedByUserId?: string   // internal User.id — only bills this user has NOT voted on
   }) {
     const where: any = {}
 
@@ -157,6 +162,25 @@ export class BillService {
       ]
     }
 
+    // "Affects my state" — JSON-path filter on stateImpacts[<code>].score
+    if (filters?.affectsState) {
+      where.stateImpacts = {
+        path: [filters.affectsState, 'score'],
+        gte: 0.6,
+      }
+    }
+
+    // "Voted by me" / "Not voted by me" are mutually exclusive and take
+    // precedence over the by-state filter when both are set on the votes
+    // relation (Prisma `some`/`none` cannot be combined on the same relation).
+    if (filters?.notVotedByUserId) {
+      where.votes = { none: { userId: filters.notVotedByUserId } }
+    } else if (filters?.votedByUserId) {
+      where.votes = { some: { userId: filters.votedByUserId } }
+    } else if (filters?.votedInState) {
+      where.votes = { some: { user: { state: filters.votedInState } } }
+    }
+
     const [bills, total] = await Promise.all([
       prisma.bill.findMany({
         where,
@@ -168,6 +192,19 @@ export class BillService {
       prisma.bill.count({ where })
     ])
     return { bills, total }
+  }
+
+  /**
+   * Distinct list of policy areas in the DB, for filter dropdowns.
+   */
+  static async getPolicyAreas(): Promise<string[]> {
+    const rows = await prisma.bill.findMany({
+      where: { policyArea: { not: null } },
+      select: { policyArea: true },
+      distinct: ['policyArea'],
+      orderBy: { policyArea: 'asc' },
+    })
+    return rows.map(r => r.policyArea!).filter(Boolean)
   }
 
   static async getBillById(id: string) {

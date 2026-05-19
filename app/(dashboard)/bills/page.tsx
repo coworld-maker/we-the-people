@@ -9,7 +9,10 @@ import BillFilters from '@/components/bills/BillFilters'
 export default async function BillsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; search?: string; status?: string; year?: string }>
+  searchParams: Promise<{
+    page?: string; search?: string; status?: string; year?: string;
+    policyArea?: string; affectsState?: string; votedInState?: string; voted?: string;
+  }>
 }) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
@@ -19,15 +22,29 @@ export default async function BillsPage({
   const limit = 20
   const offset = (page - 1) * limit
 
-  // Fetch user's home state in parallel with bills so we can render the
-  // "Affects [STATE]" badge inline without a client roundtrip
-  const [userRow, { bills, total }] = await Promise.all([
-    prisma.user.findUnique({ where: { clerkId: userId }, select: { state: true } }),
-    BillService.getBills({
-      search: params.search, status: params.status, year: params.year, limit, offset,
-    }),
-  ])
+  // Fetch user (state + internal id), policy areas list, in parallel with bills
+  const userRow = await prisma.user.findUnique({
+    where: { clerkId: userId }, select: { id: true, state: true },
+  })
   const userState = userRow?.state ?? null
+  const userInternalId = userRow?.id ?? null
+
+  // Translate URL flags to service filters. State-aware filters silently no-op
+  // when the user hasn't picked a state yet.
+  const affectsState = params.affectsState === '1' && userState ? userState : undefined
+  const votedInState = params.votedInState === '1' && userState ? userState : undefined
+  const votedByUserId = params.voted === 'yes' && userInternalId ? userInternalId : undefined
+  const notVotedByUserId = params.voted === 'no' && userInternalId ? userInternalId : undefined
+
+  const [{ bills, total }, policyAreas] = await Promise.all([
+    BillService.getBills({
+      search: params.search, status: params.status, year: params.year,
+      policyArea: params.policyArea,
+      affectsState, votedInState, votedByUserId, notVotedByUserId,
+      limit, offset,
+    }),
+    BillService.getPolicyAreas(),
+  ])
 
   const totalPages = Math.ceil(total / limit)
 
@@ -37,8 +54,17 @@ export default async function BillsPage({
     if (params.search) q.set('search', params.search)
     if (params.status) q.set('status', params.status)
     if (params.year) q.set('year', params.year)
+    if (params.policyArea) q.set('policyArea', params.policyArea)
+    if (params.affectsState) q.set('affectsState', params.affectsState)
+    if (params.votedInState) q.set('votedInState', params.votedInState)
+    if (params.voted) q.set('voted', params.voted)
     return q.toString()
   }
+
+  const hasAnyFilter = Boolean(
+    params.search || params.status || params.year || params.policyArea ||
+    params.affectsState || params.votedInState || params.voted
+  )
 
   const statusLabels: Record<string, { label: string; cls: string }> = {
     enacted: { label: 'Enacted', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
@@ -58,14 +84,14 @@ export default async function BillsPage({
         </p>
       </div>
 
-      <BillFilters />
+      <BillFilters policyAreas={policyAreas} userState={userState} />
 
       {bills.length === 0 ? (
         <div className="card p-16 text-center">
           <FileText className="w-10 h-10 text-[--text-muted] mx-auto mb-3" />
           <h3 className="font-display text-base font-bold text-[--text] mb-1">No bills found</h3>
           <p className="text-sm text-[--text-muted]">
-            {params.search || params.status || params.year ? 'Try adjusting your filters.' : 'Bills will appear once synced.'}
+            {hasAnyFilter ? 'Try adjusting your filters.' : 'Bills will appear once synced.'}
           </p>
         </div>
       ) : (
