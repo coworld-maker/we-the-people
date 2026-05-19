@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { POLICY_AREAS, isValidPolicyArea, type PolicyArea } from '@/lib/data/policy-areas'
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages'
 
@@ -150,6 +151,49 @@ Provide 3-4 pros, 3-4 cons, 4-5 impacts. Be balanced.`
     }
 
     console.log(`✓ Saved analysis for bill ${billId}: ${analysis.pros.length} pros, ${analysis.cons.length} cons, ${analysis.impacts?.length || 0} impacts`)
+  }
+
+  /**
+   * Classify a bill into one of the standard CRS policy areas based on its
+   * title, summary, and subjects. Returns the picked policy area, or null
+   * if the model declined (e.g. truly ambiguous bill).
+   */
+  static async categorizeBill(billId: string): Promise<PolicyArea | null> {
+    const bill = await prisma.bill.findUnique({
+      where: { id: billId },
+      select: { title: true, shortTitle: true, summary: true, subjects: true, billType: true, billNumber: true },
+    })
+    if (!bill) throw new Error('Bill not found')
+
+    const description = [
+      bill.shortTitle && bill.shortTitle !== bill.title ? `Short title: ${bill.shortTitle}` : null,
+      bill.summary,
+      bill.subjects.length > 0 ? `Subjects: ${bill.subjects.join(', ')}` : null,
+    ].filter(Boolean).join('\n\n')
+
+    const systemPrompt = `You categorize U.S. federal bills into a single Congressional Research Service (CRS) policy area. You MUST choose exactly one label from this fixed list:
+
+${POLICY_AREAS.map(a => `- ${a}`).join('\n')}
+
+Respond with ONLY the exact label and nothing else — no quotes, no punctuation, no explanation. If a bill genuinely spans multiple areas, pick the dominant one. If a bill is truly impossible to categorize, respond with exactly: NONE`
+
+    const userPrompt = `Bill: ${bill.billType} ${bill.billNumber} — ${bill.title}\n\n${description || '(no description)'}`
+
+    const raw = (await callClaude(userPrompt, systemPrompt)).trim()
+    if (raw === 'NONE') return null
+    if (!isValidPolicyArea(raw)) {
+      // Try a loose match — Claude occasionally adds trailing punctuation
+      const cleaned = raw.replace(/[."']+$/, '').trim()
+      if (!isValidPolicyArea(cleaned)) {
+        console.warn(`Categorizer returned unknown label "${raw}" for bill ${billId}`)
+        return null
+      }
+      await prisma.bill.update({ where: { id: billId }, data: { policyArea: cleaned } })
+      return cleaned
+    }
+
+    await prisma.bill.update({ where: { id: billId }, data: { policyArea: raw } })
+    return raw
   }
 
   /**

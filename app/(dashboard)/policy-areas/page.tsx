@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import { ChevronRight, FileText, Vote, TrendingUp } from 'lucide-react'
+import CategorizeUncategorized from '@/components/policy-areas/CategorizeUncategorized'
 
 export const metadata = {
   title: 'Policy Areas | Democracy Unlocked',
@@ -82,6 +83,9 @@ export default async function PolicyAreasPage() {
           See all bills grouped by policy →
         </Link>
       </div>
+
+      {/* Uncategorized-bills banner with one-click AI categorization */}
+      <CategorizeUncategorized />
 
       {/* Summary stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
