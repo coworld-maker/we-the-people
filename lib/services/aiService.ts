@@ -1,7 +1,12 @@
 import prisma from '@/lib/prisma'
 import { POLICY_AREAS, isValidPolicyArea, type PolicyArea } from '@/lib/data/policy-areas'
+import { getStateImpactsForPolicyArea } from '@/lib/data/state-impact-weights'
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages'
+
+// Skip AI regen when an analysis is fresher than this AND the bill's status
+// hasn't changed since (status change is what actually matters substantively).
+const ANALYSIS_STALENESS_DAYS = 30
 
 interface AIAnalysis {
   summary: string
@@ -14,16 +19,23 @@ interface AIAnalysis {
   }>
 }
 
-async function callClaude(prompt: string, systemPrompt: string): Promise<string> {
+/**
+ * Call Claude. When `cacheSystemPrompt` is true (default for our stable
+ * system prompts) we send the system block with `cache_control` so that
+ * repeated calls within the 5-minute cache window are charged at 10% of
+ * the system-prompt input tokens. Big win when the same prompt analyzes
+ * many bills in a row.
+ */
+async function callClaude(prompt: string, systemPrompt: string, cacheSystemPrompt = true): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY environment variable is not set')
 
-  console.log('Calling Claude API...')
-
-  const body = {
+  const body: any = {
     model: 'claude-3-5-haiku-20241022',
     max_tokens: 3000,
-    system: systemPrompt,
+    system: cacheSystemPrompt
+      ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }]
+      : systemPrompt,
     messages: [{ role: 'user', content: prompt }],
   }
 
@@ -87,16 +99,26 @@ export class AIService {
       truncatedText ? `\nFull Bill Text:\n${truncatedText}` : '',
     ].filter(Boolean).join('\n')
 
+    // If CRS already provides a meaningful summary, skip the AI summary pass.
+    // Saves ~30% of output tokens per analysis with no quality loss — the CRS
+    // summary is the authoritative one anyway.
+    const hasCrsSummary = !!(bill.summary && bill.summary.length > 200)
+
     const systemPrompt = `You are a nonpartisan civic education analyst helping Americans understand legislation. Be balanced, factual, fair. Never take sides. Respond ONLY with valid JSON — no markdown, no backticks, no text outside the JSON.`
+
+    const summaryField = hasCrsSummary ? '' : '"summary":"2-3 paragraph plain-English summary a high schooler could understand",'
+    const summaryInstruction = hasCrsSummary
+      ? 'Skip the summary field entirely — the bill already has an official summary.'
+      : 'Include a 2-3 paragraph plain-English summary.'
 
     const prompt = `Analyze this bill. Return ONLY valid JSON:
 
 ${billContext}
 
 JSON structure:
-{"summary":"2-3 paragraph plain-English summary a high schooler could understand","pros":[{"title":"Short title","description":"2-3 sentences","category":"Economy|Environment|Healthcare|Education|Security|Rights|Infrastructure|Other"}],"cons":[{"title":"Short title","description":"2-3 sentences","category":"Economy|Environment|Healthcare|Education|Security|Rights|Infrastructure|Other"}],"impacts":[{"category":"Economic|Social|Environmental|Healthcare|Education|Security|Infrastructure","demographic":"e.g. Small Business Owners","impactType":"positive|negative|neutral","shortDescription":"One sentence","detailedAnalysis":"2-3 sentences","affectedGroups":["Group1"],"confidence":75}]}
+{${summaryField}"pros":[{"title":"Short title","description":"2-3 sentences","category":"Economy|Environment|Healthcare|Education|Security|Rights|Infrastructure|Other"}],"cons":[{"title":"Short title","description":"2-3 sentences","category":"Economy|Environment|Healthcare|Education|Security|Rights|Infrastructure|Other"}],"impacts":[{"category":"Economic|Social|Environmental|Healthcare|Education|Security|Infrastructure","demographic":"e.g. Small Business Owners","impactType":"positive|negative|neutral","shortDescription":"One sentence","detailedAnalysis":"2-3 sentences","affectedGroups":["Group1"],"confidence":75}]}
 
-Provide 3-4 pros, 3-4 cons, 4-5 impacts. Be balanced.`
+${summaryInstruction} Provide 3-4 pros, 3-4 cons, 4-5 impacts. Be balanced.`
 
     const raw = await callClaude(prompt, systemPrompt)
 
@@ -112,14 +134,45 @@ Provide 3-4 pros, 3-4 cons, 4-5 impacts. Be balanced.`
       throw new Error('AI response was not valid JSON')
     }
 
-    if (!analysis.summary || !Array.isArray(analysis.pros) || !Array.isArray(analysis.cons)) {
+    if (!Array.isArray(analysis.pros) || !Array.isArray(analysis.cons)) {
       throw new Error('AI response missing required fields')
+    }
+    // If we instructed the model to skip the summary, fall back to the CRS one
+    if (!analysis.summary) {
+      analysis.summary = bill.summary || ''
     }
 
     return analysis
   }
 
-  static async analyzeAndSaveBill(billId: string): Promise<void> {
+  /**
+   * Analyze + persist. Skips regeneration when:
+   *   - aiAnalyzedAt is within ANALYSIS_STALENESS_DAYS, AND
+   *   - bill.status hasn't changed since last analysis
+   * Status change is the substantive trigger — same bill in the same status
+   * isn't worth re-analyzing.
+   *
+   * Pass `force: true` to bypass the freshness check.
+   */
+  static async analyzeAndSaveBill(billId: string, opts: { force?: boolean } = {}): Promise<void> {
+    if (!opts.force) {
+      const existing = await prisma.bill.findUnique({
+        where: { id: billId },
+        select: { aiAnalyzedAt: true, status: true, updatedAt: true },
+      })
+      if (existing?.aiAnalyzedAt) {
+        const ageMs = Date.now() - new Date(existing.aiAnalyzedAt).getTime()
+        const fresh = ageMs < ANALYSIS_STALENESS_DAYS * 24 * 3600 * 1000
+        // Heuristic: if the bill row hasn't been touched since the analysis,
+        // status definitely hasn't changed — skip outright.
+        const statusUnchanged = new Date(existing.updatedAt).getTime() <= new Date(existing.aiAnalyzedAt).getTime()
+        if (fresh && statusUnchanged) {
+          console.log(`Skipping analysis for ${billId} — fresh + status unchanged`)
+          return
+        }
+      }
+    }
+
     const analysis = await this.analyzeBill(billId)
 
     await prisma.bill.update({
@@ -214,6 +267,19 @@ Respond with ONLY the exact label and nothing else — no quotes, no punctuation
     })
     if (!bill) throw new Error('Bill not found')
 
+    // ── Fast path: deterministic weights when we have data for the policyArea
+    //    Zero AI cost, instant response, fully explainable.
+    const deterministic = getStateImpactsForPolicyArea(bill.policyArea)
+    if (deterministic) {
+      await prisma.bill.update({
+        where: { id: billId },
+        data: { stateImpacts: deterministic, stateImpactsAt: new Date() },
+      })
+      console.log(`✓ State-impact (deterministic) saved for ${billId} — policyArea: ${bill.policyArea}`)
+      return deterministic
+    }
+
+    // ── Slow path: AI fallback for uncovered policy areas
     const description = [
       bill.aiSummary,
       bill.summary,
