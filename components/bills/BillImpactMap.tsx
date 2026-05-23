@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { geoAlbersUsa, geoPath } from 'd3-geo'
 import { feature } from 'topojson-client'
@@ -112,6 +112,17 @@ export default function BillImpactMap({ billId }: Props) {
     return () => { cancelled = true }
   }, [billId])
 
+  // Auto-generate impacts on first view when none exist yet. The deterministic
+  // mapper covers the 10 most common policy areas with zero AI cost, so most
+  // bills resolve instantly. AI is only invoked for the long tail.
+  const triggeredRef = useRef(false)
+  useEffect(() => {
+    if (loading || impacts || generating || triggeredRef.current) return
+    triggeredRef.current = true
+    handleGenerate()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, impacts, generating])
+
   const paths = useMemo(() => {
     if (!features) return [] as Array<{ code: string; d: string }>
     const projection = geoAlbersUsa().fitSize([WIDTH, HEIGHT], { type: 'FeatureCollection', features } as FeatureCollection)
@@ -166,34 +177,41 @@ export default function BillImpactMap({ billId }: Props) {
       </div>
 
       <div className="p-4">
-        {loading ? (
-          <div className="py-10 flex items-center justify-center">
-            <Loader2 className="w-5 h-5 text-[--accent] animate-spin" />
+        {loading || generating ? (
+          /* Initial load OR auto-generating impact data */
+          <div className="py-10 flex flex-col items-center justify-center text-center px-4">
+            <Loader2 className="w-6 h-6 text-orange-500 animate-spin mb-2" />
+            <p className="text-xs font-semibold text-[--text] mb-0.5">
+              {generating ? 'Analyzing impact by state…' : 'Loading map…'}
+            </p>
+            {generating && (
+              <p className="text-[10px] text-[--text-muted] max-w-xs">
+                Mapping which states this bill affects most.
+              </p>
+            )}
           </div>
         ) : error ? (
-          <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg text-center">{error}</p>
+          <div className="text-center py-6">
+            <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-3">{error}</p>
+            <button onClick={handleGenerate} className="btn-secondary text-xs px-3 py-1.5">
+              <Sparkles className="w-3 h-3" /> Try again
+            </button>
+          </div>
         ) : !impacts ? (
-          /* ── Generate state ───────────────────────────────────────────── */
+          /* Fallback — auto-trigger hasn't fired yet (effect race) */
           <div className="text-center py-6">
             <Sparkles className="w-6 h-6 text-orange-500 mx-auto mb-3 opacity-60" />
-            <p className="text-sm font-semibold text-[--text] mb-1">No impact analysis yet</p>
+            <p className="text-sm font-semibold text-[--text] mb-1">Preparing impact analysis</p>
             <p className="text-xs text-[--text-muted] mb-4 max-w-xs mx-auto">
-              Generate a per-state impact estimate using AI to see which states this bill affects most.
+              Per-state impact estimate — usually free for common policy areas, AI-generated for the rest.
             </p>
             <button
               onClick={handleGenerate}
-              disabled={generating}
               className="btn-primary text-xs px-4 py-2"
             >
-              {generating ? (
-                <span className="flex items-center gap-1.5">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Analyzing…
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5">
-                  <Sparkles className="w-3 h-3" /> Generate analysis
-                </span>
-              )}
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3" /> Generate analysis
+              </span>
             </button>
           </div>
         ) : (
