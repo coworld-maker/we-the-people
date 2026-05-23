@@ -13,10 +13,12 @@ const WIDTH = 960
 const HEIGHT = 600
 const STATE_TOPO_URL = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json'
 
-// District TopoJSON — looked up locally first (place ~3MB file at
-// /public/data/us-cd-119-10m.json), with a sensible fallback message
-// if it's not there yet.
-const DISTRICT_TOPO_URL = '/data/us-cd-119-10m.json'
+// District boundaries — 119th-Congress GeoJSON, simplified to ~1.2 MB via
+// scripts/build-district-geo.py (Jeffrey Lewis dataset, CC0 / public domain).
+// The fetcher below accepts BOTH a plain FeatureCollection (current) and a
+// TopoJSON-shaped object so future rebuilds at higher fidelity can ship
+// either format without code changes.
+const DISTRICT_GEO_URL = '/data/us-cd-119.geojson'
 
 const FIPS_TO_STATE: Record<string, string> = {
   '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
@@ -98,7 +100,17 @@ interface StateFeature extends Feature<Geometry, { name?: string }> {
   id: string
 }
 
-interface DistrictFeature extends Feature<Geometry, { STATEFP?: string; CD119FP?: string; CD118FP?: string; NAMELSAD?: string }> {
+interface DistrictFeature extends Feature<Geometry, {
+  // Lewis dataset uses lowercase keys (statefp, district, statename).
+  // Census-derived TopoJSONs use uppercase (STATEFP, CD119FP / CD118FP).
+  // We accept either so the file format can change without code changes.
+  statefp?: string
+  district?: number | string
+  STATEFP?: string
+  CD119FP?: string
+  CD118FP?: string
+  NAMELSAD?: string
+}> {
   id: string
 }
 
@@ -132,26 +144,33 @@ export default function USPartyMap() {
     return () => { cancelled = true }
   }, [])
 
-  // Lazy-load district topology only when user toggles to district view
+  // Lazy-load district geometry only when user toggles to district view
   useEffect(() => {
     if (view !== 'district' || districtFeatures || districtError) return
     let cancelled = false
-    fetch(DISTRICT_TOPO_URL)
+    fetch(DISTRICT_GEO_URL)
       .then(async r => {
         if (!r.ok) throw new Error('District boundary file not found')
         return r.json()
       })
-      .then(topo => {
+      .then(data => {
         if (cancelled) return
-        // Accept either an object keyed "districts", "cd119", "cd118", etc.
-        const objKey =
-          topo?.objects?.districts ? 'districts'
-          : topo?.objects?.cd119    ? 'cd119'
-          : topo?.objects?.cd118    ? 'cd118'
-          : Object.keys(topo?.objects ?? {})[0]
-        if (!objKey) throw new Error('District topology has no "objects" key')
-        const geo = feature(topo, topo.objects[objKey]) as unknown as FeatureCollection<Geometry, any>
-        setDistrictFeatures(geo.features as DistrictFeature[])
+        // Accept either a plain GeoJSON FeatureCollection OR a TopoJSON object
+        let collection: FeatureCollection<Geometry, any>
+        if (data?.type === 'FeatureCollection') {
+          collection = data
+        } else if (data?.type === 'Topology' && data?.objects) {
+          const objKey =
+            data.objects.districts ? 'districts'
+            : data.objects.cd119    ? 'cd119'
+            : data.objects.cd118    ? 'cd118'
+            : Object.keys(data.objects)[0]
+          if (!objKey) throw new Error('TopoJSON has no "objects" key')
+          collection = feature(data, data.objects[objKey]) as unknown as FeatureCollection<Geometry, any>
+        } else {
+          throw new Error('Unrecognized district geometry format')
+        }
+        setDistrictFeatures(collection.features as DistrictFeature[])
       })
       .catch((e) => !cancelled && setDistrictError(e.message))
     return () => { cancelled = true }
@@ -190,8 +209,10 @@ export default function USPartyMap() {
     const out: Array<{ key: string; state: string; district: string; d: string }> = []
     for (const f of districtFeatures) {
       const props = f.properties || {}
-      const stateFips = String(props.STATEFP || '').padStart(2, '0')
-      const cd = String(props.CD119FP || props.CD118FP || '').padStart(2, '0')
+      const stateFips = String(props.statefp || props.STATEFP || '').padStart(2, '0')
+      // Lewis dataset stores district as a number (0 = at-large). Census files use 'CD119FP'.
+      const rawDist = props.district ?? props.CD119FP ?? props.CD118FP ?? ''
+      const cd = String(typeof rawDist === 'number' ? Math.trunc(rawDist) : rawDist).padStart(2, '0')
       const stateCode = FIPS_TO_STATE[stateFips]
       if (!stateCode) continue
       const path = pathGen(f as any)
@@ -357,10 +378,9 @@ export default function USPartyMap() {
                 </p>
                 {districtError && (
                   <p className="text-[11px] text-amber-700">
-                    Drop a simplified 119th-Congress TopoJSON at
-                    {' '}<code className="font-mono">/public/data/us-cd-119-10m.json</code>{' '}
-                    to enable this view (~3 MB).
-                    The data is in the DB and the rest of the renderer is ready.
+                    Run <code className="font-mono">python3 scripts/build-district-geo.py</code> to
+                    regenerate the boundary file at{' '}
+                    <code className="font-mono">/public/data/us-cd-119.geojson</code>.
                   </p>
                 )}
               </div>
