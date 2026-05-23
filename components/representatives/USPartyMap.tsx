@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { geoAlbersUsa, geoPath } from 'd3-geo'
 import { feature } from 'topojson-client'
 import type { Feature, FeatureCollection, Geometry } from 'geojson'
-import { Map, Users, Info } from 'lucide-react'
+import { Map as MapIcon, Users, Info } from 'lucide-react'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -231,7 +231,7 @@ export default function USPartyMap() {
   return (
     <div className="card overflow-hidden">
       <div className="px-5 py-3.5 border-b border-[--border] flex items-center gap-2 flex-wrap">
-        <Map className="w-4 h-4 text-[--accent]" />
+        <MapIcon className="w-4 h-4 text-[--accent]" />
         <h3 className="font-display text-sm font-bold text-[--text] flex-1">Party makeup</h3>
 
         {/* View toggle */}
