@@ -4,6 +4,20 @@ import { getStateImpactsForPolicyArea } from '@/lib/data/state-impact-weights'
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages'
 
+/**
+ * Currently-pinned Claude model.
+ *
+ * ⚠️ Anthropic retires snapshot model IDs (~6 months notice). When this stops
+ * working you'll see a 404 not_found_error from the API — the catch in
+ * callClaude() detects that and surfaces a clear error message naming
+ * THIS constant as the thing to update.
+ *
+ * Check status anytime with:  npm run check:model
+ * Deprecation schedule:        https://platform.claude.com/docs/en/about-claude/model-deprecations
+ * Current models list:         https://platform.claude.com/docs/en/about-claude/models/overview
+ */
+export const CLAUDE_MODEL = 'claude-haiku-4-5'
+
 // Skip AI regen when an analysis is fresher than this AND the bill's status
 // hasn't changed since (status change is what actually matters substantively).
 const ANALYSIS_STALENESS_DAYS = 30
@@ -31,7 +45,7 @@ async function callClaude(prompt: string, systemPrompt: string, cacheSystemPromp
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY environment variable is not set')
 
   const body: any = {
-    model: 'claude-haiku-4-5',
+    model: CLAUDE_MODEL,
     max_tokens: 3000,
     system: cacheSystemPrompt
       ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }]
@@ -52,6 +66,16 @@ async function callClaude(prompt: string, systemPrompt: string, cacheSystemPromp
   if (!response.ok) {
     const errorText = await response.text()
     console.error(`Claude API ${response.status}:`, errorText)
+    // Specifically detect a retired-model 404 and surface an actionable hint
+    // pointing at the single line that needs updating.
+    if (response.status === 404 && /model.*not_found_error|model:\s*['"]?[\w.-]+['"]?/i.test(errorText)) {
+      throw new Error(
+        `Claude model "${CLAUDE_MODEL}" appears to be retired. ` +
+        `Update CLAUDE_MODEL in lib/services/aiService.ts to a current model from ` +
+        `https://platform.claude.com/docs/en/about-claude/models/overview — ` +
+        `you can also run \`npm run check:model\` to see the current status.`,
+      )
+    }
     throw new Error(`Claude API returned ${response.status}: ${errorText.substring(0, 200)}`)
   }
 
