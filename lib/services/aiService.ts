@@ -31,7 +31,7 @@ async function callClaude(prompt: string, systemPrompt: string, cacheSystemPromp
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY environment variable is not set')
 
   const body: any = {
-    model: 'claude-3-5-haiku-20241022',
+    model: 'claude-haiku-4-5',
     max_tokens: 3000,
     system: cacheSystemPrompt
       ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }]
