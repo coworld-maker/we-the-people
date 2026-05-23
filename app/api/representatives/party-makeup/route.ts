@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
+import { nameToAbbr } from '@/lib/utils/state-codes'
 
 /**
  * Single endpoint that powers both views of USPartyMap:
@@ -58,9 +59,13 @@ export async function GET() {
 
   for (const r of reps) {
     if (!r.state) continue
+    // Representative.state is stored as full name ('California'); normalize to
+    // the 2-letter code that the rest of the app (URLs, GeoJSON, UI) uses.
+    const stateCode = nameToAbbr(r.state)
+    if (!stateCode) continue // skip unknown jurisdictions
     const party = normParty(r.party)
     const isSenate = (r.chamber || '').toLowerCase().includes('senate')
-    const entry = states[r.state] ?? {
+    const entry = states[stateCode] ?? {
       house: { D: 0, R: 0, I: 0, total: 0 },
       senate: { D: 0, R: 0, I: 0, total: 0 },
       houseShareD: 0, senateShareD: 0,
@@ -72,7 +77,7 @@ export async function GET() {
       entry.house[party]++
       entry.house.total++
       districts.push({
-        state: r.state,
+        state: stateCode,
         // Pad district to 2 digits matching Census/TIGER convention; '00' = at-large
         district: (r.district || '0').padStart(2, '0'),
         party,
@@ -80,7 +85,7 @@ export async function GET() {
         fullName: r.fullName,
       })
     }
-    states[r.state] = entry
+    states[stateCode] = entry
   }
 
   // Compute D-shares for the color ramp (0 = solid R, 1 = solid D, 0.5 = split)

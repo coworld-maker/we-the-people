@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
+import { abbrToName } from '@/lib/utils/state-codes'
 
 const VALID_STATES = new Set([
   'AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA',
@@ -85,8 +86,10 @@ export async function GET(
   })
 
   // ── State's representatives ────────────────────────────────────────────────
+  // Representative.state is stored as the full name ('California'), so we
+  // expand the URL's 2-letter code first.
   const reps = await prisma.representative.findMany({
-    where: { state: code },
+    where: { state: abbrToName(code) ?? code },
     orderBy: [{ chamber: 'asc' }, { lastName: 'asc' }],
     select: {
       bioguideId: true, fullName: true, firstName: true, lastName: true,
