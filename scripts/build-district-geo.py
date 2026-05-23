@@ -76,8 +76,22 @@ def dedup_ring(ring):
     return out if len(out) >= 4 else None
 
 
+def crosses_antimeridian(ring) -> bool:
+    """True if any point in this ring has longitude > 0 — i.e. the polygon
+    wraps from -180 to +180 the long way around. d3-geo's Albers USA composite
+    projection treats those polygons as spanning the globe, which collapses
+    fitSize() down to a microscopic CONUS. Drop them — at our render size the
+    far-Aleutian islands are sub-pixel anyway.
+    """
+    return any(pt[0] > 0 for pt in ring)
+
+
 def clean_polygon(rings):
-    """Apply dedup to every ring of a polygon; drop polygons with no outer ring."""
+    """Apply dedup to every ring of a polygon; drop polygons with no outer ring
+    OR whose outer ring crosses the antimeridian.
+    """
+    if rings and crosses_antimeridian(rings[0]):
+        return None
     cleaned = [r for r in (dedup_ring(r) for r in rings) if r]
     return cleaned if cleaned else None
 
