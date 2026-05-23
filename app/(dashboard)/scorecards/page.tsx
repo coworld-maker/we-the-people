@@ -85,13 +85,12 @@ export default async function ScorecardsPage() {
       {/* Section nav */}
       <SectionNav sections={SECTIONS} />
 
-      {/* National party-makeup map (state ↔ district toggle) */}
+      {/* National party-makeup map */}
       <section id="national" className="scroll-mt-20 mb-12">
         <h2 className="font-display text-xl font-extrabold text-[--text] mb-2">National Map</h2>
         <p className="text-sm text-[--text-secondary] mb-6">
-          See the current makeup of Congress at a glance. Toggle between state delegations
-          (color-coded by lean) and individual districts (colored by their representative's party).
-          Click any state or district to drill in.
+          See the current makeup of Congress at a glance. Each state is colored by its House
+          delegation's lean (red → purple → blue). Click any state to drill into its activity.
         </p>
         <USPartyMap />
       </section>

@@ -4,25 +4,16 @@ import { prisma } from '@/lib/prisma'
 import { nameToAbbr } from '@/lib/utils/state-codes'
 
 /**
- * Single endpoint that powers both views of USPartyMap:
- *   - State view: aggregated delegation counts (House + Senate by party) per state
- *   - District view: one row per House district with the seated rep's party
+ * Aggregated party makeup by state — powers the USPartyMap component.
  *
  * Returned shape:
  * {
  *   states: Record<stateCode, {
- *     house: { D: number; R: number; I: number; total: number },
+ *     house:  { D: number; R: number; I: number; total: number },
  *     senate: { D: number; R: number; I: number; total: number },
- *     houseShareD: number  // 0–1, share of D in House delegation (for color ramp)
- *     senateShareD: number // 0–1
- *   }>,
- *   districts: Array<{
- *     state: string
- *     district: string           // '01', '02', … '00' for at-large
- *     party: 'D' | 'R' | 'I' | null
- *     bioguideId: string
- *     fullName: string
- *   }>,
+ *     houseShareD:  number  // 0–1, share of D in House delegation (for color ramp)
+ *     senateShareD: number  // 0–1
+ *   }>
  * }
  */
 export async function GET() {
@@ -52,15 +43,10 @@ export async function GET() {
     senateShareD: number
   }> = {}
 
-  const districts: Array<{
-    state: string; district: string;
-    party: 'D' | 'R' | 'I'; bioguideId: string; fullName: string
-  }> = []
-
   for (const r of reps) {
     if (!r.state) continue
     // Representative.state is stored as full name ('California'); normalize to
-    // the 2-letter code that the rest of the app (URLs, GeoJSON, UI) uses.
+    // the 2-letter code that the rest of the app (URLs, UI) uses.
     const stateCode = nameToAbbr(r.state)
     if (!stateCode) continue // skip unknown jurisdictions
     const party = normParty(r.party)
@@ -76,14 +62,6 @@ export async function GET() {
     } else {
       entry.house[party]++
       entry.house.total++
-      districts.push({
-        state: stateCode,
-        // Pad district to 2 digits matching Census/TIGER convention; '00' = at-large
-        district: (r.district || '0').padStart(2, '0'),
-        party,
-        bioguideId: r.bioguideId,
-        fullName: r.fullName,
-      })
     }
     states[stateCode] = entry
   }
@@ -95,5 +73,5 @@ export async function GET() {
     s.senateShareD = s.senate.total > 0 ? s.senate.D / s.senate.total : 0.5
   }
 
-  return NextResponse.json({ states, districts })
+  return NextResponse.json({ states })
 }
