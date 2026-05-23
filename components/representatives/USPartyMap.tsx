@@ -53,20 +53,40 @@ interface PartyMakeup {
 
 // ── Color helpers ────────────────────────────────────────────────────────────
 
-/** D-share 0..1 → red→purple→blue diverging color. 0.5 = neutral purple. */
-function partyRampColor(shareD: number): string {
-  const r0 = [220, 38, 38]    // R
-  const r1 = [147, 51, 234]   // purple midpoint
-  const r2 = [37, 99, 235]    // D
-  const t = Math.max(0, Math.min(1, shareD))
-  const ramp = t < 0.5
-    ? interp(r0, r1, t * 2)
-    : interp(r1, r2, (t - 0.5) * 2)
-  return `rgb(${ramp[0]}, ${ramp[1]}, ${ramp[2]})`
-}
+/**
+ * Discrete party color, following the convention of Wikipedia / NYT /
+ * 270toWin election maps:
+ *   - Solid red / blue when a delegation is unified or has a clear majority
+ *   - Lighter shades when the majority is slim
+ *   - Purple only when an Independent caucus is meaningfully represented
+ *     (≥20 % of the delegation)
+ *   - Gray when there's a true tie or no data
+ */
+function partyColorFor(entry: {
+  house: { D: number; R: number; I: number; total: number }
+}): string {
+  const { D, R, I, total } = entry.house
+  if (total === 0) return '#CBD5E1' // slate-300 — no data
+  const iShare = I / total
+  const dShare = D / total
+  const rShare = R / total
 
-function interp(a: number[], b: number[], t: number) {
-  return a.map((v, i) => Math.round(v + (b[i] - v) * t))
+  // Independent matters (Bernie / King / etc level — ≥20 % of state's House delegation)
+  if (iShare >= 0.2) {
+    if (dShare > rShare) return '#6D6AC4' // purple-blue (lean-D with strong I)
+    if (rShare > dShare) return '#A14965' // purple-red (lean-R with strong I)
+    return '#7C3AED'                       // pure purple
+  }
+
+  // Clear majorities — discrete tiers, not a continuous ramp
+  if (dShare === 1)      return '#1E3A8A' // solid deep blue — pure D
+  if (dShare >= 0.65)    return '#2563EB' // standard blue
+  if (dShare > 0.5)      return '#60A5FA' // light blue — slim D majority
+  if (rShare === 1)      return '#7F1D1D' // solid deep red — pure R
+  if (rShare >= 0.65)    return '#DC2626' // standard red
+  if (rShare > 0.5)      return '#F87171' // light red — slim R majority
+
+  return '#94A3B8' // slate-400 — tied delegation
 }
 
 // ── Topology types ───────────────────────────────────────────────────────────
@@ -144,7 +164,7 @@ export default function USPartyMap() {
             >
               {statePaths.map(({ code, d }) => {
                 const entry = makeup!.states[code]
-                const fill = entry ? partyRampColor(entry.houseShareD) : '#CBD5E1'
+                const fill = entry ? partyColorFor(entry) : '#CBD5E1'
                 const isHovered = hovered === code
                 return (
                   <path
@@ -192,26 +212,41 @@ export default function USPartyMap() {
               )}
             </div>
 
-            {/* Legend */}
-            <div className="flex items-center justify-center gap-3 mt-3 text-[10px] text-[--text-muted]">
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-2.5 rounded-sm" style={{ background: '#2563EB' }} />
-                Democrat
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-2.5 rounded-sm" style={{ background: '#7C3AED' }} />
-                Independent
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-2.5 rounded-sm" style={{ background: '#DC2626' }} />
-                Republican
-              </span>
-              <span className="ml-2 flex items-center gap-1">
-                <span className="w-12 h-2 rounded" style={{
-                  background: 'linear-gradient(to right, #DC2626, #9333EA, #2563EB)',
-                }} />
-                state delegation lean
-              </span>
+            {/* Legend — discrete tiers, two rows */}
+            <div className="mt-3 space-y-1.5">
+              <div className="flex items-center justify-center gap-2 text-[10px] text-[--text-muted] flex-wrap">
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-2.5 rounded-sm" style={{ background: '#1E3A8A' }} />
+                  All D
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-2.5 rounded-sm" style={{ background: '#2563EB' }} />
+                  D majority
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-2.5 rounded-sm" style={{ background: '#60A5FA' }} />
+                  Slim D
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-2.5 rounded-sm" style={{ background: '#94A3B8' }} />
+                  Tied
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-2.5 rounded-sm" style={{ background: '#F87171' }} />
+                  Slim R
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-2.5 rounded-sm" style={{ background: '#DC2626' }} />
+                  R majority
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-2.5 rounded-sm" style={{ background: '#7F1D1D' }} />
+                  All R
+                </span>
+              </div>
+              <p className="text-center text-[10px] text-[--text-muted]">
+                Purple shades appear only where Independents hold ≥20% of a delegation.
+              </p>
             </div>
           </>
         )}

@@ -8,18 +8,22 @@ import {
   LayoutDashboard, FileText, ScrollText, Grid3X3,
   Users, BarChart3, ClipboardList,
   Landmark, GraduationCap,
-  Newspaper, Info,
+  Newspaper, Info, MessageSquare, ExternalLink,
 } from 'lucide-react'
 
 // ── Nav structure ────────────────────────────────────────────────────────────
 // Six top-level items: 3 simple links + 3 grouped dropdowns. Cuts the previous
 // 12-item bar in half while keeping every page reachable in 2 clicks max.
 
-interface NavLink { href: string; icon: any; label: string }
+interface NavLink { href: string; icon: any; label: string; external?: boolean }
 interface NavGroup { label: string; icon: any; items: NavLink[] }
 type NavItem =
   | ({ kind: 'link' } & NavLink)
   | ({ kind: 'group' } & NavGroup)
+
+// Feedback URL is gated on an env var — link is hidden when unset so we
+// never ship a button that goes nowhere.
+const FEEDBACK_URL = process.env.NEXT_PUBLIC_FEEDBACK_URL || ''
 
 const NAV_ITEMS: NavItem[] = [
   { kind: 'link', href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -45,6 +49,9 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/action-center', icon: Landmark,        label: 'Action Center' },
       { href: '/learn',         icon: GraduationCap,   label: 'Learn' },
       { href: '/transparency',  icon: BarChart3,       label: 'Stats' },
+      ...(FEEDBACK_URL
+        ? [{ href: FEEDBACK_URL, icon: MessageSquare, label: 'Share Feedback', external: true } as NavLink]
+        : []),
     ],
   },
   { kind: 'link', href: '/news',  icon: Newspaper, label: 'News' },
@@ -153,17 +160,31 @@ export default function NavBar() {
                   className="absolute top-full left-0 mt-1 min-w-[210px] bg-[--surface] border border-[--border] rounded-lg shadow-lg py-1 z-50"
                 >
                   {item.items.map(sub => {
-                    const subActive = isActive(sub.href)
-                    return (
+                    const subActive = !sub.external && isActive(sub.href)
+                    const linkClass = `flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors ${
+                      subActive
+                        ? 'text-[--accent] bg-[--accent]/5'
+                        : 'text-[--text-secondary] hover:text-[--accent] hover:bg-[--surface-secondary]'
+                    }`
+                    return sub.external ? (
+                      <a
+                        key={sub.href}
+                        href={sub.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        role="menuitem"
+                        className={linkClass}
+                      >
+                        <sub.icon className="w-3.5 h-3.5" />
+                        <span className="flex-1">{sub.label}</span>
+                        <ExternalLink className="w-3 h-3 opacity-60" />
+                      </a>
+                    ) : (
                       <Link
                         key={sub.href}
                         href={sub.href}
                         role="menuitem"
-                        className={`flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors
-                          ${subActive
-                            ? 'text-[--accent] bg-[--accent]/5'
-                            : 'text-[--text-secondary] hover:text-[--accent] hover:bg-[--surface-secondary]'
-                          }`}
+                        className={linkClass}
                       >
                         <sub.icon className="w-3.5 h-3.5" />
                         {sub.label}
@@ -234,16 +255,29 @@ export default function NavBar() {
                       {item.label}
                     </div>
                     {item.items.map(sub => {
-                      const subActive = isActive(sub.href)
-                      return (
+                      const subActive = !sub.external && isActive(sub.href)
+                      const linkClass = `flex items-center gap-3 pl-9 pr-4 py-2.5 text-sm font-medium transition-colors ${
+                        subActive
+                          ? 'text-[--accent] bg-[--accent]/10 border-r-2 border-[--accent]'
+                          : 'text-[--text-secondary] hover:bg-[--surface-secondary]'
+                      }`
+                      return sub.external ? (
+                        <a
+                          key={sub.href}
+                          href={sub.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={linkClass}
+                        >
+                          <sub.icon className="w-3.5 h-3.5" />
+                          <span className="flex-1">{sub.label}</span>
+                          <ExternalLink className="w-3 h-3 opacity-60" />
+                        </a>
+                      ) : (
                         <Link
                           key={sub.href}
                           href={sub.href}
-                          className={`flex items-center gap-3 pl-9 pr-4 py-2.5 text-sm font-medium transition-colors
-                            ${subActive
-                              ? 'text-[--accent] bg-[--accent]/10 border-r-2 border-[--accent]'
-                              : 'text-[--text-secondary] hover:bg-[--surface-secondary]'
-                            }`}
+                          className={linkClass}
                         >
                           <sub.icon className="w-3.5 h-3.5" />
                           {sub.label}

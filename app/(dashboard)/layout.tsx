@@ -1,9 +1,9 @@
 import { UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
-import { Vote } from 'lucide-react'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
 import PageTransition from '@/components/ui/PageTransition'
 import NavBar from '@/components/ui/NavBar'
+import Logo from '@/components/ui/Logo'
 
 export default function DashboardLayout({
   children,
@@ -17,9 +17,7 @@ export default function DashboardLayout({
           <div className="flex items-center h-14 gap-3">
             {/* Logo */}
             <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-              <div className="w-7 h-7 bg-[--accent] rounded-lg flex items-center justify-center">
-                <Vote className="w-3.5 h-3.5 text-white" />
-              </div>
+              <Logo className="w-7 h-7" />
               <span className="font-display text-sm font-bold text-[--text] hidden sm:block">
                 Democracy Unlocked
               </span>
