@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import ScorecardSearch from '@/components/scorecards/ScorecardSearch'
 import SectionNav from '@/components/ui/SectionNav'
+import USPartyMap from '@/components/representatives/USPartyMap'
 
 export const metadata = {
   title: 'Scorecards | Democracy Unlocked',
@@ -13,6 +14,7 @@ export const metadata = {
 }
 
 const SECTIONS = [
+  { id: 'national',     label: 'National Map' },
   { id: 'search',       label: 'Find Officials' },
   { id: 'features',     label: 'What\'s Included' },
   { id: 'how-it-works', label: 'How It Works' },
@@ -82,6 +84,17 @@ export default async function ScorecardsPage() {
 
       {/* Section nav */}
       <SectionNav sections={SECTIONS} />
+
+      {/* National party-makeup map (state ↔ district toggle) */}
+      <section id="national" className="scroll-mt-20 mb-12">
+        <h2 className="font-display text-xl font-extrabold text-[--text] mb-2">National Map</h2>
+        <p className="text-sm text-[--text-secondary] mb-6">
+          See the current makeup of Congress at a glance. Toggle between state delegations
+          (color-coded by lean) and individual districts (colored by their representative's party).
+          Click any state or district to drill in.
+        </p>
+        <USPartyMap />
+      </section>
 
       {/* Search */}
       <section id="search" className="scroll-mt-20 mb-12">
