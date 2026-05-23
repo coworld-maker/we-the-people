@@ -273,7 +273,7 @@ Respond with ONLY the exact label and nothing else — no quotes, no punctuation
     if (deterministic) {
       await prisma.bill.update({
         where: { id: billId },
-        data: { stateImpacts: deterministic, stateImpactsAt: new Date() },
+        data: { stateImpacts: deterministic as any, stateImpactsAt: new Date() },
       })
       console.log(`✓ State-impact (deterministic) saved for ${billId} — policyArea: ${bill.policyArea}`)
       return deterministic
@@ -312,7 +312,7 @@ Include all 50 states + DC. Score is 0.0 to 1.0. Keep reasons under 90 character
 
     await prisma.bill.update({
       where: { id: billId },
-      data: { stateImpacts: out, stateImpactsAt: new Date() },
+      data: { stateImpacts: out as any, stateImpactsAt: new Date() },
     })
 
     return out
