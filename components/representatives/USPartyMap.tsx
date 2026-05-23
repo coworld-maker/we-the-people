@@ -176,11 +176,24 @@ export default function USPartyMap() {
     return () => { cancelled = true }
   }, [view, districtFeatures, districtError])
 
+  // A FIXED projection (scale + translate) rather than fitSize.
+  // fitSize() is fragile when geometry has outlier coordinates (Aleutians,
+  // territories, antimeridian crossings) — bounds get wonky and CONUS ends
+  // up sub-pixel. A fixed scale matches every well-known US choropleth
+  // (Wikipedia, NYT, FiveThirtyEight) and renders identically for both
+  // state and district data.
+  //   - scale 1280 fills a 960×600 viewBox edge-to-edge
+  //   - translate centers on the CONUS visual centroid with a small upward
+  //     bias to leave room for the AK / HI insets at the bottom
+  const projection = useMemo(
+    () => geoAlbersUsa().scale(1280).translate([WIDTH / 2, HEIGHT / 2 - 30]),
+    [],
+  )
+  const pathGen = useMemo(() => geoPath(projection), [projection])
+
   // ── Render state view ─────────────────────────────────────────────────────
   const statePaths = useMemo(() => {
     if (!stateFeatures) return []
-    const projection = geoAlbersUsa().fitSize([WIDTH, HEIGHT], { type: 'FeatureCollection', features: stateFeatures } as FeatureCollection)
-    const pathGen = geoPath(projection)
     const out: Array<{ code: string; d: string }> = []
     for (const f of stateFeatures) {
       const code = FIPS_TO_STATE[String(f.id).padStart(2, '0')]
@@ -189,7 +202,7 @@ export default function USPartyMap() {
       if (d) out.push({ code, d })
     }
     return out
-  }, [stateFeatures])
+  }, [stateFeatures, pathGen])
 
   // ── Render district view ──────────────────────────────────────────────────
   // Build a Map for quick district→rep lookup
@@ -204,8 +217,6 @@ export default function USPartyMap() {
 
   const districtPaths = useMemo(() => {
     if (!districtFeatures) return []
-    const projection = geoAlbersUsa().fitSize([WIDTH, HEIGHT], { type: 'FeatureCollection', features: districtFeatures } as FeatureCollection)
-    const pathGen = geoPath(projection)
     const out: Array<{ key: string; state: string; district: string; d: string }> = []
     for (const f of districtFeatures) {
       const props = f.properties || {}
@@ -220,7 +231,7 @@ export default function USPartyMap() {
       out.push({ key: `${stateCode}-${cd}`, state: stateCode, district: cd, d: path })
     }
     return out
-  }, [districtFeatures])
+  }, [districtFeatures, pathGen])
 
   const loading = !makeup || !stateFeatures
   const hoveredState  = view === 'state'    ? hovered : null
