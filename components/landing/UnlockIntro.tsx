@@ -74,12 +74,11 @@ export default function UnlockIntro() {
         />
 
         {/* Golden shimmer beam — radiates from the keyhole at the "click" moment */}
-        <div className="absolute inset-0 pointer-events-none animate-shimmer" aria-hidden="true">
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
           <div
-            className="absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full blur-2xl opacity-0"
+            className="absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full blur-2xl opacity-0 animate-unlock-flash"
             style={{
               background: 'radial-gradient(circle, rgba(212, 175, 55, 0.85) 0%, rgba(212, 175, 55, 0.0) 70%)',
-              animation: 'unlock-flash 800ms 600ms ease-out forwards',
             }}
           />
         </div>
@@ -105,7 +104,7 @@ export default function UnlockIntro() {
             transform: scale(0.85) translateY(-40px);
           }
         }
-        :global(@keyframes unlock-flash) {
+        @keyframes unlock-flash {
           0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
           40%  { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
           100% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
@@ -118,6 +117,9 @@ export default function UnlockIntro() {
           animation:
             unlock-enter 1100ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
             unlock-exit 600ms 1100ms ease-in forwards;
+        }
+        .animate-unlock-flash {
+          animation: unlock-flash 800ms 600ms ease-out forwards;
         }
         .animate-fade-in-late {
           animation: fade-in-late 2000ms ease-in-out both;
