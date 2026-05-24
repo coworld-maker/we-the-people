@@ -19,6 +19,11 @@ This produces:
 
     app/apple-icon.png    — 180×180 iOS home-screen icon. Same auto-detect.
 
+    public/icon-192.png   — 192×192 Android PWA icon. Referenced by the
+                            web app manifest at app/manifest.ts.
+
+    public/icon-512.png   — 512×512 Android PWA maskable icon + splash.
+
 All outputs are PNG with transparent backgrounds preserved when present.
 
 Tweak ICON_FRACTION below if your source has different proportions between
@@ -29,10 +34,12 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-SOURCE   = ROOT / 'public' / 'logo.png'
-MARK     = ROOT / 'public' / 'logo-mark.png'
-FAVICON  = ROOT / 'app' / 'icon.png'
-APPLE    = ROOT / 'app' / 'apple-icon.png'
+SOURCE     = ROOT / 'public' / 'logo.png'
+MARK       = ROOT / 'public' / 'logo-mark.png'
+FAVICON    = ROOT / 'app' / 'icon.png'
+APPLE      = ROOT / 'app' / 'apple-icon.png'
+PWA_192    = ROOT / 'public' / 'icon-192.png'
+PWA_512    = ROOT / 'public' / 'icon-512.png'
 
 # Source image is roughly 75 % icon (top) + 25 % wordmark (bottom).
 # Adjust if your image has a different split.
@@ -70,6 +77,12 @@ def main():
     apple = square.copy().resize((APPLE_SIZE, APPLE_SIZE), Image.LANCZOS)
     apple.save(APPLE, optimize=True)
     print(f'✓ Wrote {APPLE.relative_to(ROOT)}  ({APPLE_SIZE}×{APPLE_SIZE})')
+
+    # ── 4. PWA icons — referenced by app/manifest.ts for "Add to Home Screen" ──
+    for size, dest in [(192, PWA_192), (512, PWA_512)]:
+        scaled = square.copy().resize((size, size), Image.LANCZOS)
+        scaled.save(dest, optimize=True)
+        print(f'✓ Wrote {dest.relative_to(ROOT)}  ({size}×{size})')
 
     print('\nAll derivatives generated. Re-run this any time you replace logo.png.')
 
