@@ -1,4 +1,4 @@
-name: Daily Bill Sync
+name: Daily Data Sync
 
 on:
   schedule:
@@ -7,21 +7,93 @@ on:
   workflow_dispatch:
     # Allows manual trigger from GitHub Actions tab
 
+# Cancel any in-progress run when a new one is triggered. Prevents
+# back-to-back manual catch-up clicks from piling up identical work.
+concurrency:
+  group: data-sync
+  cancel-in-progress: false
+
 jobs:
+  # ─────────────────────────────────────────────────────────────
+  # Each sync target is its own parallel job. Previously the
+  # /api/cron/sync orchestrator called all four sequentially, which
+  # exceeded Vercel's 300s serverless ceiling and returned 504.
+  # Splitting them gives each its own budget AND lets all four run
+  # at once. Each curl --max-time 480 covers Vercel's max+buffer.
+  # ─────────────────────────────────────────────────────────────
+
   sync-bills:
+    name: Sync recent bills
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Trigger bill sync
+      - name: POST /api/sync-bills
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" \
+          response=$(curl -s -o /tmp/body -w "%{http_code}" \
+            --max-time 480 \
+            -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://www.democracyunlocked.com/api/cron/sync")
-          
+            -H "Content-Type: application/json" \
+            -d '{"congress": 119, "limit": 50, "offset": 0}' \
+            "https://www.democracyunlocked.com/api/sync-bills")
           echo "Response code: $response"
-          
-          if [ "$response" != "200" ]; then
-            echo "Sync failed with status $response"
-            exit 1
-          fi
-          
-          echo "Bill sync completed successfully"
+          cat /tmp/body 2>/dev/null
+          echo
+          [ "$response" = "200" ] || exit 1
+
+  sync-representatives:
+    name: Refresh representatives
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: POST /api/sync-representatives
+        run: |
+          response=$(curl -s -o /tmp/body -w "%{http_code}" \
+            --max-time 480 \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            "https://www.democracyunlocked.com/api/sync-representatives")
+          echo "Response code: $response"
+          cat /tmp/body 2>/dev/null
+          echo
+          [ "$response" = "200" ] || exit 1
+
+  sync-house-votes:
+    name: Sync House roll-calls
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: POST /api/sync-congress-votes (house)
+        run: |
+          response=$(curl -s -o /tmp/body -w "%{http_code}" \
+            --max-time 480 \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{"congress": 119, "session": 1, "chamber": "house", "maxVotes": 50}' \
+            "https://www.democracyunlocked.com/api/sync-congress-votes")
+          echo "Response code: $response"
+          cat /tmp/body 2>/dev/null
+          echo
+          [ "$response" = "200" ] || exit 1
+
+  sync-senate-votes:
+    name: Sync Senate roll-calls
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: POST /api/sync-congress-votes (senate)
+        run: |
+          response=$(curl -s -o /tmp/body -w "%{http_code}" \
+            --max-time 480 \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{"congress": 119, "session": 1, "chamber": "senate", "maxVotes": 50}' \
+            "https://www.democracyunlocked.com/api/sync-congress-votes")
+          echo "Response code: $response"
+          cat /tmp/body 2>/dev/null
+          echo
+          [ "$response" = "200" ] || exit 1
