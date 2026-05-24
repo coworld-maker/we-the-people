@@ -7,7 +7,12 @@ const CONGRESS_API_BASE = 'https://api.congress.gov/v3'
 const API_KEY = process.env.CONGRESS_API_KEY
 
 function isAuthorized(req: NextRequest): boolean {
-  return req.headers.get('x-sync-secret') === process.env.CRON_SECRET
+  // Accept either header style. The /api/cron/sync orchestrator sends
+  // `Authorization: Bearer …` so we have to honor that too; external
+  // scripts and the GitHub Actions workflow use `x-sync-secret`.
+  const secret = process.env.CRON_SECRET
+  const auth = req.headers.get('authorization')
+  return req.headers.get('x-sync-secret') === secret || auth === `Bearer ${secret}`
 }
 
 async function fetchBills(congress: number, limit: number, offset: number, policyArea?: string) {

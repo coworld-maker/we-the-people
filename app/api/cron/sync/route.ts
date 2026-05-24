@@ -4,7 +4,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const CRON_SECRET = process.env.CRON_SECRET;
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://democracyunlocked.com';
+// Important: must point at the WWW host (the apex 301-redirects to www
+// and fetch() strips Authorization headers across that hop). Override
+// via NEXT_PUBLIC_APP_URL for preview deploys.
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.democracyunlocked.com';
 
 function checkAuth(req: NextRequest): boolean {
   const authHeader = req.headers.get('authorization');
