@@ -1,1 +1,47 @@
+# ── Next.js ─────────────────────────────────────────────────────────
+.next/
+out/
+build/
+next-env.d.ts
+
+# ── Dependencies ────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ── Environment / secrets ───────────────────────────────────────────
+.env
+.env*.local
+.env.production
+
+# ── TypeScript ──────────────────────────────────────────────────────
+*.tsbuildinfo
+
+# ── Testing / coverage ──────────────────────────────────────────────
+coverage/
+*.lcov
+
+# ── Logs ────────────────────────────────────────────────────────────
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── Vercel ──────────────────────────────────────────────────────────
+.vercel
+
+# ── Editor / OS ─────────────────────────────────────────────────────
 .DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+.history/
+
+# ── Python (build scripts) ──────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ── Prisma local dev artifacts ──────────────────────────────────────
+prisma/dev.db

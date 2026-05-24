@@ -1,0 +1,10 @@
+# Block blank issues — force people through one of the templates above
+blank_issues_enabled: false
+
+contact_links:
+  - name: 🔐 Security vulnerability
+    url: https://github.com/coworld-maker/we-the-people/security/policy
+    about: Please disclose security issues privately per our SECURITY.md — do not file a public issue.
+  - name: 💬 Discussion or question
+    url: https://github.com/coworld-maker/we-the-people/discussions
+    about: For open-ended questions, ideas, or community conversation, use Discussions instead of Issues.

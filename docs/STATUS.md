@@ -83,7 +83,7 @@ Nothing right now. Last session ended after privacy compliance commit. The team 
 ## Useful links
 
 - Vercel project: https://vercel.com/htn-holdings/democracyunlocked
-- Supabase project: https://supabase.com/dashboard/project/hiypdaqcpssqlwtgprmf
+- Supabase project: `https://supabase.com/dashboard/project/<project-id>` (team members get the real link via 1Password / shared notes — not pasted here so this doc stays public-safe)
 - Anthropic console: https://console.anthropic.com
 - Clerk dashboard: https://dashboard.clerk.com
 - Congress.gov API docs: https://api.congress.gov
