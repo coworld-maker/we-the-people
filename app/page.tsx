@@ -5,7 +5,7 @@ import {
   MessageSquare, FileText, TrendingUp, Zap
 } from 'lucide-react'
 import TypewriterHero from '@/components/landing/TypewriterHero'
-import UnlockIntro from '@/components/landing/UnlockIntro'
+import UnlockButton from '@/components/landing/UnlockButton'
 import Logo from '@/components/ui/Logo'
 
 // ── STATIC DATA ──
@@ -23,9 +23,6 @@ export default async function LandingPage() {
 
   return (
     <main className="min-h-screen bg-[#0A0A0A] text-white selection:bg-[--accent] selection:text-white overflow-hidden">
-
-      {/* Unlock intro overlay — plays once per session, skippable, respects prefers-reduced-motion */}
-      <UnlockIntro />
 
       {/* ── HEADER ── */}
       <header className="absolute top-0 left-0 right-0 z-50 px-6 py-5 border-b border-white/10 bg-black/20 backdrop-blur-md">
@@ -84,9 +81,12 @@ export default async function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-            <Link href={userId ? '/dashboard' : '/sign-up'} className="w-full sm:w-auto flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-full bg-gradient-to-r from-[--accent] to-blue-600 text-white shadow-xl shadow-[--accent]/20 hover:scale-105 hover:shadow-2xl hover:shadow-[--accent]/40 transition-all duration-300">
+            <UnlockButton
+              href={userId ? '/dashboard' : '/sign-up'}
+              className="w-full sm:w-auto flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-full bg-gradient-to-r from-[--accent] to-blue-600 text-white shadow-xl shadow-[--accent]/20 hover:scale-105 hover:shadow-2xl hover:shadow-[--accent]/40 transition-all duration-300 disabled:opacity-90 disabled:cursor-wait"
+            >
               Start voting now <ArrowRight className="w-5 h-5 ml-2" />
-            </Link>
+            </UnlockButton>
             <Link href="/bills" className="w-full sm:w-auto flex items-center justify-center px-8 py-4 text-lg font-medium rounded-full border border-white/20 text-white/80 hover:bg-white/5 hover:text-white transition-all duration-300">
               Browse bills
             </Link>
