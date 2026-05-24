@@ -24,7 +24,7 @@ export async function GET() {
       votes:        { include: { bill: { select: { billType: true, billNumber: true, title: true } } } },
       discussions:  { include: { bill: { select: { billType: true, billNumber: true, title: true } } } },
       notifications:true,
-      auditLogs:    { orderBy: { createdAt: 'desc' }, take: 100 },
+      auditLogs:    { orderBy: { timestamp: 'desc' }, take: 100 },
     },
   })
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
@@ -50,7 +50,9 @@ export async function GET() {
     await prisma.auditLog.create({
       data: {
         userId: user.id,
-        action: 'DATA_EXPORT',
+        eventType: 'DATA_EXPORT',
+        severity: 'info',
+        message: 'User exercised right to data portability (GDPR Art. 20 / CCPA)',
         metadata: { exportedAt: new Date().toISOString() },
       },
     })
@@ -84,8 +86,13 @@ export async function GET() {
     votes: user.votes.map(v => ({
       bill: v.bill ? `${v.bill.billType} ${v.bill.billNumber} — ${v.bill.title}` : null,
       position: v.position,
-      reasoning: v.reasoning,
+      // Reasoning text is stored encrypted (reasoningEncrypted/Iv/Tag). We
+      // don't decrypt it in the export to avoid surfacing the raw cipher
+      // metadata; if you need it decrypted, request via email and we will
+      // verify identity then provide it within 30 days.
+      reasoningPresent: !!v.reasoningEncrypted,
       isAnonymous: v.isAnonymous,
+      confidence: v.confidence,
       castAt: v.createdAt,
     })),
     discussions: user.discussions.map(d => ({
@@ -98,14 +105,18 @@ export async function GET() {
       type: n.type,
       title: n.title,
       message: n.message,
-      readAt: n.readAt,
+      read: n.read,
       createdAt: n.createdAt,
     })),
     auditLogs: user.auditLogs.map(a => ({
-      action: a.action,
+      eventType: a.eventType,
+      severity: a.severity,
+      message: a.message,
       metadata: a.metadata,
-      ipAddress: a.ipAddress,
-      createdAt: a.createdAt,
+      // ipAddressHash is a one-way hash so it can't be reversed to your IP;
+      // included for completeness only.
+      ipAddressHash: a.ipAddressHash,
+      timestamp: a.timestamp,
     })),
   }
 
