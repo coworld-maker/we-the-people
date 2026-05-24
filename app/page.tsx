@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import TypewriterHero from '@/components/landing/TypewriterHero'
 import Logo from '@/components/ui/Logo'
+import CookieConsent from '@/components/legal/CookieConsent'
 
 // ── STATIC DATA ──────────────────────────────────────────────────────────────
 const FEATURES = [
@@ -214,11 +215,18 @@ export default async function LandingPage() {
             <Logo className="w-6 h-6" variant="mark" />
             <span className="font-display text-sm font-semibold text-[--text-secondary]">Democracy Unlocked</span>
           </div>
+          <nav className="flex items-center gap-4 text-xs font-medium text-[--text-muted]">
+            <Link href="/privacy" className="hover:text-[--accent] transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-[--accent] transition-colors">Terms</Link>
+          </nav>
           <p className="text-xs text-[--text-muted]">
-            &copy; {new Date().getFullYear()} Democracy Unlocked. Not affiliated with the U.S. Government.
+            &copy; {new Date().getFullYear()} Democracy Unlocked.
           </p>
         </div>
       </footer>
+
+      {/* GDPR cookie banner — renders only when the user hasn't decided yet */}
+      <CookieConsent />
     </main>
   )
 }
