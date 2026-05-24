@@ -3,39 +3,37 @@ import Image from 'next/image'
 interface LogoProps {
   className?: string
   /**
-   * 'mark'  — show just the Capitol-lock icon (crops out the wordmark below).
-   *           Use in tight nav slots where the brand name appears separately.
-   * 'full'  — show the entire logo including the "DEMOCRACY UNLOCKED" wordmark.
-   *           Use on hero / about / footer where it stands on its own.
-   * 'auto'  — same as 'mark'; sensible default for most usages.
+   * 'mark'  — icon-only (lock + Capitol). Uses public/logo-mark.png if
+   *           generated via `scripts/prepare-logo.py`; falls back to a
+   *           CSS-cropped version of logo.png if not.
+   * 'full'  — full logo including the wordmark.
+   * 'auto'  — same as 'mark'.
    */
   variant?: 'mark' | 'full' | 'auto'
   priority?: boolean
 }
 
-const SRC = '/logo.png'
+const FULL_SRC = '/logo.png'
+const MARK_SRC = '/logo-mark.png'
 
 /**
- * Democracy Unlocked logo. The source file is a square image with the icon
- * (open padlock + Capitol dome) occupying roughly the top 75% and the
- * "DEMOCRACY UNLOCKED" wordmark in the bottom 25%.
+ * Democracy Unlocked brand logo.
  *
- * For the 'mark' variant we crop to the icon by clipping the bottom portion;
- * for 'full' we show the whole image. Either way it's the same source file —
- * no separate crop needed on disk.
+ * Drop the source at public/logo.png, then run:
+ *     python3 scripts/prepare-logo.py
+ * to generate the pre-cropped mark + favicon. The mark variant of this
+ * component will pick up logo-mark.png automatically if it exists.
  */
 export default function Logo({
   className = 'w-7 h-7',
   variant = 'auto',
   priority = false,
 }: LogoProps) {
-  const isFull = variant === 'full'
-
-  if (isFull) {
+  if (variant === 'full') {
     return (
       <div className={`relative ${className}`}>
         <Image
-          src={SRC}
+          src={FULL_SRC}
           alt="Democracy Unlocked"
           fill
           sizes="(max-width: 768px) 50vw, 33vw"
@@ -46,18 +44,16 @@ export default function Logo({
     )
   }
 
-  // 'mark' / 'auto' — crop to top portion (the lock + dome). The wrapper has
-  // overflow:hidden and we scale the image so the icon fills the square.
+  // 'mark' / 'auto' — use the pre-cropped mark file. Sharper at small sizes
+  // and matches the square aspect ratio of the wrapper without CSS hacks.
   return (
-    <div className={`relative overflow-hidden ${className}`} aria-label="Democracy Unlocked logo">
+    <div className={`relative ${className}`} aria-label="Democracy Unlocked">
       <Image
-        src={SRC}
+        src={MARK_SRC}
         alt=""
         fill
         sizes="64px"
-        className="object-cover object-top"
-        // image is ~75% icon / 25% wordmark — scaling up 1.33× hides the wordmark
-        style={{ transform: 'scale(1.33) translateY(-3%)', transformOrigin: 'top center' }}
+        className="object-contain"
         priority={priority}
       />
     </div>
