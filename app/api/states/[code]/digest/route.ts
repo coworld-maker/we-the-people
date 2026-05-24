@@ -57,7 +57,17 @@ export async function GET(
   // Gather inputs the AI digest needs
   const stateName = abbrToName(code) ?? code
 
-  const [topPolicyAreaRaw, topBillsRaw, recentRepVotes] = await Promise.all([
+  // CongressVote stores bioguideId as a plain column (no Prisma relation back to
+  // Representative), so we resolve in two steps: pull the state's reps first,
+  // then look up votes whose bioguideId is in that set.
+  const stateReps = await prisma.representative.findMany({
+    where: { state: stateName, currentTerm: true },
+    select: { bioguideId: true, fullName: true, party: true },
+  })
+  const repByBioguide = new Map(stateReps.map(r => [r.bioguideId, r]))
+  const stateBioguides = stateReps.map(r => r.bioguideId)
+
+  const [topPolicyAreaRaw, topBillsRaw, recentRepVotesRaw] = await Promise.all([
     // Top policy areas by citizen-vote count
     prisma.vote.findMany({
       where: { user: { state: code } },
@@ -72,18 +82,31 @@ export async function GET(
       orderBy: { _count: { billId: 'desc' } },
       take: 5,
     }),
-    // Recent rep activity — just the count + a sample for the prompt
-    prisma.congressVote.findMany({
-      where: { representative: { state: stateName } },
-      orderBy: { votedAt: 'desc' },
-      take: 10,
-      select: {
-        position: true,
-        representative: { select: { fullName: true, party: true } },
-        bill: { select: { billType: true, billNumber: true } },
-      },
-    }),
+    // Recent congressional votes by anyone in this state's delegation
+    stateBioguides.length > 0
+      ? prisma.congressVote.findMany({
+          where: { bioguideId: { in: stateBioguides } },
+          orderBy: { votedAt: 'desc' },
+          take: 10,
+          select: {
+            position: true,
+            bioguideId: true,
+            bill: { select: { billType: true, billNumber: true } },
+          },
+        })
+      : Promise.resolve([] as Array<{
+          position: string
+          bioguideId: string
+          bill: { billType: string; billNumber: string } | null
+        }>),
   ])
+
+  // Hydrate rep info onto each vote for the prompt formatting below
+  const recentRepVotes = recentRepVotesRaw.map(v => ({
+    position: v.position,
+    bill: v.bill,
+    representative: repByBioguide.get(v.bioguideId) ?? null,
+  })).filter(v => v.representative !== null && v.bill !== null)
 
   // Aggregate top policy areas
   const counts: Record<string, number> = {}
@@ -106,7 +129,7 @@ export async function GET(
   const repActivitySummary = recentRepVotes.length === 0
     ? ''
     : recentRepVotes.slice(0, 5).map(v =>
-        `${v.representative.fullName} (${v.representative.party}) voted ${v.position} on ${v.bill.billType} ${v.bill.billNumber}`,
+        `${v.representative?.fullName ?? 'A rep'} (${v.representative?.party ?? '?'}) voted ${v.position} on ${v.bill?.billType ?? ''} ${v.bill?.billNumber ?? ''}`.trim(),
       ).join('; ')
 
   // If there's truly nothing to write about, return a static no-data message
