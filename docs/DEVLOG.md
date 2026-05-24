@@ -35,6 +35,38 @@ Hashes are stable; link them via `[commit](https://github.com/coworld-maker/we-t
 
 ## 2026-05-24
 
+### Fix data-sync pipeline end-to-end
+**Commits**: [`9e54627`](https://github.com/coworld-maker/we-the-people/commit/9e54627), [`d6ecd5b`](https://github.com/coworld-maker/we-the-people/commit/d6ecd5b), [`c347335`](https://github.com/coworld-maker/we-the-people/commit/c347335), and a workflow `maxVotes` reduction
+
+**What shipped:** The daily sync workflow has been silently failing for weeks. Three independent bugs unblocked, in order of discovery:
+
+1. **`sync-bills` auth-header mismatch** — only accepted `x-sync-secret`, but the cron orchestrator sends `Authorization: Bearer`. Added Bearer support to match the other sync endpoints.
+
+2. **Orchestrator hit the wrong host** — `BASE_URL` defaulted to apex `democracyunlocked.com`. Apex 301-redirects to `www.democracyunlocked.com`, and `fetch()` strips the `Authorization` header across host hops (standard browser security). All child calls arrived unauthenticated. Defaulted `BASE_URL` to the www host.
+
+3. **Workflow split into 4 parallel jobs** — the orchestrator hit Vercel's 300s function ceiling, returning 504. Calling each sync directly from separate parallel jobs gives each its own budget.
+
+4. **`/api/sync-representatives` missing from Clerk middleware whitelist** — middleware blocked the request before the route handler could check `CRON_SECRET`. Added to the public-route matcher (handler still checks the secret itself).
+
+5. **`sync-congress-votes` perf** — even isolated, 50 House roll calls × 435 sequential member-vote upserts = ~21,750 round trips, blowing the 300s ceiling. Reduced `maxVotes` from 50 → 10 in the workflow as immediate unblock.
+
+**Why:** Data was 5 weeks stale (latest bill 2026-04-06, latest vote 2026-04-20). Without the workflow running, the site's data is frozen in time.
+
+**How to verify:** After triggering at https://github.com/coworld-maker/we-the-people/actions/workflows/sync-bills.yml, run:
+```sql
+SELECT MAX("introducedDate") AS latest_bill,
+       MAX("votedAt")        AS latest_vote
+FROM "Bill", "CongressVote";
+```
+Both dates should advance after each workflow run.
+
+**What's next:**
+- ⚠️ **Refactor `sync-congress-votes` upsert loop** to a single multi-row `INSERT ... ON CONFLICT` per roll call. Currently each member-vote is a separate round-trip; multi-row would be ~30× faster and let us raise `maxVotes` back to 50+. The dynamic SQL building is straightforward — just risky to ship at 11 PM.
+- Add `prisma.bill.findFirst` cache inside the loop (currently looks up the bill once per roll call; could batch-fetch).
+- Consider Inngest or QStash for true background job execution if we need to backfill historical congresses.
+
+---
+
 ### Privacy & data-rights compliance package
 **Commits**: [`790bcfe`](https://github.com/coworld-maker/we-the-people/commit/790bcfe) → [`47f19de`](https://github.com/coworld-maker/we-the-people/commit/47f19de)
 

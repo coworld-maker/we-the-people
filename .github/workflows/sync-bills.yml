@@ -72,7 +72,7 @@ jobs:
             -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            -d '{"congress": 119, "session": 1, "chamber": "house", "maxVotes": 50}' \
+            -d '{"congress": 119, "session": 1, "chamber": "house", "maxVotes": 10}' \
             "https://www.democracyunlocked.com/api/sync-congress-votes")
           echo "Response code: $response"
           cat /tmp/body 2>/dev/null
@@ -91,7 +91,7 @@ jobs:
             -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            -d '{"congress": 119, "session": 1, "chamber": "senate", "maxVotes": 50}' \
+            -d '{"congress": 119, "session": 1, "chamber": "senate", "maxVotes": 10}' \
             "https://www.democracyunlocked.com/api/sync-congress-votes")
           echo "Response code: $response"
           cat /tmp/body 2>/dev/null
