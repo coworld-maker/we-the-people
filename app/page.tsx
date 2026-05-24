@@ -5,6 +5,8 @@ import {
   MessageSquare, FileText, TrendingUp, Zap
 } from 'lucide-react'
 import TypewriterHero from '@/components/landing/TypewriterHero'
+import UnlockIntro from '@/components/landing/UnlockIntro'
+import Logo from '@/components/ui/Logo'
 
 // ── STATIC DATA ──
 const FEATURES = [
@@ -22,13 +24,14 @@ export default async function LandingPage() {
   return (
     <main className="min-h-screen bg-[#0A0A0A] text-white selection:bg-[--accent] selection:text-white overflow-hidden">
 
+      {/* Unlock intro overlay — plays once per session, skippable, respects prefers-reduced-motion */}
+      <UnlockIntro />
+
       {/* ── HEADER ── */}
       <header className="absolute top-0 left-0 right-0 z-50 px-6 py-5 border-b border-white/10 bg-black/20 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group hover:opacity-90 transition-opacity">
-            <div className="w-9 h-9 bg-gradient-to-br from-[--accent] to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-[--accent]/30">
-              <Vote className="w-5 h-5 text-white" />
-            </div>
+            <Logo className="w-10 h-10" variant="mark" priority />
             <span className="font-display text-lg font-bold text-white tracking-tight">
               Democracy Unlocked
             </span>
@@ -197,9 +200,7 @@ export default async function LandingPage() {
       <footer className="bg-black py-10 px-6 border-t border-white/[0.05]">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-[--accent] rounded flex items-center justify-center">
-              <Vote className="w-3 h-3 text-white" />
-            </div>
+            <Logo className="w-6 h-6" variant="mark" />
             <span className="font-display text-sm font-semibold text-white/60">Democracy Unlocked</span>
           </div>
           <p className="text-xs text-white/20">
