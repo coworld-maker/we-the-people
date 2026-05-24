@@ -341,4 +341,53 @@ Include all 50 states + DC. Score is 0.0 to 1.0. Keep reasons under 90 character
 
     return out
   }
+
+  /**
+   * Generate a short (2-paragraph) plain-English digest of what's happening
+   * legislatively for citizens in a given state. Synthesizes top bills, top
+   * policy areas, and recent rep activity into a nonpartisan paragraph.
+   *
+   * Pass pre-computed aggregates so the caller (the state-page API) controls
+   * the query and we don't double-fetch.
+   */
+  static async generateStateDigest(input: {
+    stateCode: string
+    stateName: string
+    topPolicyAreas: Array<{ area: string; count: number }>
+    topBills: Array<{ title: string; shortTitle: string | null; status: string; policyArea: string | null }>
+    repActivitySummary: string  // pre-formatted by the caller
+  }): Promise<string> {
+    const { stateCode, stateName, topPolicyAreas, topBills, repActivitySummary } = input
+
+    const billsLine = topBills.length === 0
+      ? 'No recent citizen-vote activity yet.'
+      : topBills.slice(0, 5).map(b =>
+          `  - ${b.shortTitle || b.title} (${b.policyArea || 'uncategorized'}, status: ${b.status})`
+        ).join('\n')
+
+    const areasLine = topPolicyAreas.length === 0
+      ? 'No clear focus areas yet.'
+      : topPolicyAreas.slice(0, 5).map(a => `  - ${a.area}: ${a.count} votes`).join('\n')
+
+    const systemPrompt =
+      'You are a nonpartisan civic education writer. Write a 2-paragraph plain-English ' +
+      'digest of what citizens in a US state are paying attention to legislatively. ' +
+      'Stay neutral — do not take sides, do not endorse positions, do not characterize ' +
+      'one party as better than another. Focus on what bills, topics, and actions are ' +
+      'drawing engagement. Reference specific bills/areas from the data provided when ' +
+      'natural. Total length: 100-180 words. Respond with plain text, no markdown headers.'
+
+    const userPrompt = `State: ${stateName} (${stateCode})
+
+Top policy areas by citizen-vote count:
+${areasLine}
+
+Most-voted bills:
+${billsLine}
+
+Recent rep activity:
+${repActivitySummary || '(none recorded)'}`
+
+    return await callClaude(userPrompt, systemPrompt)
+  }
 }

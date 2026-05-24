@@ -70,6 +70,22 @@ export async function GET(
     })
     .filter(Boolean)
 
+  // ── Policy area breakdown — all bills users in this state have voted on ───
+  // Powers the pie chart. Goes wider than topBills (which is limited to 8).
+  const policyAreaVotes = await prisma.vote.findMany({
+    where: { user: { state: code } },
+    select: { bill: { select: { policyArea: true } } },
+    take: 1000, // generous cap — typical state has way less than this in flight
+  })
+  const policyAreaCounts: Record<string, number> = {}
+  for (const v of policyAreaVotes) {
+    const area = v.bill?.policyArea || 'Uncategorized'
+    policyAreaCounts[area] = (policyAreaCounts[area] || 0) + 1
+  }
+  const policyAreas = Object.entries(policyAreaCounts)
+    .map(([area, count]) => ({ area, count }))
+    .sort((a, b) => b.count - a.count)
+
   // ── Recent discussions from users in this state ────────────────────────────
   const discussions = await prisma.discussion.findMany({
     where: { user: { state: code }, parentId: null },
@@ -134,6 +150,7 @@ export async function GET(
     code,
     stats: { citizenCount, totalVotes, totalDiscussions },
     topBills,
+    policyAreas,
     discussions,
     reps,
     repActivity,

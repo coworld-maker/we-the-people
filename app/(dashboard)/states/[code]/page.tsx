@@ -7,6 +7,9 @@ import {
 } from 'lucide-react'
 import { headers } from 'next/headers'
 import StateLegBills from '@/components/states/StateLegBills'
+import StateAIDigest from '@/components/states/StateAIDigest'
+import PolicyAreaPieChart from '@/components/states/PolicyAreaPieChart'
+import DelegationCard from '@/components/states/DelegationCard'
 
 const STATE_NAMES: Record<string, string> = {
   AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',
@@ -73,7 +76,7 @@ export default async function StatePage({ params }: { params: Promise<{ code: st
   const data = await fetchStateData(code)
   if (!data) notFound()
 
-  const { stats, topBills, discussions, reps, repActivity } = data
+  const { stats, topBills, policyAreas, discussions, reps, repActivity } = data
   const senators = reps.filter((r: any) => r.chamber === 'Senate')
   const houseReps = reps.filter((r: any) => r.chamber !== 'Senate')
 
@@ -112,6 +115,26 @@ export default async function StatePage({ params }: { params: Promise<{ code: st
           </div>
         ))}
       </div>
+
+      {/* AI-generated digest + policy-area pie chart — shown only when there's
+          enough activity to summarize */}
+      {stats.totalVotes > 0 && (
+        <div className="grid lg:grid-cols-5 gap-6 mb-8">
+          <div className="lg:col-span-3">
+            <StateAIDigest stateCode={code} stateName={stateName} />
+          </div>
+          {policyAreas && policyAreas.length > 0 && (
+            <div className="lg:col-span-2 card overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[--border]">
+                <h3 className="font-display text-sm font-bold text-[--text]">Bills by policy area</h3>
+              </div>
+              <div className="p-4">
+                <PolicyAreaPieChart data={policyAreas} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {stats.totalVotes === 0 && (
         <div className="card p-8 text-center mb-6">
@@ -261,47 +284,27 @@ export default async function StatePage({ params }: { params: Promise<{ code: st
             <div className="px-5 py-3.5 border-b border-[--border]">
               <h3 className="font-display text-sm font-bold text-[--text]">Your delegation</h3>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-5">
               {senators.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-[--text-muted] uppercase tracking-wider mb-2">Senators</p>
+                  <div className="flex items-baseline justify-between mb-2.5">
+                    <p className="text-[10px] font-semibold text-[--text-muted] uppercase tracking-wider">Senate</p>
+                    <span className="text-[10px] text-[--text-muted]">{senators.length} of 2</span>
+                  </div>
                   <div className="space-y-2">
-                    {senators.map((r: any) => (
-                      <Link key={r.bioguideId} href={`/scorecards/${r.bioguideId}`}
-                        className="flex items-center gap-3 p-2.5 rounded-lg bg-[--surface-secondary] hover:bg-[--accent-light] transition-colors group"
-                      >
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0 ${r.party === 'R' ? 'bg-red-500' : r.party === 'D' ? 'bg-blue-500' : 'bg-gray-400'}`}>
-                          {r.firstName[0]}{r.lastName[0]}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-[--text] group-hover:text-[--accent] transition-colors truncate">{r.fullName}</p>
-                          <p className="text-[10px] text-[--text-muted]">U.S. Senator ({r.party})</p>
-                        </div>
-                      </Link>
-                    ))}
+                    {senators.map((r: any) => <DelegationCard key={r.bioguideId} rep={r} />)}
                   </div>
                 </div>
               )}
 
               {houseReps.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-[--text-muted] uppercase tracking-wider mb-2">House</p>
+                  <div className="flex items-baseline justify-between mb-2.5">
+                    <p className="text-[10px] font-semibold text-[--text-muted] uppercase tracking-wider">House</p>
+                    <span className="text-[10px] text-[--text-muted]">{houseReps.length} {houseReps.length === 1 ? 'seat' : 'seats'}</span>
+                  </div>
                   <div className="space-y-2">
-                    {houseReps.map((r: any) => (
-                      <Link key={r.bioguideId} href={`/scorecards/${r.bioguideId}`}
-                        className="flex items-center gap-3 p-2.5 rounded-lg bg-[--surface-secondary] hover:bg-[--accent-light] transition-colors group"
-                      >
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0 ${r.party === 'R' ? 'bg-red-500' : r.party === 'D' ? 'bg-blue-500' : 'bg-gray-400'}`}>
-                          {r.firstName[0]}{r.lastName[0]}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-[--text] group-hover:text-[--accent] transition-colors truncate">{r.fullName}</p>
-                          <p className="text-[10px] text-[--text-muted]">
-                            {r.district ? `District ${r.district}` : 'Representative'} ({r.party})
-                          </p>
-                        </div>
-                      </Link>
-                    ))}
+                    {houseReps.map((r: any) => <DelegationCard key={r.bioguideId} rep={r} />)}
                   </div>
                 </div>
               )}

@@ -15,9 +15,11 @@ import { ArrowLeft, ExternalLink, Calendar, Zap } from 'lucide-react'
 import SectionNav from '@/components/ui/SectionNav'
 import BillStateSentiment from '@/components/bills/BillStateSentiment'
 import BillImpactMap from '@/components/bills/BillImpactMap'
+import BillTimeline from '@/components/bills/BillTimeline'
 
 const SECTIONS = [
   { id: 'summary',    label: 'Summary' },
+  { id: 'timeline',   label: 'Timeline' },
   { id: 'arguments',  label: 'Arguments' },
   { id: 'sentiment',  label: 'By State' },
   { id: 'discussion', label: 'Discussion' },
@@ -90,6 +92,16 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         <div className="lg:col-span-2 space-y-6">
           <div id="summary" className="scroll-mt-20">
             <AISummary billId={bill.id} aiSummary={(bill as any).aiSummary} officialSummary={bill.summary} aiAnalyzedAt={(bill as any).aiAnalyzedAt?.toISOString() || null} />
+          </div>
+          <div id="timeline" className="scroll-mt-20">
+            <BillTimeline
+              status={bill.status}
+              actions={(bill as any).actions ?? []}
+              sponsors={(bill.sponsors as any) ?? []}
+              cosponsors={(bill.cosponsors as any) ?? []}
+              introducedDate={bill.introducedDate}
+              originChamber={bill.originChamber}
+            />
           </div>
           <div id="arguments" className="scroll-mt-20 space-y-6">
             <ProsConsPanel prosCons={bill.prosCons as any} />
