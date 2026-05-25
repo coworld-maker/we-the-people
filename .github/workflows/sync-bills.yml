@@ -20,6 +20,13 @@ jobs:
   # exceeded Vercel's 300s serverless ceiling and returned 504.
   # Splitting them gives each its own budget AND lets all four run
   # at once. Each curl --max-time 480 covers Vercel's max+buffer.
+  #
+  # Note on `session`: the 119th Congress has two sessions:
+  #   Session 1: Jan 3, 2025 → Jan 3, 2026
+  #   Session 2: Jan 3, 2026 → Jan 3, 2027 (current)
+  # We sync both each run so the workflow stays correct across the
+  # session boundary without code changes. Session-2 fires first
+  # because it's where the freshest votes live.
   # ─────────────────────────────────────────────────────────────
 
   sync-bills:
@@ -60,12 +67,31 @@ jobs:
           echo
           [ "$response" = "200" ] || exit 1
 
-  sync-house-votes:
-    name: Sync House roll-calls
+  sync-house-votes-s2:
+    name: Sync House roll-calls (current session)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: POST /api/sync-congress-votes (house)
+      - name: POST /api/sync-congress-votes (house, session 2)
+        run: |
+          response=$(curl -s -o /tmp/body -w "%{http_code}" \
+            --max-time 480 \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{"congress": 119, "session": 2, "chamber": "house", "maxVotes": 10}' \
+            "https://www.democracyunlocked.com/api/sync-congress-votes")
+          echo "Response code: $response"
+          cat /tmp/body 2>/dev/null
+          echo
+          [ "$response" = "200" ] || exit 1
+
+  sync-house-votes-s1:
+    name: Sync House roll-calls (prior session)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: POST /api/sync-congress-votes (house, session 1)
         run: |
           response=$(curl -s -o /tmp/body -w "%{http_code}" \
             --max-time 480 \
@@ -79,12 +105,31 @@ jobs:
           echo
           [ "$response" = "200" ] || exit 1
 
-  sync-senate-votes:
-    name: Sync Senate roll-calls
+  sync-senate-votes-s2:
+    name: Sync Senate roll-calls (current session)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: POST /api/sync-congress-votes (senate)
+      - name: POST /api/sync-congress-votes (senate, session 2)
+        run: |
+          response=$(curl -s -o /tmp/body -w "%{http_code}" \
+            --max-time 480 \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{"congress": 119, "session": 2, "chamber": "senate", "maxVotes": 10}' \
+            "https://www.democracyunlocked.com/api/sync-congress-votes")
+          echo "Response code: $response"
+          cat /tmp/body 2>/dev/null
+          echo
+          [ "$response" = "200" ] || exit 1
+
+  sync-senate-votes-s1:
+    name: Sync Senate roll-calls (prior session)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: POST /api/sync-congress-votes (senate, session 1)
         run: |
           response=$(curl -s -o /tmp/body -w "%{http_code}" \
             --max-time 480 \
