@@ -53,9 +53,14 @@ async function buildSenatorNameMap(): Promise<Map<string, string>> {
   return map;
 }
 
-// House: fetch paginated list of roll call votes for a congress/session
+// House: fetch paginated list of roll call votes for a congress/session.
+// IMPORTANT: explicitly sort by startDate desc — Congress.gov's default sort
+// is by `updateDate` (when a record was last touched), which puts old roll
+// calls with recent amendments ahead of genuinely recent votes. Without the
+// explicit sort, this endpoint kept returning the same old rolls every run
+// and never advanced past whatever we already had in the DB.
 async function fetchHouseVoteList(congress: number, session: number, offset = 0) {
-  const url = `${BASE_URL}/house-vote/${congress}/${session}?limit=250&offset=${offset}&format=json&api_key=${CONGRESS_API_KEY}`;
+  const url = `${BASE_URL}/house-vote/${congress}/${session}?limit=250&offset=${offset}&sort=startDate+desc&format=json&api_key=${CONGRESS_API_KEY}`;
   const res = await fetch(url, { next: { revalidate: 0 } });
   if (!res.ok) throw new Error(`House vote list ${congress}/${session} offset=${offset}: ${res.status}`);
   return res.json();
