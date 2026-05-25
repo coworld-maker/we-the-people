@@ -173,6 +173,21 @@ export async function POST(req: NextRequest) {
 
   try {
     if (chamber === 'house' || chamber === 'both') {
+      // Skip roll calls we've already synced for this congress/session. Without
+      // this guard the loop kept reprocessing the same handful of older rolls
+      // every run, because Congress.gov's list endpoint doesn't reliably
+      // return newest-first for the House vote API (sort=startDate desc had
+      // no observable effect).
+      const alreadySyncedRows = await prisma.congressVote.findMany({
+        where: { congress: String(congress), session, chamber: 'House' },
+        select: { rollNumber: true },
+        distinct: ['rollNumber'],
+      });
+      const alreadySynced = new Set<number>(
+        alreadySyncedRows.map(r => r.rollNumber).filter((n): n is number => n != null)
+      );
+      let skippedAsAlreadySynced = 0;
+
       let offset = 0;
 
       outerLoop:
@@ -186,6 +201,14 @@ export async function POST(req: NextRequest) {
 
         for (const vote of voteList) {
           if (rollCallsProcessed >= maxVotes) break outerLoop;
+
+          // Skip roll calls already in our DB — guarantees forward progress
+          const candidateRoll: number =
+            vote.rollCallNumber ?? vote.rollNumber ?? vote.roll_number;
+          if (candidateRoll && alreadySynced.has(candidateRoll)) {
+            skippedAsAlreadySynced++;
+            continue;
+          }
 
           // Congress.gov house-vote API uses rollCallNumber, legislationType, legislationNumber
           const rollNumber: number = vote.rollCallNumber ?? vote.rollNumber ?? vote.roll_number;
@@ -298,6 +321,17 @@ export async function POST(req: NextRequest) {
       const senatorNameMap = await buildSenatorNameMap();
       // Debug: expose map size and a few sample keys in response
       senatorMapDebug = { size: senatorNameMap.size, sampleKeys: [...senatorNameMap.keys()].slice(0, 5) };
+
+      // Skip roll calls we've already synced (same forward-progress guard as House)
+      const alreadySyncedRows = await prisma.congressVote.findMany({
+        where: { congress: String(congress), session, chamber: 'Senate' },
+        select: { rollNumber: true },
+        distinct: ['rollNumber'],
+      });
+      const alreadySynced = new Set<number>(
+        alreadySyncedRows.map(r => r.rollNumber).filter((n): n is number => n != null)
+      );
+
       const { entries: senateVotesAll, sampleRawDates: rawDateSamples } = await fetchSenateVoteList(congress, session);
       // Apply offset to skip already-processed recent votes
       const senateVotes = senateVotesAll.slice(senateOffset);
@@ -309,6 +343,8 @@ export async function POST(req: NextRequest) {
 
         const { rollNumber, date } = vote;
         if (!rollNumber) continue;
+        // Skip if we already have this roll number in the DB
+        if (alreadySynced.has(rollNumber)) continue;
         senateProcessed++;
         rollCallsProcessed++;
 
