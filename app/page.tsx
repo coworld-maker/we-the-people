@@ -34,6 +34,12 @@ export default async function LandingPage() {
             <span className="font-display text-lg font-bold text-white tracking-tight">
               Democracy Unlocked
             </span>
+            <span
+              className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/15 text-white border border-white/25 backdrop-blur-sm"
+              title="This site is in beta — expect rough edges and incomplete data while we keep building."
+            >
+              Beta
+            </span>
           </Link>
 
           <div className="flex items-center gap-4">
