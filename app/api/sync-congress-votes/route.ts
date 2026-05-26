@@ -170,6 +170,7 @@ export async function POST(req: NextRequest) {
   let sampleRawDates: string[] = [];
   let memberDebug: any = null; // first member API response for House debugging
   let senatorMapDebug: { size: number; sampleKeys: string[] } | null = null;
+  let highWaterMark = 0;
 
   try {
     if (chamber === 'house' || chamber === 'both') {
@@ -186,6 +187,16 @@ export async function POST(req: NextRequest) {
       const alreadySynced = new Set<number>(
         alreadySyncedRows.map(r => r.rollNumber).filter((n): n is number => n != null)
       );
+      // High-water mark: the highest roll number we've ever stored for this
+      // congress/session. Rolls at or below this number have already been
+      // attempted (they just didn't match a bill in our DB), so skip them.
+      // Without this, no-match rolls are re-processed on every run and the
+      // loop never advances past them.
+      const hwmRow = await prisma.congressVote.aggregate({
+        where: { congress: String(congress), session, chamber: 'House' },
+        _max: { rollNumber: true },
+      });
+      highWaterMark = hwmRow._max.rollNumber ?? 0;
       let skippedAsAlreadySynced = 0;
 
       let offset = 0;
@@ -202,10 +213,11 @@ export async function POST(req: NextRequest) {
         for (const vote of voteList) {
           if (rollCallsProcessed >= maxVotes) break outerLoop;
 
-          // Skip roll calls already in our DB — guarantees forward progress
+          // Skip roll calls we've already processed: either stored in our DB,
+          // or below the high-water mark (tried before but no bill matched).
           const candidateRoll: number =
             vote.rollCallNumber ?? vote.rollNumber ?? vote.roll_number;
-          if (candidateRoll && alreadySynced.has(candidateRoll)) {
+          if (candidateRoll && (alreadySynced.has(candidateRoll) || candidateRoll <= highWaterMark)) {
             skippedAsAlreadySynced++;
             continue;
           }
@@ -430,6 +442,7 @@ export async function POST(req: NextRequest) {
       rollCallsMatched,
       rollCallsProcessed,
       rollCallsWithBillRef,
+      highWaterMark,
       debugSamples,
       memberDebug,
       sampleRawDates,
