@@ -12,25 +12,40 @@ export class UserService {
     })
 
     if (!user) {
-      // Create user on first login
       const email = clerkUser.emailAddresses[0]?.emailAddress
       if (!email) throw new Error('No email found')
 
-      const encryptedEmail = EncryptionService.encrypt(email)
       const emailHash = EncryptionService.hash(email)
 
-      user = await prisma.user.create({
-        data: {
-          clerkId: clerkUser.id,
-          emailEncrypted: encryptedEmail.encrypted,
-          emailIv: encryptedEmail.iv,
-          emailTag: encryptedEmail.tag,
-          emailHash,
-          firstName: clerkUser.firstName,
-          lastName: clerkUser.lastName,
-          lastLoginAt: new Date(),
-        }
-      })
+      // Check if this email exists under a different Clerk ID (e.g. dev→prod migration)
+      const existingByEmail = await prisma.user.findUnique({ where: { emailHash } })
+
+      if (existingByEmail) {
+        // Re-link the existing account to the new Clerk production ID
+        user = await prisma.user.update({
+          where: { id: existingByEmail.id },
+          data: {
+            clerkId: clerkUser.id,
+            firstName: clerkUser.firstName ?? existingByEmail.firstName,
+            lastName: clerkUser.lastName ?? existingByEmail.lastName,
+            lastLoginAt: new Date(),
+          },
+        })
+      } else {
+        const encryptedEmail = EncryptionService.encrypt(email)
+        user = await prisma.user.create({
+          data: {
+            clerkId: clerkUser.id,
+            emailEncrypted: encryptedEmail.encrypted,
+            emailIv: encryptedEmail.iv,
+            emailTag: encryptedEmail.tag,
+            emailHash,
+            firstName: clerkUser.firstName,
+            lastName: clerkUser.lastName,
+            lastLoginAt: new Date(),
+          },
+        })
+      }
     } else {
       // Update last login
       await prisma.user.update({
