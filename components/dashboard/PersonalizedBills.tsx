@@ -60,7 +60,7 @@ function statusLabel(s: string) {
   return labels[s] ?? s.replace(/_/g, ' ')
 }
 
-// ── Poll card ────────────────────────────────────────────────────────────────
+// ── Poll modal ───────────────────────────────────────────────────────────────
 
 function PollCard({ onSave }: { onSave: (labels: string[]) => void }) {
   const [picked, setPicked] = useState<string[]>([])
@@ -70,47 +70,60 @@ function PollCard({ onSave }: { onSave: (labels: string[]) => void }) {
   }
 
   return (
-    <div className="card overflow-hidden">
-      <div className="bg-[--accent] px-5 py-3.5 flex items-center gap-2">
-        <Sparkles className="w-4 h-4 text-white" />
-        <h3 className="font-display text-sm font-bold text-white">What issues matter to you?</h3>
-      </div>
-      <div className="p-5">
-        <p className="text-xs text-[--text-secondary] mb-4 leading-relaxed">
-          Pick the topics you care about — we'll surface relevant bills for you.
-        </p>
-        <div className="flex flex-wrap gap-2 mb-5">
-          {INTERESTS.map(i => {
-            const active = picked.includes(i.label)
-            return (
-              <button
-                key={i.label}
-                onClick={() => toggle(i.label)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                  active
-                    ? 'bg-[--accent] text-white border-[--accent] shadow-sm shadow-[--accent]/20'
-                    : 'bg-[--surface-secondary] text-[--text-secondary] border-[--border] hover:border-[--accent]/40 hover:text-[--accent]'
-                }`}
-              >
-                <span>{i.emoji}</span> {i.label}
-              </button>
-            )
-          })}
+    /* Fixed overlay — sits on top of page content, no layout shift */
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+      {/* Dialog */}
+      <div className="relative bg-[--surface] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        {/* Accent header */}
+        <div className="hero-gradient px-6 py-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="w-5 h-5 text-white" />
+            <h2 className="font-display text-lg font-extrabold text-white">What issues matter to you?</h2>
+          </div>
+          <p className="text-sm text-white/70">Pick topics you care about — we'll surface relevant bills for you.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => picked.length > 0 && onSave(picked)}
-            disabled={picked.length === 0}
-            className="btn-primary text-sm px-5 py-2.5 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Show my bills <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => onSave([])}
-            className="text-xs text-[--text-muted] hover:text-[--text] transition-colors"
-          >
-            Skip for now
-          </button>
+
+        {/* Interest grid */}
+        <div className="p-6">
+          <div className="flex flex-wrap gap-2 mb-6">
+            {INTERESTS.map(i => {
+              const active = picked.includes(i.label)
+              return (
+                <button
+                  key={i.label}
+                  onClick={() => toggle(i.label)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    active
+                      ? 'bg-[--accent] text-white border-[--accent] shadow-sm shadow-[--accent]/20'
+                      : 'bg-[--surface-secondary] text-[--text-secondary] border-[--border] hover:border-[--accent]/40 hover:text-[--accent]'
+                  }`}
+                >
+                  <span>{i.emoji}</span> {i.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => picked.length > 0 && onSave(picked)}
+              disabled={picked.length === 0}
+              className="btn-primary flex-1 justify-center text-sm py-2.5 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {picked.length === 0 ? 'Select at least one topic' : `Show my bills (${picked.length} selected)`}
+              {picked.length > 0 && <ArrowRight className="w-3.5 h-3.5 ml-1.5" />}
+            </button>
+            <button
+              onClick={() => onSave([])}
+              className="text-xs text-[--text-muted] hover:text-[--text] transition-colors whitespace-nowrap"
+            >
+              Skip for now
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -375,17 +388,17 @@ export default function PersonalizedBills() {
     setInterests(merged)
   }
 
-  // Avoid flash of poll before localStorage is read
+  // Don't render anything until localStorage is read (instant after hydration)
   if (!loaded) return null
 
   // User explicitly skipped — don't show anything
   if (skipped) return null
 
-  // Interests saved → show recommended bills
+  // Interests saved → show recommended bills inline
   if (interests.length > 0) {
     return <BillsList interests={interests} onReset={handleReset} onAdd={handleAdd} />
   }
 
-  // No interests yet → show poll
+  // No interests yet → show as a modal overlay (no layout shift, immediately visible)
   return <PollCard onSave={handleSave} />
 }

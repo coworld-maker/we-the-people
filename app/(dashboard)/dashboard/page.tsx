@@ -99,7 +99,11 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
 
-      {/* Welcome hero — always first */}
+      {/* Interest poll — modal overlay for new users; BillsList inline for returning users */}
+      <PersonalizedBills />
+      <WelcomeGuide />
+
+      {/* Welcome hero — first for returning users (poll is null above) */}
       <FadeIn delay={0.05}>
         <div className="hero-gradient rounded-2xl px-5 py-6 sm:px-8 sm:py-7">
           <div className="flex items-center justify-between">
@@ -123,12 +127,6 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
-      </FadeIn>
-      <WelcomeGuide />
-
-      {/* Interest poll / personalized bills */}
-      <FadeIn>
-        <PersonalizedBills />
       </FadeIn>
 
       {/* Quick stats */}
