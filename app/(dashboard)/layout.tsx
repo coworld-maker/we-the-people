@@ -36,7 +36,7 @@ export default function DashboardLayout({
             {/* Avatar */}
             <div className="shrink-0">
               <UserButton
-                afterSignOutUrl="/"
+                signOutFallbackRedirectUrl="/"
                 appearance={{ elements: { avatarBox: 'w-8 h-8' } }}
               />
             </div>

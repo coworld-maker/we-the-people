@@ -27,27 +27,8 @@ export default function manifest(): MetadataRoute.Manifest {
     // Browser/status-bar color on Android — Old Glory navy
     theme_color: '#0A2463',
     categories: ['news', 'education', 'government', 'politics'],
-    icons: [
-      {
-        src: '/icon-192.png',
-        sizes: '192x192',
-        type: 'image/png',
-        purpose: 'any',
-      },
-      {
-        src: '/icon-512.png',
-        sizes: '512x512',
-        type: 'image/png',
-        purpose: 'any',
-      },
-      // Maskable variant — Android adaptive icons. Using the same file is OK
-      // because the icon already has comfortable padding around the lock+dome.
-      {
-        src: '/icon-512.png',
-        sizes: '512x512',
-        type: 'image/png',
-        purpose: 'maskable',
-      },
-    ],
+    // Icons are added once logo assets are generated via scripts/prepare-logo.py.
+    // Leaving this empty prevents 404s from the PWA manifest until then.
+    icons: [],
   }
 }
