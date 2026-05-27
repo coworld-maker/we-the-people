@@ -18,6 +18,7 @@ import VotingPatterns from '@/components/dashboard/VotingPatterns'
 import YourImpact from '@/components/dashboard/YourImpact'
 import ScrollReveal from '@/components/ui/ScrollReveal'
 import PersonalizedBills from '@/components/dashboard/PersonalizedBills'
+import WelcomeGuide from '@/components/ui/WelcomeGuide'
 
 export default async function DashboardPage() {
   const { userId: clerkUserId } = await auth()
@@ -97,6 +98,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      <WelcomeGuide />
       {/* Welcome */}
       <div className="hero-gradient rounded-2xl px-5 py-6 sm:px-8 sm:py-7">
         <div className="flex items-center justify-between">
