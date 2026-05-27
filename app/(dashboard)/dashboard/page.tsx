@@ -16,7 +16,6 @@ import TrackedBills from '@/components/dashboard/TrackedBills'
 import YourRepresentatives from '@/components/dashboard/YourRepresentatives'
 import VotingPatterns from '@/components/dashboard/VotingPatterns'
 import YourImpact from '@/components/dashboard/YourImpact'
-import ScrollReveal from '@/components/ui/ScrollReveal'
 import PersonalizedBills from '@/components/dashboard/PersonalizedBills'
 import WelcomeGuide from '@/components/ui/WelcomeGuide'
 
@@ -98,6 +97,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      {/* Personalized bills / interest poll — first thing new users see */}
+      <PersonalizedBills />
       <WelcomeGuide />
       {/* Welcome */}
       <div className="hero-gradient rounded-2xl px-5 py-6 sm:px-8 sm:py-7">
@@ -124,107 +125,84 @@ export default async function DashboardPage() {
       </div>
 
       {/* Quick stats */}
-      <ScrollReveal>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { icon: Vote, label: 'Votes', value: profile.stats.totalVotes, color: 'text-[--accent]' },
-            { icon: MessageSquare, label: 'Comments', value: profile.stats.totalComments, color: 'text-purple-600' },
-            { icon: Award, label: 'Badges', value: `${earnedBadges}/${serializedBadges.length}`, color: 'text-amber-600' },
-            { icon: Calendar, label: 'Member for', value: daysSinceJoin < 1 ? 'Today' : `${daysSinceJoin}d`, color: 'text-emerald-600' },
-          ].map(s => (
-            <div key={s.label} className="card p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <s.icon className="w-4 h-4 text-[--text-muted]" />
-                <span className="text-xs font-medium text-[--text-muted] uppercase tracking-wider">{s.label}</span>
-              </div>
-              <p className={`font-display text-2xl font-extrabold ${s.color}`}>{s.value}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { icon: Vote, label: 'Votes', value: profile.stats.totalVotes, color: 'text-[--accent]' },
+          { icon: MessageSquare, label: 'Comments', value: profile.stats.totalComments, color: 'text-purple-600' },
+          { icon: Award, label: 'Badges', value: `${earnedBadges}/${serializedBadges.length}`, color: 'text-amber-600' },
+          { icon: Calendar, label: 'Member for', value: daysSinceJoin < 1 ? 'Today' : `${daysSinceJoin}d`, color: 'text-emerald-600' },
+        ].map(s => (
+          <div key={s.label} className="card p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <s.icon className="w-4 h-4 text-[--text-muted]" />
+              <span className="text-xs font-medium text-[--text-muted] uppercase tracking-wider">{s.label}</span>
             </div>
-          ))}
-        </div>
-      </ScrollReveal>
-
-      {/* Personalized bills / interest poll */}
-      <ScrollReveal delay={50}>
-        <PersonalizedBills />
-      </ScrollReveal>
+            <p className={`font-display text-2xl font-extrabold ${s.color}`}>{s.value}</p>
+          </div>
+        ))}
+      </div>
 
       {/* Row 1: Impact donut + Tracked Bills */}
-      <ScrollReveal delay={100}>
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <YourImpact stats={impactStats} />
-          </div>
-          <div className="lg:col-span-2">
-            <TrackedBills bills={trackedBills} />
-          </div>
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
+          <YourImpact stats={impactStats} />
         </div>
-      </ScrollReveal>
+        <div className="lg:col-span-2">
+          <TrackedBills bills={trackedBills} />
+        </div>
+      </div>
 
       {/* Row 2: Your Representatives */}
-      <ScrollReveal delay={100}>
-        <YourRepresentatives userState={null} />
-      </ScrollReveal>
+      <YourRepresentatives userState={null} />
 
       {/* Row 3: Voting Patterns */}
       {policyData.length > 0 && (
-        <ScrollReveal delay={100}>
-          <VotingPatterns data={policyData} reps={[]} />
-        </ScrollReveal>
+        <VotingPatterns data={policyData} reps={[]} />
       )}
 
       {/* Row 4: Score ring + Vote charts */}
-      <ScrollReveal delay={100}>
-        <div className="grid lg:grid-cols-2 gap-6">
-          <CivicScoreRing
-            score={profile.score}
-            level={profile.level}
-            nextLevel={profile.nextLevel}
-            progressToNext={profile.progressToNext}
-            streak={profile.streak}
-          />
-          <div>{/* VoteCharts takes full card */}</div>
-        </div>
-      </ScrollReveal>
+      <div className="grid lg:grid-cols-2 gap-6">
+        <CivicScoreRing
+          score={profile.score}
+          level={profile.level}
+          nextLevel={profile.nextLevel}
+          progressToNext={profile.progressToNext}
+          streak={profile.streak}
+        />
+        <div>{/* VoteCharts takes full card */}</div>
+      </div>
 
-      <ScrollReveal delay={100}>
-        <VoteCharts stats={profile.stats} votesByPolicy={profile.votesByPolicy} />
-      </ScrollReveal>
+      <VoteCharts stats={profile.stats} votesByPolicy={profile.votesByPolicy} />
 
       {/* Badges */}
-      <ScrollReveal delay={100}>
-        <BadgeGrid badges={serializedBadges} />
-      </ScrollReveal>
+      <BadgeGrid badges={serializedBadges} />
 
       {/* Row 5: Bills for you + Activity */}
-      <ScrollReveal delay={100}>
-        <div className="grid lg:grid-cols-2 gap-6">
-          <BillsForYou bills={billsForYou} />
-          <ActivityFeed items={activityFeed} />
-        </div>
-      </ScrollReveal>
+      <div className="grid lg:grid-cols-2 gap-6">
+        <BillsForYou bills={billsForYou} />
+        <ActivityFeed items={activityFeed} />
+      </div>
 
       {/* Activity timeline */}
       {profile.recentActivity.length > 0 && (
-        <ScrollReveal delay={100}>
-          <div className="card overflow-hidden">
-            <div className="px-6 py-4 border-b border-[--border]">
-              <h3 className="font-display text-sm font-bold">Recent activity</h3>
-            </div>
-            <div className="p-6">
-              <div className="relative pl-6 border-l-2 border-[--surface-tertiary] space-y-4">
-                {profile.recentActivity.slice(0, 8).map((a, i) => (
-                  <div key={i} className="relative">
-                    <div className="absolute -left-[25px] top-1 w-3 h-3 bg-[--surface] border-2 border-[--accent] rounded-full" />
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-                      <p className="text-sm text-[--text] leading-snug">{a.text}</p>
-                      <span className="text-xs text-[--text-muted] shrink-0">{new Date(a.date).toLocaleDateString()}</span>
-                    </div>
+        <div className="card overflow-hidden">
+          <div className="px-6 py-4 border-b border-[--border]">
+            <h3 className="font-display text-sm font-bold">Recent activity</h3>
+          </div>
+          <div className="p-6">
+            <div className="relative pl-6 border-l-2 border-[--surface-tertiary] space-y-4">
+              {profile.recentActivity.slice(0, 8).map((a, i) => (
+                <div key={i} className="relative">
+                  <div className="absolute -left-[25px] top-1 w-3 h-3 bg-[--surface] border-2 border-[--accent] rounded-full" />
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                    <p className="text-sm text-[--text] leading-snug">{a.text}</p>
+                    <span className="text-xs text-[--text-muted] shrink-0">{new Date(a.date).toLocaleDateString()}</span>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
-        </ScrollReveal>
+        </div>
       )}
     </div>
   )
