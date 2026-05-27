@@ -18,8 +18,8 @@ import BillImpactMap from '@/components/bills/BillImpactMap'
 import BillTimeline from '@/components/bills/BillTimeline'
 
 const SECTIONS = [
-  { id: 'summary',    label: 'Summary' },
   { id: 'timeline',   label: 'Timeline' },
+  { id: 'summary',    label: 'Summary' },
   { id: 'arguments',  label: 'Arguments' },
   { id: 'sentiment',  label: 'By State' },
   { id: 'discussion', label: 'Discussion' },
@@ -90,9 +90,6 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div id="summary" className="scroll-mt-20">
-            <AISummary billId={bill.id} aiSummary={(bill as any).aiSummary} officialSummary={bill.summary} aiAnalyzedAt={(bill as any).aiAnalyzedAt?.toISOString() || null} />
-          </div>
           <div id="timeline" className="scroll-mt-20">
             <BillTimeline
               status={bill.status}
@@ -102,6 +99,9 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
               introducedDate={bill.introducedDate}
               originChamber={bill.originChamber}
             />
+          </div>
+          <div id="summary" className="scroll-mt-20">
+            <AISummary billId={bill.id} aiSummary={(bill as any).aiSummary} officialSummary={bill.summary} aiAnalyzedAt={(bill as any).aiAnalyzedAt?.toISOString() || null} />
           </div>
           <div id="arguments" className="scroll-mt-20 space-y-6">
             <ProsConsPanel prosCons={bill.prosCons as any} />
