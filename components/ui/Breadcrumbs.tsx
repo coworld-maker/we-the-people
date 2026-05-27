@@ -37,7 +37,9 @@ export default function Breadcrumbs() {
   const crumbs = segments.map((segment, i) => {
     const href = '/' + segments.slice(0, i + 1).join('/')
     const isLast = i === segments.length - 1
-    const label = LABEL_MAP[segment] || decodeURIComponent(segment).replace(/-/g, ' ')
+    // If segment looks like a DB ID (contains digits and is long), show "Detail"
+    const decoded = decodeURIComponent(segment).replace(/-/g, ' ')
+    const label = LABEL_MAP[segment] || (/[0-9]/.test(segment) && segment.length > 8 ? 'Detail' : decoded)
 
     return { href, label, isLast }
   })

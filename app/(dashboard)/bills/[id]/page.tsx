@@ -54,7 +54,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
   const congressGovUrl = `https://www.congress.gov/bill/${bill.congress}th-congress/${bill.originChamber === 'senate' ? 'senate' : 'house'}-bill/${bill.billNumber}`
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div>
       <Link href="/bills" className="inline-flex items-center gap-1 text-sm text-[--text-muted] hover:text-[--accent] font-medium mb-6 transition-colors">
         <ArrowLeft className="w-3.5 h-3.5" /> Bills
       </Link>
