@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Vote, MessageSquare } from 'lucide-react'
+import CollapsibleCard from '@/components/ui/CollapsibleCard'
 
 interface FeedItem { id: string; type: string; emoji: string; text: string; billId: string; date: string; user: string }
 
@@ -13,11 +14,11 @@ function timeAgo(d: string) {
 
 export default function ActivityFeed({ items }: { items: FeedItem[] }) {
   return (
-    <div className="card overflow-hidden">
-      <div className="px-6 py-4 border-b border-[--border] flex items-center gap-2">
-        <div className="w-1.5 h-1.5 bg-[--success] rounded-full animate-pulse" />
-        <h3 className="font-display text-sm font-bold text-[--text]">Platform activity</h3>
-      </div>
+    <CollapsibleCard
+      storageKey="activity-feed"
+      title="Platform activity"
+      icon={<div className="w-1.5 h-1.5 bg-[--success] rounded-full animate-pulse" />}
+    >
       {items.length === 0 ? (
         <div className="p-8 text-center">
           <p className="text-sm text-[--text-muted]">Activity will appear as citizens engage</p>
@@ -40,6 +41,6 @@ export default function ActivityFeed({ items }: { items: FeedItem[] }) {
           ))}
         </div>
       )}
-    </div>
+    </CollapsibleCard>
   )
 }

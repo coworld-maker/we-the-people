@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronDown, ChevronUp, MapPin, Edit3 } from 'lucide-react'
+import { MapPin, Edit3 } from 'lucide-react'
 import Link from 'next/link'
 import USStateMap from '@/components/ui/USStateMap'
+import CollapsibleCard from '@/components/ui/CollapsibleCard'
 
 interface Representative {
   name: string; office: string; party: string; state: string
@@ -126,23 +127,25 @@ export default function YourRepresentatives({ userState }: { userState?: string 
     } catch {} finally { setLoading(false) }
   }
 
+  const headerRight = state ? (
+    <>
+      <span className="badge bg-[--accent-light] text-[--accent] text-[10px]">{state}</span>
+      <button
+        onClick={() => setMapOpen(o => !o)}
+        className="flex items-center gap-1 text-xs font-semibold text-[--text-muted] hover:text-[--accent] transition-colors"
+        title="Change state"
+      >
+        <Edit3 className="w-3 h-3" /> {mapOpen ? 'Hide map' : 'Change'}
+      </button>
+    </>
+  ) : undefined
+
   return (
-    <div className="card overflow-hidden">
-      <div className="px-6 py-4 border-b border-[--border] flex items-center gap-2">
-        <h2 className="font-display text-base font-bold text-[--text] flex-1">Your Representatives</h2>
-        {state && (
-          <>
-            <span className="badge bg-[--accent-light] text-[--accent] text-[10px]">{state}</span>
-            <button
-              onClick={() => setMapOpen(o => !o)}
-              className="flex items-center gap-1 text-xs font-semibold text-[--text-muted] hover:text-[--accent] transition-colors"
-              title="Change state"
-            >
-              <Edit3 className="w-3 h-3" /> {mapOpen ? 'Hide map' : 'Change'}
-            </button>
-          </>
-        )}
-      </div>
+    <CollapsibleCard
+      storageKey="your-representatives"
+      title="Your Representatives"
+      headerRight={headerRight}
+    >
 
       {/* State picker map (collapsible) */}
       {mapOpen && (
@@ -189,6 +192,6 @@ export default function YourRepresentatives({ userState }: { userState?: string 
           </div>
         )}
       </div>
-    </div>
+    </CollapsibleCard>
   )
 }
