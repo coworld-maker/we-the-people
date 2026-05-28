@@ -62,8 +62,8 @@ export default function WelcomeGuide() {
   if (!visible) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-[--surface] w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-[--surface] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
 
         {/* Header */}
         <div className="hero-gradient px-6 py-5">
