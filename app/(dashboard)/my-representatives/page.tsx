@@ -22,19 +22,17 @@ export default async function MyRepresentativesPage() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="hero-gradient rounded-2xl px-5 py-8 sm:px-8 sm:py-10 mb-8">
-        <div className="max-w-2xl">
-          <div className="badge bg-white/10 text-white/60 border border-white/10 mb-4">
-            Your votes vs. their votes
-          </div>
-          <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-3">
-            My Representatives
-          </h1>
-          <p className="text-white/70 text-base sm:text-lg leading-relaxed">
-            Tap your state to see how your positions on legislation align with your
-            senators and representatives' actual recorded votes in Congress.
-          </p>
+      <div className="mb-8">
+        <div className="badge bg-[--accent-light] text-[--accent] border border-[--accent]/20 mb-3">
+          Your votes vs. their votes
         </div>
+        <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-[--text] mb-2">
+          My Representatives
+        </h1>
+        <p className="text-[--text-secondary] text-base leading-relaxed max-w-2xl">
+          Tap your state to see how your positions on legislation align with your
+          senators and representatives' actual recorded votes in Congress.
+        </p>
       </div>
 
       <SectionNav sections={SECTIONS} />
