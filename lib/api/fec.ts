@@ -30,6 +30,12 @@ async function fecFetch<T>(path: string, params: Record<string, string> = {}): P
   }
 }
 
+// FEC election cycles end in even years. Compute the current cycle dynamically.
+function currentFECCycle(): string {
+  const year = new Date().getFullYear()
+  return String(year % 2 === 0 ? year : year + 1)
+}
+
 export async function getFECCommittees(fecCandidateId: string): Promise<FECCommittee[]> {
   const data = await fecFetch<{ results: Array<{ committee_id: string; name: string; cycles: number[] }> }>(
     `/candidate/${fecCandidateId}/committees/`,
@@ -40,12 +46,12 @@ export async function getFECCommittees(fecCandidateId: string): Promise<FECCommi
   return data.results.map(r => ({
     committeeId: r.committee_id,
     name: r.name,
-    cycle: Math.max(...(r.cycles || [2024])),
+    cycle: Math.max(...(r.cycles || [Number(currentFECCycle())])),
   }))
 }
 
-export async function getTopDonorsByEmployer(committeeId: string, cycle = '2024'): Promise<FECDonor[]> {
-  // Try requested cycle first, fall back to previous cycle
+export async function getTopDonorsByEmployer(committeeId: string, cycle = currentFECCycle()): Promise<FECDonor[]> {
+  // Try current cycle first, fall back to previous cycle
   for (const c of [cycle, String(Number(cycle) - 2)]) {
     const data = await fecFetch<{
       results: Array<{ employer: string; total: number; count: number }>
@@ -86,7 +92,7 @@ export async function getTopDonorsForCandidate(
 
   if (resolvedCommitteeIds.length === 0) return null
 
-  const cycle = '2024'
+  const cycle = currentFECCycle()
   const donors = await getTopDonorsByEmployer(resolvedCommitteeIds[0], cycle)
   if (donors.length === 0) return null
 
