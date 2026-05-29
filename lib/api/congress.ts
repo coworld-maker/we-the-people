@@ -196,4 +196,32 @@ export class CongressAPI {
     )
     return data.members || []
   }
+
+  static async fetchMostViewedBills(): Promise<Array<{ congress: string; billType: string; billNumber: string }>> {
+    const TYPE_MAP: Record<string, string> = {
+      'house': 'HR', 'senate': 'S',
+      'house-joint-resolution': 'HJRES', 'senate-joint-resolution': 'SJRES',
+      'house-concurrent-resolution': 'HCONRES', 'senate-concurrent-resolution': 'SCONRES',
+      'house-resolution': 'HRES', 'senate-resolution': 'SRES',
+    }
+    try {
+      const res = await fetch('https://www.congress.gov/most-viewed-bills', {
+        headers: { 'User-Agent': 'DemocracyUnlocked/1.0', 'Accept': 'text/html' },
+        next: { revalidate: 3600 },
+      })
+      if (!res.ok) return []
+      const html = await res.text()
+      const pattern = /\/bill\/(\d+)th-congress\/([\w-]+)-bill\/(\d+)/g
+      const seen = new Set<string>()
+      const bills: Array<{ congress: string; billType: string; billNumber: string }> = []
+      let match
+      while ((match = pattern.exec(html)) !== null) {
+        const [, congress, typePart, billNumber] = match
+        const billType = TYPE_MAP[typePart] ?? typePart.replace(/-/g, '').toUpperCase()
+        const key = `${congress}-${billType}-${billNumber}`
+        if (!seen.has(key)) { seen.add(key); bills.push({ congress, billType, billNumber }) }
+      }
+      return bills.slice(0, 20)
+    } catch { return [] }
+  }
 }

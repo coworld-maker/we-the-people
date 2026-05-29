@@ -212,21 +212,23 @@ model ProCon {
 // Representative
 // ---------------------------------------------------------------------------
 model Representative {
-  id          String   @id @default(cuid())
-  bioguideId  String   @unique
-  firstName   String
-  lastName    String
-  fullName    String
-  party       String
-  lisId       String?
-  state       String
-  district    String?
-  chamber     String
-  termStart   DateTime
-  currentTerm Boolean  @default(true)
-  committees  String[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(cuid())
+  bioguideId       String   @unique
+  firstName        String
+  lastName         String
+  fullName         String
+  party            String
+  lisId            String?
+  state            String
+  district         String?
+  chamber          String
+  termStart        DateTime
+  currentTerm      Boolean  @default(true)
+  committees       String[]
+  fecIds           String[] @default([])
+  fecCommitteeIds  String[] @default([])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 // ---------------------------------------------------------------------------

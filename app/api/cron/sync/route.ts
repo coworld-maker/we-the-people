@@ -82,6 +82,14 @@ export async function POST(req: NextRequest) {
     results.senateVotes = { error: String(e) };
   }
 
+  // 5. Sync FEC IDs for current legislators (bioguide → fec_ids crosswalk)
+  try {
+    results.fecIds = await callSync('/api/sync-fec-ids', {}, secret);
+    console.log('[cron/sync] FEC IDs:', results.fecIds);
+  } catch (e) {
+    results.fecIds = { error: String(e) };
+  }
+
   console.log('[cron/sync] Complete:', results);
 
   return NextResponse.json({

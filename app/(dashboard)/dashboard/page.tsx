@@ -177,15 +177,20 @@ export default async function DashboardPage() {
         </div>
       </FadeIn>
 
+      {/* Row 1: Your Representatives */}
+      <FadeIn delay={0.12}>
+        <YourRepresentatives userState={user.state ?? null} />
+      </FadeIn>
+
       {/* Moving this week — time-sensitive hook */}
       {movingBills.length > 0 && (
-        <FadeIn delay={0.12}>
+        <FadeIn delay={0.15}>
           <MovingThisWeek bills={movingBills} />
         </FadeIn>
       )}
 
-      {/* Row 1: Impact donut + Tracked Bills */}
-      <FadeIn delay={0.15}>
+      {/* Row 2: Impact donut + Tracked Bills */}
+      <FadeIn delay={0.18}>
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <YourImpact stats={impactStats} />
@@ -194,11 +199,6 @@ export default async function DashboardPage() {
             <TrackedBills bills={trackedBills} />
           </div>
         </div>
-      </FadeIn>
-
-      {/* Row 2: Your Representatives */}
-      <FadeIn>
-        <YourRepresentatives userState={null} />
       </FadeIn>
 
       {/* Row 3: Voting Patterns */}
