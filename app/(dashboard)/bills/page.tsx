@@ -3,31 +3,39 @@ import { redirect } from 'next/navigation'
 import { BillService } from '@/lib/services/billService'
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
-import { ChevronRight, FileText, Calendar, Vote as VoteIcon, MapPin } from 'lucide-react'
+import { ChevronRight, FileText, Calendar, Vote as VoteIcon, MapPin, Users } from 'lucide-react'
 import BillFilters from '@/components/bills/BillFilters'
 
 // Per-policy-area accent palette — used for section headers in the grouped view
+// 6 semantic color groups instead of 18 one-offs — reduces badge noise on list pages
+const SECURITY  = { color: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-200' }
+const ECONOMY   = { color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' }
+const SOCIETY   = { color: 'text-purple-700',  bg: 'bg-purple-50',  border: 'border-purple-200' }
+const ENVIRO    = { color: 'text-green-700',   bg: 'bg-green-50',   border: 'border-green-200' }
+const GOV       = { color: 'text-indigo-700',  bg: 'bg-indigo-50',  border: 'border-indigo-200' }
+const TRANSIT   = { color: 'text-blue-700',    bg: 'bg-blue-50',    border: 'border-blue-200' }
+
 const AREA_COLORS: Record<string, { color: string; bg: string; border: string }> = {
-  'Armed Forces and National Security':       { color: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-200' },
-  'Commerce':                                 { color: 'text-blue-700',    bg: 'bg-blue-50',    border: 'border-blue-200' },
-  'Crime and Law Enforcement':                { color: 'text-slate-700',   bg: 'bg-slate-50',   border: 'border-slate-200' },
-  'Economics and Public Finance':             { color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-  'Education':                                { color: 'text-violet-700',  bg: 'bg-violet-50',  border: 'border-violet-200' },
-  'Energy':                                   { color: 'text-amber-700',   bg: 'bg-amber-50',   border: 'border-amber-200' },
-  'Environmental Protection':                 { color: 'text-green-700',   bg: 'bg-green-50',   border: 'border-green-200' },
-  'Finance and Financial Sector':             { color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-  'Foreign Trade and International Finance':  { color: 'text-sky-700',     bg: 'bg-sky-50',     border: 'border-sky-200' },
-  'Government Operations and Politics':       { color: 'text-indigo-700',  bg: 'bg-indigo-50',  border: 'border-indigo-200' },
-  'Health':                                   { color: 'text-rose-700',    bg: 'bg-rose-50',    border: 'border-rose-200' },
-  'Housing and Community Development':        { color: 'text-orange-700',  bg: 'bg-orange-50',  border: 'border-orange-200' },
-  'Immigration':                              { color: 'text-teal-700',    bg: 'bg-teal-50',    border: 'border-teal-200' },
-  'International Affairs':                    { color: 'text-cyan-700',    bg: 'bg-cyan-50',    border: 'border-cyan-200' },
-  'Labor and Employment':                     { color: 'text-yellow-700',  bg: 'bg-yellow-50',  border: 'border-yellow-200' },
-  'Public Lands and Natural Resources':       { color: 'text-lime-700',    bg: 'bg-lime-50',    border: 'border-lime-200' },
-  'Science, Technology, Communications':      { color: 'text-purple-700',  bg: 'bg-purple-50',  border: 'border-purple-200' },
-  'Social Welfare':                           { color: 'text-pink-700',    bg: 'bg-pink-50',    border: 'border-pink-200' },
-  'Taxation':                                 { color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-  'Transportation and Public Works':          { color: 'text-blue-700',    bg: 'bg-blue-50',    border: 'border-blue-200' },
+  'Armed Forces and National Security':       SECURITY,
+  'Crime and Law Enforcement':                SECURITY,
+  'Immigration':                              SECURITY,
+  'Commerce':                                 ECONOMY,
+  'Economics and Public Finance':             ECONOMY,
+  'Finance and Financial Sector':             ECONOMY,
+  'Foreign Trade and International Finance':  ECONOMY,
+  'Housing and Community Development':        ECONOMY,
+  'Labor and Employment':                     ECONOMY,
+  'Taxation':                                 ECONOMY,
+  'Education':                                SOCIETY,
+  'Health':                                   SOCIETY,
+  'Social Welfare':                           SOCIETY,
+  'Energy':                                   ENVIRO,
+  'Environmental Protection':                 ENVIRO,
+  'Public Lands and Natural Resources':       ENVIRO,
+  'Government Operations and Politics':       GOV,
+  'International Affairs':                    GOV,
+  'Science, Technology, Communications':      GOV,
+  'Transportation and Public Works':          TRANSIT,
 }
 const DEFAULT_AREA_COLOR = { color: 'text-gray-700', bg: 'bg-gray-50', border: 'border-gray-200' }
 
@@ -78,6 +86,9 @@ function BillCard({ bill, userState, showPolicyBadge = true }: {
         <div className="flex items-center gap-4 mt-2 text-xs text-[--text-muted]">
           <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(bill.introducedDate).toLocaleDateString()}</span>
           <span className="flex items-center gap-1"><VoteIcon className="w-3 h-3" />{bill._count?.votes || 0} votes</span>
+          {bill.lobbyingFirmCount > 0 && (
+            <span className="flex items-center gap-1 text-purple-600"><Users className="w-3 h-3" />{bill.lobbyingFirmCount} firm{bill.lobbyingFirmCount !== 1 ? 's' : ''} lobbying</span>
+          )}
           {bill.aiSummary && <span className="text-[--accent] font-medium">AI analyzed</span>}
         </div>
       </div>
@@ -88,7 +99,7 @@ function BillCard({ bill, userState, showPolicyBadge = true }: {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-type QuickFilter = 'all' | 'affects_state' | 'most_voted' | 'moving' | 'by_topic'
+type QuickFilter = 'all' | 'affects_state' | 'most_voted' | 'moving' | 'by_topic' | 'most_lobbied'
 
 function getQuickFilter(params: {
   affectsState?: string; groupBy?: string; sort?: string; recent?: string
@@ -96,6 +107,7 @@ function getQuickFilter(params: {
   if (params.groupBy === 'policy') return 'by_topic'
   if (params.affectsState === '1') return 'affects_state'
   if (params.sort === 'most_voted') return 'most_voted'
+  if (params.sort === 'most_lobbied') return 'most_lobbied'
   if (params.recent === '1') return 'moving'
   return 'all'
 }
@@ -128,7 +140,7 @@ export default async function BillsPage({
   const votedInState     = params.votedInState === '1' && userState ? userState : undefined
   const votedByUserId    = params.voted === 'yes' && userInternalId ? userInternalId : undefined
   const notVotedByUserId = params.voted === 'no'  && userInternalId ? userInternalId : undefined
-  const sortParam        = (params.sort === 'most_voted' || params.sort === 'recent_action') ? params.sort : undefined
+  const sortParam        = (params.sort === 'most_voted' || params.sort === 'recent_action' || params.sort === 'most_lobbied') ? params.sort : undefined
   const recentAction     = params.recent === '1'
 
   // In grouped view we fetch a larger window (no pagination) so we can render
@@ -175,6 +187,7 @@ export default async function BillsPage({
     if (params.policyArea)   q.set('policyArea', params.policyArea)
     if (filter === 'affects_state') q.set('affectsState', '1')
     if (filter === 'most_voted')    q.set('sort', 'most_voted')
+    if (filter === 'most_lobbied')  q.set('sort', 'most_lobbied')
     if (filter === 'moving')        q.set('recent', '1')
     if (filter === 'by_topic')      q.set('groupBy', 'policy')
     return `/bills?${q.toString()}`
@@ -240,6 +253,7 @@ export default async function BillsPage({
           { id: 'all',           label: 'All bills' },
           ...(userState ? [{ id: 'affects_state', label: `Affects ${userState}` }] : []),
           { id: 'most_voted',    label: 'Most voted' },
+          { id: 'most_lobbied',  label: 'Most lobbied' },
           { id: 'moving',        label: 'Moving this week' },
           { id: 'by_topic',      label: 'By topic' },
         ] as { id: QuickFilter; label: string }[]).map(tab => (

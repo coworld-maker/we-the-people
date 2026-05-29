@@ -5,7 +5,7 @@ import { GamificationService } from '@/lib/services/gamificationService'
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import {
-  Vote, MessageSquare, Award, Calendar, Flame, ArrowRight,
+  Vote, MessageSquare, Award, Calendar, Flame, ArrowRight, CheckCircle2,
 } from 'lucide-react'
 import CivicScoreRing from '@/components/dashboard/CivicScoreRing'
 import VoteCharts from '@/components/dashboard/VoteCharts'
@@ -33,7 +33,7 @@ export default async function DashboardPage() {
   const [profile, billsForYou, activityFeed, movingBills, followedActiveCount] = await Promise.all([
     GamificationService.getCivicProfile(user.id),
     GamificationService.getBillsForYou(user.id, 5),
-    GamificationService.getActivityFeed(15),
+    GamificationService.getActivityFeed(15, { userId: user.id, userState: user.state ?? undefined }),
     prisma.bill.findMany({
       where: { latestActionDate: { gte: sevenDaysAgo } },
       orderBy: { latestActionDate: 'desc' },
@@ -113,6 +113,8 @@ export default async function DashboardPage() {
   }
 
   const daysSinceJoin = profile.stats.joinedDaysAgo
+  const isNewcomer = profile.stats.totalVotes <= 2
+  const repMismatchCount = activityFeed.filter((i: any) => i.type === 'rep_mismatch').length
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -136,6 +138,12 @@ export default async function DashboardPage() {
               {profile.stats.totalVotes === 0 ? (
                 <Link href="/bills" className="btn-primary mt-4 text-sm">
                   Cast your first vote <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              ) : repMismatchCount > 0 ? (
+                <Link href="/my-representatives" className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-lg bg-red-400/20 border border-red-400/30 text-red-200 text-sm font-semibold hover:bg-red-400/30 transition-colors">
+                  <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse shrink-0" />
+                  Your rep voted differently on {repMismatchCount} bill{repMismatchCount > 1 ? 's' : ''} this week
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               ) : followedActiveCount > 0 ? (
                 <Link href="/bills" className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-lg bg-amber-400/20 border border-amber-400/30 text-amber-200 text-sm font-semibold hover:bg-amber-400/30 transition-colors">
@@ -182,6 +190,34 @@ export default async function DashboardPage() {
         <YourRepresentatives userState={user.state ?? null} />
       </FadeIn>
 
+      {/* First steps — newcomer guide (≤2 votes) */}
+      {isNewcomer && (
+        <FadeIn delay={0.14}>
+          <div className="card overflow-hidden">
+            <div className="px-6 py-4 border-b border-[--border]">
+              <h3 className="font-display text-sm font-bold text-[--text]">Start here — 3 steps to civic impact</h3>
+              <p className="text-xs text-[--text-muted] mt-0.5">Complete each step to unlock your full dashboard</p>
+            </div>
+            <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[--border]">
+              {([
+                { step: 1, done: profile.stats.totalVotes > 0, title: 'Cast your first vote', desc: 'Find a bill and vote yes, no, or abstain', href: '/bills', cta: 'Browse bills' },
+                { step: 2, done: !!user.state, title: 'Set your state', desc: 'See how your reps vote vs. how you do', href: '/my-representatives', cta: 'Find my reps' },
+                { step: 3, done: false, title: 'Take action', desc: 'Contact your rep about a bill you care about', href: '/action-center', cta: 'Action center' },
+              ] as const).map(s => (
+                <Link key={s.step} href={s.href} className="p-5 hover:bg-[--surface-secondary] transition-colors group">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mb-3 ${s.done ? 'bg-emerald-100 text-emerald-700' : 'bg-[--accent-light] text-[--accent]'}`}>
+                    {s.done ? <CheckCircle2 className="w-4 h-4" /> : s.step}
+                  </div>
+                  <h4 className="text-sm font-semibold text-[--text] mb-1">{s.title}</h4>
+                  <p className="text-xs text-[--text-muted] mb-2">{s.desc}</p>
+                  <span className="text-xs font-semibold text-[--accent] group-hover:underline">{s.cta} →</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </FadeIn>
+      )}
+
       {/* Moving this week — time-sensitive hook */}
       {movingBills.length > 0 && (
         <FadeIn delay={0.15}>
@@ -189,47 +225,52 @@ export default async function DashboardPage() {
         </FadeIn>
       )}
 
-      {/* Row 2: Impact donut + Tracked Bills */}
-      <FadeIn delay={0.18}>
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <YourImpact stats={impactStats} />
-          </div>
-          <div className="lg:col-span-2">
-            <TrackedBills bills={trackedBills} />
-          </div>
-        </div>
-      </FadeIn>
+      {/* Returning-user sections — hidden until user has votes */}
+      {!isNewcomer && (
+        <>
+          {/* Row 2: Impact donut + Tracked Bills */}
+          <FadeIn delay={0.18}>
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1">
+                <YourImpact stats={impactStats} />
+              </div>
+              <div className="lg:col-span-2">
+                <TrackedBills bills={trackedBills} />
+              </div>
+            </div>
+          </FadeIn>
 
-      {/* Row 3: Voting Patterns */}
-      {policyData.length > 0 && (
-        <FadeIn>
-          <VotingPatterns data={policyData} reps={[]} />
-        </FadeIn>
+          {/* Row 3: Voting Patterns */}
+          {policyData.length > 0 && (
+            <FadeIn>
+              <VotingPatterns data={policyData} reps={[]} />
+            </FadeIn>
+          )}
+
+          {/* Row 4: Score ring + Vote charts */}
+          <FadeIn>
+            <div className="grid lg:grid-cols-2 gap-6">
+              <CivicScoreRing
+                score={profile.score}
+                level={profile.level}
+                nextLevel={profile.nextLevel}
+                progressToNext={profile.progressToNext}
+                streak={profile.streak}
+              />
+              <div>{/* VoteCharts takes full card */}</div>
+            </div>
+          </FadeIn>
+
+          <FadeIn>
+            <VoteCharts stats={profile.stats} votesByPolicy={profile.votesByPolicy} />
+          </FadeIn>
+
+          {/* Badges */}
+          <FadeIn>
+            <BadgeGrid badges={serializedBadges} />
+          </FadeIn>
+        </>
       )}
-
-      {/* Row 4: Score ring + Vote charts */}
-      <FadeIn>
-        <div className="grid lg:grid-cols-2 gap-6">
-          <CivicScoreRing
-            score={profile.score}
-            level={profile.level}
-            nextLevel={profile.nextLevel}
-            progressToNext={profile.progressToNext}
-            streak={profile.streak}
-          />
-          <div>{/* VoteCharts takes full card */}</div>
-        </div>
-      </FadeIn>
-
-      <FadeIn>
-        <VoteCharts stats={profile.stats} votesByPolicy={profile.votesByPolicy} />
-      </FadeIn>
-
-      {/* Badges */}
-      <FadeIn>
-        <BadgeGrid badges={serializedBadges} />
-      </FadeIn>
 
       {/* Row 5: Bills for you + Activity */}
       <FadeIn>
@@ -239,8 +280,8 @@ export default async function DashboardPage() {
         </div>
       </FadeIn>
 
-      {/* Activity timeline */}
-      {profile.recentActivity.length > 0 && (
+      {/* Activity timeline — returning users only */}
+      {!isNewcomer && profile.recentActivity.length > 0 && (
         <FadeIn>
           <div className="card overflow-hidden">
             <div className="px-6 py-4 border-b border-[--border]">

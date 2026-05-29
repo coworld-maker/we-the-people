@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, X, MinusCircle, Phone, Copy, ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, X, MinusCircle, Phone, Copy, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 import Confetti from '@/components/ui/Confetti'
 import ShareButton from '@/components/ui/ShareButton'
 
@@ -67,7 +67,7 @@ Thank you for your service.
 A concerned constituent`
 }
 
-// ── Contact your rep panel ───────────────────────────────────────────────────
+// ── Contact your rep panel — buttons always visible, letter collapsible ──────
 function ContactPanel({ position, billTitle }: { position: string; billTitle: string }) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -82,49 +82,43 @@ function ContactPanel({ position, billTitle }: { position: string; billTitle: st
   }
 
   return (
-    <div className="mt-3 border border-[--border] rounded-xl overflow-hidden">
+    <div className="mt-3 p-3.5 bg-[--surface-secondary] rounded-xl border border-[--border]">
+      <p className="text-xs font-semibold text-[--text] mb-2.5">📬 Let your rep know</p>
+      <div className="flex gap-2 mb-2">
+        <button
+          onClick={copyLetter}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold bg-[--accent] text-white hover:bg-[--accent-hover] transition-colors"
+        >
+          {copied
+            ? <><Check className="w-3.5 h-3.5" /> Copied!</>
+            : <><Copy className="w-3.5 h-3.5" /> Copy letter</>
+          }
+        </button>
+        <a
+          href="tel:+12026243121"
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-[--border] bg-[--surface] text-[--text-secondary] hover:border-[--accent]/40 hover:text-[--accent] transition-colors"
+          title="Capitol Switchboard"
+        >
+          <Phone className="w-3.5 h-3.5" /> Call
+        </a>
+        <a
+          href="/action-center"
+          className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-semibold border border-[--border] bg-[--surface] text-[--text-secondary] hover:border-[--accent]/40 hover:text-[--accent] transition-colors"
+          title="Full Action Center"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
+      </div>
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-[--surface-secondary] hover:bg-[--surface-tertiary] transition-colors text-left"
+        className="flex items-center gap-1 text-[10px] text-[--text-muted] hover:text-[--text] transition-colors"
       >
-        <span className="text-xs font-semibold text-[--text]">📬 Let your rep know</span>
-        {open
-          ? <ChevronUp className="w-3.5 h-3.5 text-[--text-muted]" />
-          : <ChevronDown className="w-3.5 h-3.5 text-[--text-muted]" />
-        }
+        {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        {open ? 'Hide' : 'View'} draft letter
       </button>
-
       {open && (
-        <div className="px-4 pb-4 pt-3 space-y-3">
-          <p className="text-[11px] text-[--text-muted] leading-relaxed">
-            Pre-drafted letter based on your vote. Copy it and send via your rep's website, or call the Capitol switchboard.
-          </p>
-
-          <div className="bg-[--surface] border border-[--border] rounded-lg p-3 text-[11px] text-[--text-secondary] whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto font-mono">
-            {letter}
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={copyLetter}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold bg-[--accent] text-white hover:bg-[--accent-hover] transition-colors"
-            >
-              {copied
-                ? <><Check className="w-3.5 h-3.5" /> Copied!</>
-                : <><Copy className="w-3.5 h-3.5" /> Copy letter</>
-              }
-            </button>
-            <a
-              href="tel:+12026243121"
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-[--border] text-[--text-secondary] hover:border-[--accent]/40 hover:text-[--accent] transition-colors"
-              title="Capitol Switchboard"
-            >
-              <Phone className="w-3.5 h-3.5" /> Call
-            </a>
-          </div>
-          <p className="text-[10px] text-[--text-muted] text-center">
-            Capitol Switchboard: (202) 624-3121 · Ask for your senator or rep by name
-          </p>
+        <div className="mt-2 bg-[--surface] border border-[--border] rounded-lg p-3 text-[11px] text-[--text-secondary] whitespace-pre-wrap leading-relaxed max-h-36 overflow-y-auto font-mono">
+          {letter}
         </div>
       )}
     </div>

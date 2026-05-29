@@ -138,7 +138,7 @@ export class BillService {
     votedInState?: string       // 2-letter code — only bills with at least one citizen vote from this state
     votedByUserId?: string      // internal User.id — only bills this user has voted on
     notVotedByUserId?: string   // internal User.id — only bills this user has NOT voted on
-    sort?: 'most_voted' | 'recent_action'
+    sort?: 'most_voted' | 'recent_action' | 'most_lobbied'
     recentAction?: boolean      // only bills with latestActionDate in the last 7 days
   }) {
     const where: any = {}
@@ -187,9 +187,14 @@ export class BillService {
       where.latestActionDate = { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
     }
 
+    if (filters?.sort === 'most_lobbied') {
+      where.lobbyingFirmCount = { gt: 0 }
+    }
+
     let orderBy: any = { introducedDate: 'desc' }
     if (filters?.sort === 'most_voted') orderBy = { votes: { _count: 'desc' } }
     else if (filters?.sort === 'recent_action') orderBy = { latestActionDate: 'desc' }
+    else if (filters?.sort === 'most_lobbied') orderBy = { lobbyingFirmCount: 'desc' }
 
     const [bills, total] = await Promise.all([
       prisma.bill.findMany({
