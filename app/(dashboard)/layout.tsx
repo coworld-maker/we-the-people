@@ -5,6 +5,7 @@ import PageTransition from '@/components/ui/PageTransition'
 import NavBar from '@/components/ui/NavBar'
 import Logo from '@/components/ui/Logo'
 import CookieConsent from '@/components/legal/CookieConsent'
+import NotificationBell from '@/components/ui/NotificationBell'
 
 export default function DashboardLayout({
   children,
@@ -33,8 +34,9 @@ export default function DashboardLayout({
             {/* Nav links — flex-1 so it's bounded between logo and avatar */}
             <NavBar />
 
-            {/* Avatar */}
-            <div className="shrink-0">
+            {/* Notification bell + Avatar */}
+            <div className="shrink-0 flex items-center gap-1">
+              <NotificationBell />
               <UserButton
                 afterSignOutUrl="/"
                 appearance={{ elements: { avatarBox: 'w-8 h-8' } }}

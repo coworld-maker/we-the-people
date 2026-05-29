@@ -14,6 +14,7 @@ import Link from 'next/link'
 import { ArrowLeft, ExternalLink, Calendar, Zap, RefreshCw } from 'lucide-react'
 import SectionNav from '@/components/ui/SectionNav'
 import ShareButton from '@/components/ui/ShareButton'
+import FollowButton from '@/components/bills/FollowButton'
 import BillStateSentiment from '@/components/bills/BillStateSentiment'
 import BillImpactMap from '@/components/bills/BillImpactMap'
 import BillTimeline from '@/components/bills/BillTimeline'
@@ -90,6 +91,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
             variant="pill"
             className="!bg-white/10 !border-white/20 !text-white hover:!bg-white/20 hover:!border-white/30"
           />
+          <FollowButton billId={bill.id} />
         </div>
       </div>
 
