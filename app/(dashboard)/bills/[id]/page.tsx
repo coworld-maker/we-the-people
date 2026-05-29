@@ -93,7 +93,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
             variant="pill"
             className="!bg-white/10 !border-white/20 !text-white hover:!bg-white/20 hover:!border-white/30"
           />
-          <FollowButton billId={bill.id} />
+          <FollowButton billId={bill.id} className="!bg-white/10 !border-white/20 !text-white hover:!bg-white/20 hover:!border-white/30" />
         </div>
       </div>
 

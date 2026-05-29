@@ -5,9 +5,10 @@ import { Bell, BellOff, Loader2 } from 'lucide-react'
 
 interface Props {
   billId: string
+  className?: string
 }
 
-export default function FollowButton({ billId }: Props) {
+export default function FollowButton({ billId, className }: Props) {
   const [following, setFollowing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [toggling, setToggling] = useState(false)
@@ -42,7 +43,7 @@ export default function FollowButton({ billId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[--border] text-xs text-[--text-muted]">
+      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[--border] text-xs text-[--text-muted] ${className ?? ''}`}>
         <Loader2 className="w-3.5 h-3.5 animate-spin" />
         <span>Follow</span>
       </div>
@@ -58,7 +59,7 @@ export default function FollowButton({ billId }: Props) {
           following
             ? 'bg-[--accent]/10 border-[--accent]/30 text-[--accent] hover:bg-red-50 hover:border-red-300 hover:text-red-600'
             : 'border-[--border] text-[--text-secondary] hover:border-[--accent]/40 hover:text-[--accent]'
-        }`}
+        } ${className ?? ''}`}
       >
         {following
           ? <BellOff className="w-3.5 h-3.5" />
