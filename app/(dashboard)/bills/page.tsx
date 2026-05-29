@@ -88,13 +88,25 @@ function BillCard({ bill, userState, showPolicyBadge = true }: {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
+type QuickFilter = 'all' | 'affects_state' | 'most_voted' | 'moving' | 'by_topic'
+
+function getQuickFilter(params: {
+  affectsState?: string; groupBy?: string; sort?: string; recent?: string
+}): QuickFilter {
+  if (params.groupBy === 'policy') return 'by_topic'
+  if (params.affectsState === '1') return 'affects_state'
+  if (params.sort === 'most_voted') return 'most_voted'
+  if (params.recent === '1') return 'moving'
+  return 'all'
+}
+
 export default async function BillsPage({
   searchParams,
 }: {
   searchParams: Promise<{
     page?: string; search?: string; status?: string; year?: string;
     policyArea?: string; affectsState?: string; votedInState?: string; voted?: string;
-    groupBy?: string;
+    groupBy?: string; sort?: string; recent?: string;
   }>
 }) {
   const { userId } = await auth()
@@ -116,6 +128,8 @@ export default async function BillsPage({
   const votedInState     = params.votedInState === '1' && userState ? userState : undefined
   const votedByUserId    = params.voted === 'yes' && userInternalId ? userInternalId : undefined
   const notVotedByUserId = params.voted === 'no'  && userInternalId ? userInternalId : undefined
+  const sortParam        = (params.sort === 'most_voted' || params.sort === 'recent_action') ? params.sort : undefined
+  const recentAction     = params.recent === '1'
 
   // In grouped view we fetch a larger window (no pagination) so we can render
   // every section in one shot. Cap at 500 so a wide-open query doesn't blow up.
@@ -127,6 +141,7 @@ export default async function BillsPage({
       search: params.search, status: params.status, year: params.year,
       policyArea: params.policyArea,
       affectsState, votedInState, votedByUserId, notVotedByUserId,
+      sort: sortParam, recentAction,
       limit: fetchLimit, offset: fetchOffset,
     }),
     BillService.getPolicyAreas(),
@@ -145,7 +160,24 @@ export default async function BillsPage({
     if (params.votedInState) q.set('votedInState', params.votedInState)
     if (params.voted)        q.set('voted', params.voted)
     if (params.groupBy)      q.set('groupBy', params.groupBy)
+    if (params.sort)         q.set('sort', params.sort)
+    if (params.recent)       q.set('recent', params.recent)
     return q.toString()
+  }
+
+  const quickFilter = getQuickFilter(params)
+
+  function quickFilterHref(filter: QuickFilter): string {
+    const q = new URLSearchParams()
+    if (params.search)       q.set('search', params.search)
+    if (params.status)       q.set('status', params.status)
+    if (params.year)         q.set('year', params.year)
+    if (params.policyArea)   q.set('policyArea', params.policyArea)
+    if (filter === 'affects_state') q.set('affectsState', '1')
+    if (filter === 'most_voted')    q.set('sort', 'most_voted')
+    if (filter === 'moving')        q.set('recent', '1')
+    if (filter === 'by_topic')      q.set('groupBy', 'policy')
+    return `/bills?${q.toString()}`
   }
 
   const hasAnyFilter = Boolean(
@@ -201,6 +233,29 @@ export default async function BillsPage({
       </div>
 
       <BillFilters policyAreas={policyAreas} userState={userState} />
+
+      {/* Quick-filter pill tabs */}
+      <div className="flex gap-2 flex-wrap mb-4 mt-4">
+        {([
+          { id: 'all',           label: 'All bills' },
+          ...(userState ? [{ id: 'affects_state', label: `Affects ${userState}` }] : []),
+          { id: 'most_voted',    label: 'Most voted' },
+          { id: 'moving',        label: 'Moving this week' },
+          { id: 'by_topic',      label: 'By topic' },
+        ] as { id: QuickFilter; label: string }[]).map(tab => (
+          <Link
+            key={tab.id}
+            href={quickFilterHref(tab.id)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+              quickFilter === tab.id
+                ? 'bg-[--accent] text-white border-[--accent]'
+                : 'bg-[--surface] text-[--text-secondary] border-[--border] hover:border-[--accent] hover:text-[--accent]'
+            }`}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </div>
 
       {bills.length === 0 ? (
         <div className="card p-16 text-center">

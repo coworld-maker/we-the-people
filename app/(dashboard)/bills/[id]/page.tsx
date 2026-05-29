@@ -11,15 +11,20 @@ import DiscussionBoard from '@/components/bills/DiscussionBoard'
 import BillFullText from '@/components/bills/BillFullText'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ExternalLink, Calendar, Zap } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Calendar, Zap, RefreshCw } from 'lucide-react'
 import SectionNav from '@/components/ui/SectionNav'
+import ShareButton from '@/components/ui/ShareButton'
+import FollowButton from '@/components/bills/FollowButton'
 import BillStateSentiment from '@/components/bills/BillStateSentiment'
 import BillImpactMap from '@/components/bills/BillImpactMap'
 import BillTimeline from '@/components/bills/BillTimeline'
+import CitizenImpact from '@/components/bills/CitizenImpact'
+import TrustBar from '@/components/bills/TrustBar'
+import RepVotesOnBill from '@/components/bills/RepVotesOnBill'
 
 const SECTIONS = [
-  { id: 'summary',    label: 'Summary' },
   { id: 'timeline',   label: 'Timeline' },
+  { id: 'summary',    label: 'Summary' },
   { id: 'arguments',  label: 'Arguments' },
   { id: 'sentiment',  label: 'By State' },
   { id: 'discussion', label: 'Discussion' },
@@ -72,10 +77,24 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         </h1>
         {bill.shortTitle && bill.title !== bill.shortTitle && <p className="text-white/60 text-sm mb-3">{bill.title}</p>}
         <div className="flex items-center gap-5 text-sm text-white/70 flex-wrap">
-          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {new Date(bill.introducedDate).toLocaleDateString()}</span>
+          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Introduced {new Date(bill.introducedDate).toLocaleDateString()}</span>
+          {(bill as any).latestActionDate && (
+            <span className="flex items-center gap-1">
+              <RefreshCw className="w-3.5 h-3.5" /> Updated {new Date((bill as any).latestActionDate).toLocaleDateString()}
+            </span>
+          )}
           <a href={congressGovUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-white transition-colors">
             <ExternalLink className="w-3.5 h-3.5" /> Congress.gov
           </a>
+          <ShareButton
+            url={`https://www.democracyunlocked.com/bills/${bill.id}`}
+            title={bill.shortTitle || bill.title}
+            text={`"${bill.shortTitle || bill.title}" — read the AI summary and cast your vote on Democracy Unlocked:`}
+            label="Share bill"
+            variant="pill"
+            className="!bg-white/10 !border-white/20 !text-white hover:!bg-white/20 hover:!border-white/30"
+          />
+          <FollowButton billId={bill.id} className="!bg-white/10 !border-white/20 !text-white hover:!bg-white/20 hover:!border-white/30" />
         </div>
       </div>
 
@@ -86,13 +105,12 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
+      <TrustBar lastSyncedAt={(bill as any).latestActionDate?.toISOString() ?? null} />
+
       <SectionNav sections={SECTIONS} />
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <div id="summary" className="scroll-mt-20">
-            <AISummary billId={bill.id} aiSummary={(bill as any).aiSummary} officialSummary={bill.summary} aiAnalyzedAt={(bill as any).aiAnalyzedAt?.toISOString() || null} />
-          </div>
           <div id="timeline" className="scroll-mt-20">
             <BillTimeline
               status={bill.status}
@@ -102,6 +120,9 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
               introducedDate={bill.introducedDate}
               originChamber={bill.originChamber}
             />
+          </div>
+          <div id="summary" className="scroll-mt-20">
+            <AISummary billId={bill.id} aiSummary={(bill as any).aiSummary} officialSummary={bill.summary} aiAnalyzedAt={(bill as any).aiAnalyzedAt?.toISOString() || null} />
           </div>
           <div id="arguments" className="scroll-mt-20 space-y-6">
             <ProsConsPanel prosCons={bill.prosCons as any} />
@@ -138,10 +159,21 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         <div className="space-y-6 order-first lg:order-last">
+          <div id="vote">
           <VotingPanel
             billId={bill.id}
+            billTitle={bill.shortTitle || bill.title}
             currentVote={userVote ? { position: userVote.position, reasoning: userVote.reasoning || undefined } : undefined}
             communityStats={{ yesCount: stats.yesCount, noCount: stats.noCount, abstainCount: stats.abstainCount, totalVotes }}
+          />
+          </div>
+
+          <CitizenImpact totalVotes={totalVotes} billId={bill.id} />
+
+          <RepVotesOnBill
+            billId={bill.id}
+            userState={user.state ?? null}
+            userVotePosition={userVote?.position ?? null}
           />
 
           {/* Vote stats */}

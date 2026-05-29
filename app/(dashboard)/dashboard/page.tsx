@@ -16,9 +16,10 @@ import TrackedBills from '@/components/dashboard/TrackedBills'
 import YourRepresentatives from '@/components/dashboard/YourRepresentatives'
 import VotingPatterns from '@/components/dashboard/VotingPatterns'
 import YourImpact from '@/components/dashboard/YourImpact'
-import ScrollReveal from '@/components/ui/ScrollReveal'
 import PersonalizedBills from '@/components/dashboard/PersonalizedBills'
 import WelcomeGuide from '@/components/ui/WelcomeGuide'
+import FadeIn from '@/components/ui/FadeIn'
+import MovingThisWeek from '@/components/dashboard/MovingThisWeek'
 
 export default async function DashboardPage() {
   const { userId: clerkUserId } = await auth()
@@ -27,10 +28,27 @@ export default async function DashboardPage() {
   const user = await UserService.getCurrentUser()
   if (!user) redirect('/sign-in')
 
-  const [profile, billsForYou, activityFeed] = await Promise.all([
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+  const [profile, billsForYou, activityFeed, movingBills, followedActiveCount] = await Promise.all([
     GamificationService.getCivicProfile(user.id),
     GamificationService.getBillsForYou(user.id, 5),
     GamificationService.getActivityFeed(15),
+    prisma.bill.findMany({
+      where: { latestActionDate: { gte: sevenDaysAgo } },
+      orderBy: { latestActionDate: 'desc' },
+      take: 6,
+      select: {
+        id: true, title: true, shortTitle: true, status: true,
+        latestActionDate: true, latestActionText: true, policyArea: true,
+      },
+    }),
+    prisma.billFollow.count({
+      where: {
+        userId: user.id,
+        bill: { latestActionDate: { gte: sevenDaysAgo } },
+      },
+    }),
   ])
 
   const earnedBadges = profile.badges.filter(b => b.earned).length
@@ -98,33 +116,49 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <WelcomeGuide />
-      {/* Welcome */}
-      <div className="hero-gradient rounded-2xl px-5 py-6 sm:px-8 sm:py-7">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-xl font-extrabold text-white mb-1">
-              Welcome back, {user.firstName || 'Citizen'}
-            </h1>
-            <p className="text-sm text-white/70">
-              {profile.level.emoji} {profile.level.name} · {profile.score} XP
-              {profile.streak > 0 && (
-                <span className="inline-flex items-center gap-1 ml-3">
-                  <Flame className="w-3.5 h-3.5 text-amber-400" /> {profile.streak}-day streak
-                </span>
+
+      {/* Welcome hero — always first */}
+      <FadeIn delay={0.05}>
+        <div className="hero-gradient rounded-2xl px-5 py-6 sm:px-8 sm:py-7">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="font-display text-xl font-extrabold text-white mb-1">
+                Welcome back, {user.firstName || 'Citizen'}
+              </h1>
+              <p className="text-sm text-white/70">
+                {profile.level.emoji} {profile.level.name} · {profile.score} XP
+                {profile.streak > 0 && (
+                  <span className="inline-flex items-center gap-1 ml-3">
+                    <Flame className="w-3.5 h-3.5 text-amber-400" /> {profile.streak}-day streak
+                  </span>
+                )}
+              </p>
+              {profile.stats.totalVotes === 0 ? (
+                <Link href="/bills" className="btn-primary mt-4 text-sm">
+                  Cast your first vote <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              ) : followedActiveCount > 0 ? (
+                <Link href="/bills" className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-lg bg-amber-400/20 border border-amber-400/30 text-amber-200 text-sm font-semibold hover:bg-amber-400/30 transition-colors">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                  {followedActiveCount} bill{followedActiveCount > 1 ? 's' : ''} you follow moved this week
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              ) : (
+                <Link href="/my-representatives" className="inline-flex items-center gap-1.5 mt-4 text-sm text-white/80 hover:text-white font-medium transition-colors underline underline-offset-2">
+                  See how you compare to your reps <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               )}
-            </p>
-            {profile.stats.totalVotes === 0 && (
-              <Link href="/bills" className="btn-primary mt-4 text-sm">
-                Cast your first vote <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            )}
+            </div>
           </div>
         </div>
-      </div>
+      </FadeIn>
+
+      {/* Interest poll / recommended bills + first-visit guide */}
+      <PersonalizedBills />
+      <WelcomeGuide />
 
       {/* Quick stats */}
-      <ScrollReveal>
+      <FadeIn delay={0.1}>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { icon: Vote, label: 'Votes', value: profile.stats.totalVotes, color: 'text-[--accent]' },
@@ -141,15 +175,22 @@ export default async function DashboardPage() {
             </div>
           ))}
         </div>
-      </ScrollReveal>
+      </FadeIn>
 
-      {/* Personalized bills / interest poll */}
-      <ScrollReveal delay={50}>
-        <PersonalizedBills />
-      </ScrollReveal>
+      {/* Row 1: Your Representatives */}
+      <FadeIn delay={0.12}>
+        <YourRepresentatives userState={user.state ?? null} />
+      </FadeIn>
 
-      {/* Row 1: Impact donut + Tracked Bills */}
-      <ScrollReveal delay={100}>
+      {/* Moving this week — time-sensitive hook */}
+      {movingBills.length > 0 && (
+        <FadeIn delay={0.15}>
+          <MovingThisWeek bills={movingBills} />
+        </FadeIn>
+      )}
+
+      {/* Row 2: Impact donut + Tracked Bills */}
+      <FadeIn delay={0.18}>
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <YourImpact stats={impactStats} />
@@ -158,22 +199,17 @@ export default async function DashboardPage() {
             <TrackedBills bills={trackedBills} />
           </div>
         </div>
-      </ScrollReveal>
-
-      {/* Row 2: Your Representatives */}
-      <ScrollReveal delay={100}>
-        <YourRepresentatives userState={null} />
-      </ScrollReveal>
+      </FadeIn>
 
       {/* Row 3: Voting Patterns */}
       {policyData.length > 0 && (
-        <ScrollReveal delay={100}>
+        <FadeIn>
           <VotingPatterns data={policyData} reps={[]} />
-        </ScrollReveal>
+        </FadeIn>
       )}
 
       {/* Row 4: Score ring + Vote charts */}
-      <ScrollReveal delay={100}>
+      <FadeIn>
         <div className="grid lg:grid-cols-2 gap-6">
           <CivicScoreRing
             score={profile.score}
@@ -184,28 +220,28 @@ export default async function DashboardPage() {
           />
           <div>{/* VoteCharts takes full card */}</div>
         </div>
-      </ScrollReveal>
+      </FadeIn>
 
-      <ScrollReveal delay={100}>
+      <FadeIn>
         <VoteCharts stats={profile.stats} votesByPolicy={profile.votesByPolicy} />
-      </ScrollReveal>
+      </FadeIn>
 
       {/* Badges */}
-      <ScrollReveal delay={100}>
+      <FadeIn>
         <BadgeGrid badges={serializedBadges} />
-      </ScrollReveal>
+      </FadeIn>
 
       {/* Row 5: Bills for you + Activity */}
-      <ScrollReveal delay={100}>
+      <FadeIn>
         <div className="grid lg:grid-cols-2 gap-6">
           <BillsForYou bills={billsForYou} />
           <ActivityFeed items={activityFeed} />
         </div>
-      </ScrollReveal>
+      </FadeIn>
 
       {/* Activity timeline */}
       {profile.recentActivity.length > 0 && (
-        <ScrollReveal delay={100}>
+        <FadeIn>
           <div className="card overflow-hidden">
             <div className="px-6 py-4 border-b border-[--border]">
               <h3 className="font-display text-sm font-bold">Recent activity</h3>
@@ -224,7 +260,7 @@ export default async function DashboardPage() {
               </div>
             </div>
           </div>
-        </ScrollReveal>
+        </FadeIn>
       )}
     </div>
   )
