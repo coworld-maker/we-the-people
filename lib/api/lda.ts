@@ -17,6 +17,28 @@ function normalizeBillNumber(billType: string, billNumber: string): string {
   return `${type}${num}`.replace(/[^A-Z0-9]/g, '')
 }
 
+export async function getLobbyingFirmCount(billType: string, billNumber: string): Promise<number> {
+  const normalized = normalizeBillNumber(billType, billNumber)
+  if (!normalized) return 0
+
+  const url = new URL(`${LDA_BASE}/filings/`)
+  url.searchParams.set('filing_type', 'LD2')
+  url.searchParams.set('issue_bill_number', normalized)
+  url.searchParams.set('page_size', '1') // we only need the count
+
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  if (LDA_API_KEY) headers['Authorization'] = `Token ${LDA_API_KEY}`
+
+  try {
+    const res = await fetch(url.toString(), { headers })
+    if (!res.ok) return 0
+    const data: { count?: number } = await res.json()
+    return data.count ?? 0
+  } catch {
+    return 0
+  }
+}
+
 export async function getLobbyingForBill(billType: string, billNumber: string): Promise<LDAFiling[]> {
   const normalized = normalizeBillNumber(billType, billNumber)
   if (!normalized) return []

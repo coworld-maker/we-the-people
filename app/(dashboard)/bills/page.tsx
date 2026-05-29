@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { BillService } from '@/lib/services/billService'
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
-import { ChevronRight, FileText, Calendar, Vote as VoteIcon, MapPin } from 'lucide-react'
+import { ChevronRight, FileText, Calendar, Vote as VoteIcon, MapPin, Users } from 'lucide-react'
 import BillFilters from '@/components/bills/BillFilters'
 
 // Per-policy-area accent palette — used for section headers in the grouped view
@@ -78,6 +78,9 @@ function BillCard({ bill, userState, showPolicyBadge = true }: {
         <div className="flex items-center gap-4 mt-2 text-xs text-[--text-muted]">
           <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(bill.introducedDate).toLocaleDateString()}</span>
           <span className="flex items-center gap-1"><VoteIcon className="w-3 h-3" />{bill._count?.votes || 0} votes</span>
+          {bill.lobbyingFirmCount > 0 && (
+            <span className="flex items-center gap-1 text-purple-600"><Users className="w-3 h-3" />{bill.lobbyingFirmCount} firm{bill.lobbyingFirmCount !== 1 ? 's' : ''} lobbying</span>
+          )}
           {bill.aiSummary && <span className="text-[--accent] font-medium">AI analyzed</span>}
         </div>
       </div>
@@ -88,7 +91,7 @@ function BillCard({ bill, userState, showPolicyBadge = true }: {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-type QuickFilter = 'all' | 'affects_state' | 'most_voted' | 'moving' | 'by_topic'
+type QuickFilter = 'all' | 'affects_state' | 'most_voted' | 'moving' | 'by_topic' | 'most_lobbied'
 
 function getQuickFilter(params: {
   affectsState?: string; groupBy?: string; sort?: string; recent?: string
@@ -96,6 +99,7 @@ function getQuickFilter(params: {
   if (params.groupBy === 'policy') return 'by_topic'
   if (params.affectsState === '1') return 'affects_state'
   if (params.sort === 'most_voted') return 'most_voted'
+  if (params.sort === 'most_lobbied') return 'most_lobbied'
   if (params.recent === '1') return 'moving'
   return 'all'
 }
@@ -128,7 +132,7 @@ export default async function BillsPage({
   const votedInState     = params.votedInState === '1' && userState ? userState : undefined
   const votedByUserId    = params.voted === 'yes' && userInternalId ? userInternalId : undefined
   const notVotedByUserId = params.voted === 'no'  && userInternalId ? userInternalId : undefined
-  const sortParam        = (params.sort === 'most_voted' || params.sort === 'recent_action') ? params.sort : undefined
+  const sortParam        = (params.sort === 'most_voted' || params.sort === 'recent_action' || params.sort === 'most_lobbied') ? params.sort : undefined
   const recentAction     = params.recent === '1'
 
   // In grouped view we fetch a larger window (no pagination) so we can render
@@ -175,6 +179,7 @@ export default async function BillsPage({
     if (params.policyArea)   q.set('policyArea', params.policyArea)
     if (filter === 'affects_state') q.set('affectsState', '1')
     if (filter === 'most_voted')    q.set('sort', 'most_voted')
+    if (filter === 'most_lobbied')  q.set('sort', 'most_lobbied')
     if (filter === 'moving')        q.set('recent', '1')
     if (filter === 'by_topic')      q.set('groupBy', 'policy')
     return `/bills?${q.toString()}`
@@ -240,6 +245,7 @@ export default async function BillsPage({
           { id: 'all',           label: 'All bills' },
           ...(userState ? [{ id: 'affects_state', label: `Affects ${userState}` }] : []),
           { id: 'most_voted',    label: 'Most voted' },
+          { id: 'most_lobbied',  label: 'Most lobbied' },
           { id: 'moving',        label: 'Moving this week' },
           { id: 'by_topic',      label: 'By topic' },
         ] as { id: QuickFilter; label: string }[]).map(tab => (

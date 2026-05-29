@@ -90,6 +90,14 @@ export async function POST(req: NextRequest) {
     results.fecIds = { error: String(e) };
   }
 
+  // 6. Sync LDA lobbying firm counts for all bills
+  try {
+    results.lobbying = await callSync('/api/sync-lobbying', {}, secret);
+    console.log('[cron/sync] Lobbying:', results.lobbying);
+  } catch (e) {
+    results.lobbying = { error: String(e) };
+  }
+
   console.log('[cron/sync] Complete:', results);
 
   return NextResponse.json({
