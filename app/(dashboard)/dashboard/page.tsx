@@ -115,9 +115,13 @@ export default async function DashboardPage() {
                   </span>
                 )}
               </p>
-              {profile.stats.totalVotes === 0 && (
+              {profile.stats.totalVotes === 0 ? (
                 <Link href="/bills" className="btn-primary mt-4 text-sm">
                   Cast your first vote <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              ) : (
+                <Link href="/my-representatives" className="inline-flex items-center gap-1.5 mt-4 text-sm text-white/80 hover:text-white font-medium transition-colors underline underline-offset-2">
+                  See how you compare to your reps <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               )}
             </div>

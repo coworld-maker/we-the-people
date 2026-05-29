@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, X, MinusCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Check, X, MinusCircle, Phone, Copy, ChevronDown, ChevronUp } from 'lucide-react'
 import Confetti from '@/components/ui/Confetti'
+import ShareButton from '@/components/ui/ShareButton'
 
 interface CommunityStats {
   yesCount: number
@@ -13,6 +14,7 @@ interface CommunityStats {
 
 interface Props {
   billId: string
+  billTitle?: string
   currentVote?: { position: string; reasoning?: string }
   communityStats?: CommunityStats
 }
@@ -26,7 +28,6 @@ const OPTIONS = [
     submitBtn: 'bg-emerald-600 hover:bg-emerald-700',
     iconColor: 'text-emerald-600',
     barColor: 'bg-emerald-500',
-    badgeCls: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   },
   {
     value: 'no',
@@ -36,7 +37,6 @@ const OPTIONS = [
     submitBtn: 'bg-red-600 hover:bg-red-700',
     iconColor: 'text-red-600',
     barColor: 'bg-red-500',
-    badgeCls: 'bg-red-50 text-red-700 border-red-200',
   },
   {
     value: 'abstain',
@@ -46,7 +46,6 @@ const OPTIONS = [
     submitBtn: 'bg-[--text-secondary] hover:bg-[--text]',
     iconColor: 'text-[--text-muted]',
     barColor: 'bg-[--surface-tertiary]',
-    badgeCls: 'bg-[--surface-secondary] text-[--text-muted] border-[--border]',
   },
 ]
 
@@ -54,18 +53,99 @@ function pct(count: number, total: number) {
   return total > 0 ? Math.round((count / total) * 100) : 0
 }
 
-export default function VotingPanel({ billId, currentVote, communityStats }: Props) {
+function buildLetter(position: string, billTitle: string) {
+  const stance =
+    position === 'yes' ? 'support' : position === 'no' ? 'oppose' : 'abstain on'
+  return `Dear Representative,
+
+I am writing as your constituent to let you know that I ${stance} the following legislation: "${billTitle}".
+
+As someone who cares about how this bill affects our community, I urge you to consider the views of the citizens you represent when this bill comes before you.
+
+Thank you for your service.
+
+A concerned constituent`
+}
+
+// ── Contact your rep panel ───────────────────────────────────────────────────
+function ContactPanel({ position, billTitle }: { position: string; billTitle: string }) {
+  const [open, setOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const letter = buildLetter(position, billTitle)
+
+  async function copyLetter() {
+    try {
+      await navigator.clipboard.writeText(letter)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    } catch {}
+  }
+
+  return (
+    <div className="mt-3 border border-[--border] rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-[--surface-secondary] hover:bg-[--surface-tertiary] transition-colors text-left"
+      >
+        <span className="text-xs font-semibold text-[--text]">📬 Let your rep know</span>
+        {open
+          ? <ChevronUp className="w-3.5 h-3.5 text-[--text-muted]" />
+          : <ChevronDown className="w-3.5 h-3.5 text-[--text-muted]" />
+        }
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 pt-3 space-y-3">
+          <p className="text-[11px] text-[--text-muted] leading-relaxed">
+            Pre-drafted letter based on your vote. Copy it and send via your rep's website, or call the Capitol switchboard.
+          </p>
+
+          <div className="bg-[--surface] border border-[--border] rounded-lg p-3 text-[11px] text-[--text-secondary] whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto font-mono">
+            {letter}
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={copyLetter}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold bg-[--accent] text-white hover:bg-[--accent-hover] transition-colors"
+            >
+              {copied
+                ? <><Check className="w-3.5 h-3.5" /> Copied!</>
+                : <><Copy className="w-3.5 h-3.5" /> Copy letter</>
+              }
+            </button>
+            <a
+              href="tel:+12026243121"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-[--border] text-[--text-secondary] hover:border-[--accent]/40 hover:text-[--accent] transition-colors"
+              title="Capitol Switchboard"
+            >
+              <Phone className="w-3.5 h-3.5" /> Call
+            </a>
+          </div>
+          <p className="text-[10px] text-[--text-muted] text-center">
+            Capitol Switchboard: (202) 624-3121 · Ask for your senator or rep by name
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
+export default function VotingPanel({ billId, billTitle, currentVote, communityStats }: Props) {
   const [position, setPosition] = useState(currentVote?.position ?? '')
   const [reasoning, setReasoning] = useState(currentVote?.reasoning ?? '')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(!!currentVote)
   const [error, setError] = useState('')
   const [showConfetti, setShowConfetti] = useState(false)
+  const [pageUrl, setPageUrl] = useState('')
 
-  // Optimistic community stats — updated after user votes
-  const [liveStats, setLiveStats] = useState<CommunityStats | null>(
-    communityStats ?? null,
-  )
+  const [liveStats, setLiveStats] = useState<CommunityStats | null>(communityStats ?? null)
+
+  useEffect(() => {
+    setPageUrl(window.location.href)
+  }, [])
 
   async function handleVote() {
     if (!position) return
@@ -82,7 +162,6 @@ export default function VotingPanel({ billId, currentVote, communityStats }: Pro
         throw new Error(d.error || 'Vote failed')
       }
 
-      // Optimistically update community stats
       if (liveStats) {
         const prev = currentVote?.position
         const updated = {
@@ -108,18 +187,30 @@ export default function VotingPanel({ billId, currentVote, communityStats }: Pro
 
   const chosenOption = OPTIONS.find(o => o.value === position)
   const total = liveStats?.totalVotes ?? 0
+  const shareText = position && billTitle
+    ? `I voted to ${position === 'yes' ? 'support' : position === 'no' ? 'oppose' : 'abstain on'} "${billTitle}" on Democracy Unlocked. See the bill and cast your vote:`
+    : 'Check out this bill on Democracy Unlocked:'
 
   return (
     <>
       <Confetti active={showConfetti} />
       <div className="card overflow-hidden" id="vote">
-        <div className="bg-[--accent] px-5 py-3.5">
+        <div className="bg-[--accent] px-5 py-3.5 flex items-center justify-between">
           <h3 className="font-display text-sm font-bold text-white">Cast your vote</h3>
+          {submitted && pageUrl && (
+            <ShareButton
+              url={pageUrl}
+              title={billTitle ?? 'Bill on Democracy Unlocked'}
+              text={shareText}
+              label="Share"
+              variant="pill"
+              className="!bg-white/10 !border-white/20 !text-white hover:!bg-white/20 hover:!border-white/30"
+            />
+          )}
         </div>
 
         <div className="p-5">
           {submitted ? (
-            /* ── Success state ───────────────────────────────────────── */
             <div>
               {/* Chosen position */}
               <div className={`flex items-center gap-3 p-3.5 rounded-xl border-2 mb-4 ${chosenOption?.selectedCard ?? 'border-[--border]'}`}>
@@ -157,7 +248,7 @@ export default function VotingPanel({ billId, currentVote, communityStats }: Pro
                         </div>
                         <div className="h-1.5 rounded-full bg-[--surface-tertiary] overflow-hidden">
                           <div
-                            className={`h-1.5 rounded-full transition-all duration-700 ${isYours ? o.barColor : 'bg-[--surface-tertiary]'} ${isYours ? '' : 'opacity-40'}`}
+                            className={`h-1.5 rounded-full transition-all duration-700 ${isYours ? o.barColor : ''}`}
                             style={{ width: `${p}%`, background: isYours ? undefined : '#CBD5E1' }}
                           />
                         </div>
@@ -167,15 +258,17 @@ export default function VotingPanel({ billId, currentVote, communityStats }: Pro
                 </div>
               )}
 
+              {/* Post-vote action */}
+              {billTitle && <ContactPanel position={position} billTitle={billTitle} />}
+
               <button
                 onClick={() => setSubmitted(false)}
-                className="w-full text-xs font-semibold text-[--text-secondary] hover:text-[--accent] transition-colors py-2 border border-[--border] rounded-lg hover:border-[--accent]/30"
+                className="w-full mt-3 text-xs font-semibold text-[--text-secondary] hover:text-[--accent] transition-colors py-2 border border-[--border] rounded-lg hover:border-[--accent]/30"
               >
                 Change vote
               </button>
             </div>
           ) : (
-            /* ── Voting form ─────────────────────────────────────────── */
             <>
               <div className="space-y-2 mb-4">
                 {OPTIONS.map(o => (

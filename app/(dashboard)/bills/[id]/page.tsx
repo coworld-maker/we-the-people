@@ -11,8 +11,9 @@ import DiscussionBoard from '@/components/bills/DiscussionBoard'
 import BillFullText from '@/components/bills/BillFullText'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ExternalLink, Calendar, Zap } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Calendar, Zap, RefreshCw } from 'lucide-react'
 import SectionNav from '@/components/ui/SectionNav'
+import ShareButton from '@/components/ui/ShareButton'
 import BillStateSentiment from '@/components/bills/BillStateSentiment'
 import BillImpactMap from '@/components/bills/BillImpactMap'
 import BillTimeline from '@/components/bills/BillTimeline'
@@ -72,10 +73,23 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         </h1>
         {bill.shortTitle && bill.title !== bill.shortTitle && <p className="text-white/60 text-sm mb-3">{bill.title}</p>}
         <div className="flex items-center gap-5 text-sm text-white/70 flex-wrap">
-          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {new Date(bill.introducedDate).toLocaleDateString()}</span>
+          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> Introduced {new Date(bill.introducedDate).toLocaleDateString()}</span>
+          {(bill as any).latestActionDate && (
+            <span className="flex items-center gap-1">
+              <RefreshCw className="w-3.5 h-3.5" /> Updated {new Date((bill as any).latestActionDate).toLocaleDateString()}
+            </span>
+          )}
           <a href={congressGovUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-white transition-colors">
             <ExternalLink className="w-3.5 h-3.5" /> Congress.gov
           </a>
+          <ShareButton
+            url={`https://www.democracyunlocked.com/bills/${bill.id}`}
+            title={bill.shortTitle || bill.title}
+            text={`"${bill.shortTitle || bill.title}" — read the AI summary and cast your vote on Democracy Unlocked:`}
+            label="Share bill"
+            variant="pill"
+            className="!bg-white/10 !border-white/20 !text-white hover:!bg-white/20 hover:!border-white/30"
+          />
         </div>
       </div>
 
@@ -140,6 +154,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         <div className="space-y-6 order-first lg:order-last">
           <VotingPanel
             billId={bill.id}
+            billTitle={bill.shortTitle || bill.title}
             currentVote={userVote ? { position: userVote.position, reasoning: userVote.reasoning || undefined } : undefined}
             communityStats={{ yesCount: stats.yesCount, noCount: stats.noCount, abstainCount: stats.abstainCount, totalVotes }}
           />
