@@ -124,7 +124,10 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
-      <TrustBar lastSyncedAt={(bill as any).latestActionDate?.toISOString() ?? null} />
+      <TrustBar
+        lastSyncedAt={(bill as any).latestActionDate?.toISOString() ?? null}
+        lobbyingFirmCount={(bill as any).lobbyingFirmCount ?? null}
+      />
 
       <SectionNav sections={SECTIONS} />
 
@@ -227,6 +230,8 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
             </div>
           )}
 
+          <LobbyingPanel bill={bill} />
+
           {/* Vote stats (always visible) */}
           <div className="card overflow-hidden">
             <div className="px-6 py-4 border-b border-[--border]"><h3 className="font-display text-sm font-bold text-[--text]">Public opinion</h3></div>
@@ -251,8 +256,6 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
               </div>
             </div>
           </div>
-
-          <LobbyingPanel bill={bill} />
 
           {bill.subjects && bill.subjects.length > 0 && (
             <div className="card p-5">
