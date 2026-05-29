@@ -18,6 +18,8 @@ import FollowButton from '@/components/bills/FollowButton'
 import BillStateSentiment from '@/components/bills/BillStateSentiment'
 import BillImpactMap from '@/components/bills/BillImpactMap'
 import BillTimeline from '@/components/bills/BillTimeline'
+import CitizenImpact from '@/components/bills/CitizenImpact'
+import TrustBar from '@/components/bills/TrustBar'
 
 const SECTIONS = [
   { id: 'timeline',   label: 'Timeline' },
@@ -102,6 +104,8 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
+      <TrustBar lastSyncedAt={(bill as any).latestActionDate?.toISOString() ?? null} />
+
       <SectionNav sections={SECTIONS} />
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -154,12 +158,16 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         <div className="space-y-6 order-first lg:order-last">
+          <div id="vote">
           <VotingPanel
             billId={bill.id}
             billTitle={bill.shortTitle || bill.title}
             currentVote={userVote ? { position: userVote.position, reasoning: userVote.reasoning || undefined } : undefined}
             communityStats={{ yesCount: stats.yesCount, noCount: stats.noCount, abstainCount: stats.abstainCount, totalVotes }}
           />
+          </div>
+
+          <CitizenImpact totalVotes={totalVotes} billId={bill.id} />
 
           {/* Vote stats */}
           <div className="card overflow-hidden">
