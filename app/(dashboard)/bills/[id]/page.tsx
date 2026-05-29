@@ -1,5 +1,4 @@
 import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
 import { BillService } from '@/lib/services/billService'
 import { UserService } from '@/lib/services/userService'
 import { VoteService } from '@/lib/services/voteService'
@@ -9,9 +8,10 @@ import ProsConsPanel from '@/components/bills/ProsConsPanel'
 import ImpactPanel from '@/components/bills/ImpactPanel'
 import DiscussionBoard from '@/components/bills/DiscussionBoard'
 import BillFullText from '@/components/bills/BillFullText'
+import LobbyingPanel from '@/components/bills/LobbyingPanel'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ExternalLink, Calendar, Zap, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Calendar, Zap, RefreshCw, LogIn } from 'lucide-react'
 import SectionNav from '@/components/ui/SectionNav'
 import ShareButton from '@/components/ui/ShareButton'
 import FollowButton from '@/components/bills/FollowButton'
@@ -30,30 +30,49 @@ const SECTIONS = [
   { id: 'discussion', label: 'Discussion' },
 ]
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const bill = await BillService.getBillById(id)
+  if (!bill) return {}
+  const title = `${bill.shortTitle || bill.title} | Democracy Unlocked`
+  const rawSummary = bill.summary?.replace(/<[^>]+>/g, '').slice(0, 160) ?? ''
+  const description = rawSummary || `AI summary, community vote, and rep breakdown for ${bill.billType} ${bill.billNumber}.`
+  return {
+    title,
+    description,
+    openGraph: {
+      title: bill.shortTitle || bill.title,
+      description,
+      url: `https://www.democracyunlocked.com/bills/${id}`,
+      type: 'article',
+      images: [{ url: 'https://www.democracyunlocked.com/og-default.png', width: 1200, height: 630 }],
+    },
+    twitter: { card: 'summary_large_image', title, description },
+  }
+}
+
 export default async function BillDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
-  const user = await UserService.getCurrentUser()
-  if (!user) redirect('/sign-in')
+  const user = userId ? await UserService.getCurrentUser() : null
 
   const { id } = await params
   const bill = await BillService.getBillById(id)
   if (!bill) notFound()
 
   const stats = await BillService.getBillVoteStats(id)
-  const userVote = await VoteService.getUserVote(user.id, id)
+  const userVote = user ? await VoteService.getUserVote(user.id, id) : null
   const totalVotes = stats.totalVotes || 0
   const yesP = totalVotes > 0 ? Math.round((stats.yesCount / totalVotes) * 100) : 0
-  const noP = totalVotes > 0 ? Math.round((stats.noCount / totalVotes) * 100) : 0
+  const noP  = totalVotes > 0 ? Math.round((stats.noCount  / totalVotes) * 100) : 0
   const absP = totalVotes > 0 ? Math.round((stats.abstainCount / totalVotes) * 100) : 0
 
   const statusLabels: Record<string, { label: string; cls: string }> = {
-    enacted: { label: 'Enacted', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-    passed_both: { label: 'Passed Both', cls: 'bg-green-50 text-green-700 border-green-200' },
-    passed_chamber: { label: 'Passed Chamber', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-    reported: { label: 'Reported', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
-    in_committee: { label: 'In Committee', cls: 'bg-orange-50 text-orange-700 border-orange-200' },
-    introduced: { label: 'Introduced', cls: 'bg-gray-50 text-gray-600 border-gray-200' },
+    enacted:        { label: 'Enacted',         cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    passed_both:    { label: 'Passed Both',      cls: 'bg-green-50 text-green-700 border-green-200' },
+    passed_chamber: { label: 'Passed Chamber',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+    reported:       { label: 'Reported',         cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+    in_committee:   { label: 'In Committee',     cls: 'bg-orange-50 text-orange-700 border-orange-200' },
+    introduced:     { label: 'Introduced',       cls: 'bg-gray-50 text-gray-600 border-gray-200' },
   }
   const st = statusLabels[bill.status] || statusLabels.introduced
   const congressGovUrl = `https://www.congress.gov/bill/${bill.congress}th-congress/${bill.originChamber === 'senate' ? 'senate' : 'house'}-bill/${bill.billNumber}`
@@ -89,12 +108,12 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
           <ShareButton
             url={`https://www.democracyunlocked.com/bills/${bill.id}`}
             title={bill.shortTitle || bill.title}
-            text={`"${bill.shortTitle || bill.title}" — read the AI summary and cast your vote on Democracy Unlocked:`}
+            text={`"${bill.shortTitle || bill.title}" — AI summary + cast your vote on Democracy Unlocked:`}
             label="Share bill"
             variant="pill"
             className="!bg-white/10 !border-white/20 !text-white hover:!bg-white/20 hover:!border-white/30"
           />
-          <FollowButton billId={bill.id} className="!bg-white/10 !border-white/20 !text-white hover:!bg-white/20 hover:!border-white/30" />
+          {user && <FollowButton billId={bill.id} className="!bg-white/10 !border-white/20 !text-white hover:!bg-white/20 hover:!border-white/30" />}
         </div>
       </div>
 
@@ -159,30 +178,62 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         <div className="space-y-6 order-first lg:order-last">
-          <div id="vote">
-          <VotingPanel
-            billId={bill.id}
-            billTitle={bill.shortTitle || bill.title}
-            currentVote={userVote ? { position: userVote.position, reasoning: userVote.reasoning || undefined } : undefined}
-            communityStats={{ yesCount: stats.yesCount, noCount: stats.noCount, abstainCount: stats.abstainCount, totalVotes }}
-          />
-          </div>
+          {user ? (
+            <>
+              <div id="vote">
+                <VotingPanel
+                  billId={bill.id}
+                  billTitle={bill.shortTitle || bill.title}
+                  currentVote={userVote ? { position: userVote.position, reasoning: userVote.reasoning || undefined } : undefined}
+                  communityStats={{ yesCount: stats.yesCount, noCount: stats.noCount, abstainCount: stats.abstainCount, totalVotes }}
+                />
+              </div>
+              <CitizenImpact totalVotes={totalVotes} billId={bill.id} />
+              <RepVotesOnBill
+                billId={bill.id}
+                userState={user.state ?? null}
+                userVotePosition={userVote?.position ?? null}
+              />
+            </>
+          ) : (
+            /* Ungated aha moment — show community stats + sign-up CTA */
+            <div id="vote" className="card overflow-hidden">
+              <div className="px-5 py-4 border-b border-[--border]">
+                <h3 className="font-display text-sm font-bold text-[--text]">Add your voice</h3>
+                <p className="text-xs text-[--text-muted] mt-0.5">{totalVotes} citizen{totalVotes !== 1 ? 's' : ''} have already voted</p>
+              </div>
+              <div className="p-5 space-y-3">
+                {[
+                  { label: 'Yes', pct: yesP, count: stats.yesCount, color: '#22C55E' },
+                  { label: 'No',  pct: noP,  count: stats.noCount,  color: '#E5484D' },
+                  { label: 'Abstain', pct: absP, count: stats.abstainCount, color: '#8A8F98' },
+                ].map(v => (
+                  <div key={v.label}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-medium text-[--text]">{v.label}</span>
+                      <span className="text-sm font-semibold" style={{ color: v.color }}>{v.pct}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-[--surface-tertiary] overflow-hidden">
+                      <div className="h-2 rounded-full" style={{ width: `${v.pct}%`, backgroundColor: v.color }} />
+                    </div>
+                  </div>
+                ))}
+                <Link href={`/sign-up?redirect_url=/bills/${bill.id}`}
+                  className="btn-primary w-full text-center mt-4 flex items-center justify-center gap-2">
+                  <LogIn className="w-4 h-4" /> Sign up to vote &amp; see your rep's position
+                </Link>
+                <p className="text-[10px] text-[--text-muted] text-center">Free · No spam · See how your representatives voted</p>
+              </div>
+            </div>
+          )}
 
-          <CitizenImpact totalVotes={totalVotes} billId={bill.id} />
-
-          <RepVotesOnBill
-            billId={bill.id}
-            userState={user.state ?? null}
-            userVotePosition={userVote?.position ?? null}
-          />
-
-          {/* Vote stats */}
+          {/* Vote stats (always visible) */}
           <div className="card overflow-hidden">
             <div className="px-6 py-4 border-b border-[--border]"><h3 className="font-display text-sm font-bold text-[--text]">Public opinion</h3></div>
             <div className="p-5 space-y-4">
               {[
-                { label: 'Yes', pct: yesP, count: stats.yesCount, color: '#22C55E' },
-                { label: 'No', pct: noP, count: stats.noCount, color: '#E5484D' },
+                { label: 'Yes',     pct: yesP, count: stats.yesCount,     color: '#22C55E' },
+                { label: 'No',      pct: noP,  count: stats.noCount,      color: '#E5484D' },
                 { label: 'Abstain', pct: absP, count: stats.abstainCount, color: '#8A8F98' },
               ].map(v => (
                 <div key={v.label}>
@@ -200,6 +251,8 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
               </div>
             </div>
           </div>
+
+          <LobbyingPanel bill={bill} />
 
           {bill.subjects && bill.subjects.length > 0 && (
             <div className="card p-5">

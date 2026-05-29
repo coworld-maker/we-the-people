@@ -204,7 +204,10 @@ export class GamificationService {
     return recommended
   }
 
-  static async getActivityFeed(limit: number = 15) {
+  static async getActivityFeed(
+    limit: number = 15,
+    opts?: { userId?: string; userState?: string }
+  ) {
     const [recentVotes, recentComments] = await Promise.all([
       prisma.vote.findMany({
         take: limit,
@@ -252,6 +255,51 @@ export class GamificationService {
         user: c.user?.firstName || 'A citizen',
       })
     })
+
+    // Rep-mismatch items: your rep voted against your position
+    if (opts?.userId && opts?.userState) {
+      const [userVotes, stateReps] = await Promise.all([
+        prisma.vote.findMany({
+          where: { userId: opts.userId },
+          select: { billId: true, position: true },
+        }),
+        prisma.representative.findMany({
+          where: { state: opts.userState, currentTerm: true },
+          select: { bioguideId: true, fullName: true },
+        }),
+      ])
+
+      if (userVotes.length > 0 && stateReps.length > 0) {
+        const votedBillIds = userVotes.map(v => v.billId)
+        const repBioguideIds = stateReps.map(r => r.bioguideId)
+        const congressVotes = await prisma.congressVote.findMany({
+          where: { billId: { in: votedBillIds }, bioguideId: { in: repBioguideIds } },
+          include: { bill: { select: { id: true, billType: true, billNumber: true } } },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        })
+
+        const userVoteMap = new Map(userVotes.map(v => [v.billId, v.position]))
+        const repNameMap = new Map(stateReps.map(r => [r.bioguideId, r.fullName]))
+
+        for (const cv of congressVotes) {
+          const myPos = userVoteMap.get(cv.billId)
+          const repName = repNameMap.get(cv.bioguideId)
+          if (!myPos || !repName) continue
+          const isMismatch = (myPos === 'yes' && cv.position === 'Nay') || (myPos === 'no' && cv.position === 'Yea')
+          if (!isMismatch) continue
+          feed.push({
+            id: `mm-${cv.id}`,
+            type: 'rep_mismatch',
+            emoji: '⚡',
+            text: `${repName} voted ${cv.position === 'Yea' ? 'YES' : 'NO'} on ${cv.bill?.billType} ${cv.bill?.billNumber} — opposite of you`,
+            billId: cv.billId,
+            date: cv.createdAt.toISOString(),
+            user: 'Your rep',
+          })
+        }
+      }
+    }
 
     return feed
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())

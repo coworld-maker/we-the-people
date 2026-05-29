@@ -4,26 +4,50 @@ import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import {
   Zap, TrendingUp, MessageSquare, Vote as VoteIcon,
-  Calendar, ChevronRight, Clock, FileText,
+  Calendar, ChevronRight, Clock, FileText, Eye, MapPin,
 } from 'lucide-react'
+import { CongressAPI } from '@/lib/api/congress'
 
 export const metadata = {
   title: 'News & Activity | Democracy Unlocked',
   description: 'Latest congressional activity and platform engagement.',
 }
 
+const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
+  enacted:        { label: 'Enacted',         cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  passed_both:    { label: 'Passed Both',      cls: 'bg-green-50 text-green-700 border-green-200' },
+  passed_chamber: { label: 'Passed Chamber',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  reported:       { label: 'Reported',         cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+  in_committee:   { label: 'In Committee',     cls: 'bg-orange-50 text-orange-700 border-orange-200' },
+  introduced:     { label: 'Introduced',       cls: 'bg-gray-50 text-gray-600 border-gray-200' },
+}
+
+function timeAgo(d: Date | string) {
+  const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000)
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`
+  if (s < 604800) return `${Math.floor(s / 86400)}d ago`
+  return new Date(d).toLocaleDateString()
+}
+
 export default async function NewsPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
+
+  const userRow = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { state: true },
+  })
+  const userState = userRow?.state ?? null
 
   const [
     latestActions,
     trendingBills,
     recentDiscussions,
-    recentVotes,
     platformStats,
+    mostViewedIds,
+    stateImpactBills,
   ] = await Promise.all([
-    // Bills with most recent actions
     prisma.bill.findMany({
       where: { latestActionDate: { not: null } },
       orderBy: { latestActionDate: 'desc' },
@@ -33,13 +57,11 @@ export default async function NewsPage() {
         status: true, policyArea: true, latestActionText: true, latestActionDate: true,
       },
     }),
-    // Most voted bills
     prisma.bill.findMany({
       orderBy: { votes: { _count: 'desc' } },
       take: 5,
       include: { _count: { select: { votes: true, discussions: true } } },
     }),
-    // Recent discussion activity
     prisma.discussion.findMany({
       where: { parentId: null },
       orderBy: { createdAt: 'desc' },
@@ -50,58 +72,49 @@ export default async function NewsPage() {
         _count: { select: { replies: true } },
       },
     }),
-    // Recent vote activity (aggregated)
-    prisma.vote.groupBy({
-      by: ['billId', 'position'],
-      _count: { position: true },
-      orderBy: { _count: { position: 'desc' } },
-      take: 20,
-    }),
-    // Platform-wide stats
     Promise.all([
-      prisma.bill.count(),
-      prisma.vote.count(),
-      prisma.user.count(),
-      prisma.discussion.count(),
+      prisma.bill.count(), prisma.vote.count(),
+      prisma.user.count(), prisma.discussion.count(),
     ]),
+    CongressAPI.fetchMostViewedBills(),
+    userState
+      ? prisma.bill.findMany({
+          where: { stateImpacts: { path: [userState, 'score'], gte: 0.6 } },
+          orderBy: { latestActionDate: 'desc' },
+          take: 5,
+          select: { id: true, title: true, shortTitle: true, billType: true, billNumber: true, status: true, policyArea: true },
+        })
+      : Promise.resolve([] as any[]),
   ])
 
   const [totalBills, totalVotes, totalUsers, totalDiscussions] = platformStats
 
-  const statusLabels: Record<string, { label: string; cls: string }> = {
-    enacted: { label: 'Enacted', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-    passed_both: { label: 'Passed Both', cls: 'bg-green-50 text-green-700 border-green-200' },
-    passed_chamber: { label: 'Passed Chamber', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-    reported: { label: 'Reported', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
-    in_committee: { label: 'In Committee', cls: 'bg-orange-50 text-orange-700 border-orange-200' },
-    introduced: { label: 'Introduced', cls: 'bg-gray-50 text-gray-600 border-gray-200' },
-  }
-
-  function timeAgo(d: Date | string) {
-    const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000)
-    if (s < 3600) return `${Math.floor(s / 60)}m ago`
-    if (s < 86400) return `${Math.floor(s / 3600)}h ago`
-    if (s < 604800) return `${Math.floor(s / 86400)}d ago`
-    return new Date(d).toLocaleDateString()
-  }
+  // Match Congress.gov most-viewed IDs against our DB
+  const mostViewedBills = (
+    await Promise.all(
+      mostViewedIds.slice(0, 10).map(({ congress, billType, billNumber }) =>
+        prisma.bill.findFirst({
+          where: { congress, billType, billNumber },
+          select: { id: true, title: true, shortTitle: true, billType: true, billNumber: true, status: true },
+        })
+      )
+    )
+  ).filter(Boolean) as NonNullable<Awaited<ReturnType<typeof prisma.bill.findFirst>>>[]
 
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="font-display text-2xl font-extrabold text-[--text]">News & Activity</h1>
-        <p className="text-sm text-[--text-secondary] mt-1">
-          Latest congressional actions and platform engagement
-        </p>
+        <p className="text-sm text-[--text-secondary] mt-1">Latest congressional actions and platform engagement</p>
       </div>
 
       {/* Platform pulse */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
-          { icon: FileText, label: 'Bills tracked', value: totalBills, accent: 'text-[--accent]' },
-          { icon: VoteIcon, label: 'Votes cast', value: totalVotes, accent: 'text-emerald-600' },
-          { icon: MessageSquare, label: 'Comments', value: totalDiscussions, accent: 'text-purple-600' },
-          { icon: TrendingUp, label: 'Citizens', value: totalUsers, accent: 'text-amber-600' },
+          { icon: FileText,    label: 'Bills tracked', value: totalBills,       accent: 'text-[--accent]' },
+          { icon: VoteIcon,    label: 'Votes cast',    value: totalVotes,       accent: 'text-emerald-600' },
+          { icon: MessageSquare, label: 'Comments',    value: totalDiscussions, accent: 'text-purple-600' },
+          { icon: TrendingUp,  label: 'Citizens',      value: totalUsers,       accent: 'text-amber-600' },
         ].map(s => (
           <div key={s.label} className="card p-5">
             <div className="flex items-center gap-2 mb-2">
@@ -114,8 +127,48 @@ export default async function NewsPage() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Main column: Latest Congressional Actions */}
+        {/* Main column */}
         <div className="lg:col-span-2 space-y-6">
+
+          {/* Bills affecting user's state */}
+          {stateImpactBills.length > 0 && (
+            <div className="card overflow-hidden">
+              <div className="px-6 py-4 border-b border-[--border] flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-orange-500" />
+                <h2 className="font-display text-sm font-bold text-[--text]">Affecting {userState}</h2>
+                <span className="ml-auto text-xs text-[--text-muted]">High-impact bills for your state</span>
+              </div>
+              <div className="divide-y divide-[--border]">
+                {stateImpactBills.map(bill => {
+                  const st = STATUS_LABELS[bill.status] || STATUS_LABELS.introduced
+                  return (
+                    <Link key={bill.id} href={`/bills/${bill.id}`}
+                      className="group flex items-center gap-4 px-6 py-4 hover:bg-[--surface-secondary] transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="badge bg-[--dark] text-white">{bill.billType} {bill.billNumber}</span>
+                          <span className={`badge border ${st.cls}`}>{st.label}</span>
+                          {bill.policyArea && <span className="text-xs text-[--text-muted]">{bill.policyArea}</span>}
+                        </div>
+                        <p className="text-sm font-semibold text-[--text] group-hover:text-[--accent] transition-colors leading-snug">
+                          {bill.shortTitle || bill.title}
+                        </p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-[--text-muted] group-hover:text-[--accent] shrink-0 transition-colors" />
+                    </Link>
+                  )
+                })}
+              </div>
+              <div className="px-6 py-3 border-t border-[--border]">
+                <Link href={`/bills?affectsState=1`} className="text-xs font-semibold text-[--accent] hover:text-[--accent-hover] transition-colors">
+                  All bills affecting {userState} →
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Latest Congressional Actions */}
           <div className="card overflow-hidden">
             <div className="px-6 py-4 border-b border-[--border] flex items-center gap-2">
               <Zap className="w-4 h-4 text-[--accent]" />
@@ -123,7 +176,7 @@ export default async function NewsPage() {
             </div>
             <div className="divide-y divide-[--border]">
               {latestActions.map(bill => {
-                const st = statusLabels[bill.status] || statusLabels.introduced
+                const st = STATUS_LABELS[bill.status] || STATUS_LABELS.introduced
                 return (
                   <Link key={bill.id} href={`/bills/${bill.id}`}
                     className="group flex items-start gap-4 px-6 py-4 hover:bg-[--surface-secondary] transition-colors"
@@ -135,17 +188,13 @@ export default async function NewsPage() {
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="badge bg-[--dark] text-white">{bill.billType} {bill.billNumber}</span>
                         <span className={`badge border ${st.cls}`}>{st.label}</span>
-                        {bill.policyArea && (
-                          <span className="text-xs text-[--text-muted]">{bill.policyArea}</span>
-                        )}
+                        {bill.policyArea && <span className="text-xs text-[--text-muted]">{bill.policyArea}</span>}
                       </div>
                       <h3 className="text-sm font-semibold text-[--text] group-hover:text-[--accent] transition-colors leading-snug mb-1">
                         {bill.shortTitle || bill.title}
                       </h3>
                       {bill.latestActionText && (
-                        <p className="text-xs text-[--text-secondary] line-clamp-2 leading-relaxed">
-                          {bill.latestActionText}
-                        </p>
+                        <p className="text-xs text-[--text-secondary] line-clamp-2 leading-relaxed">{bill.latestActionText}</p>
                       )}
                       {bill.latestActionDate && (
                         <p className="text-xs text-[--text-muted] mt-1.5 flex items-center gap-1">
@@ -201,7 +250,45 @@ export default async function NewsPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Trending Bills */}
+
+          {/* Most Viewed on Congress.gov */}
+          {mostViewedBills.length > 0 && (
+            <div className="card overflow-hidden">
+              <div className="px-6 py-4 border-b border-[--border] flex items-center gap-2">
+                <Eye className="w-4 h-4 text-sky-500" />
+                <h2 className="font-display text-sm font-bold text-[--text]">Most Viewed on Congress.gov</h2>
+              </div>
+              <div className="divide-y divide-[--border]">
+                {mostViewedBills.map((bill, i) => {
+                  const st = STATUS_LABELS[bill.status] || STATUS_LABELS.introduced
+                  return (
+                    <Link key={bill.id} href={`/bills/${bill.id}`}
+                      className="group flex items-start gap-3 px-6 py-4 hover:bg-[--surface-secondary] transition-colors"
+                    >
+                      <span className="font-display text-base font-extrabold text-[--text-muted] mt-0.5 w-5 text-center shrink-0">{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-[--text] group-hover:text-[--accent] transition-colors line-clamp-2 leading-snug">
+                          {bill.shortTitle || bill.title}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="text-xs text-[--text-muted]">{bill.billType} {bill.billNumber}</span>
+                          <span className={`badge border ${st.cls} text-[10px]`}>{st.label}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+              <div className="px-6 py-3 border-t border-[--border]">
+                <a href="https://www.congress.gov/most-viewed-bills" target="_blank" rel="noopener noreferrer"
+                  className="text-xs font-semibold text-[--accent] hover:text-[--accent-hover] transition-colors flex items-center gap-1">
+                  View full list on Congress.gov →
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Most Active on Platform */}
           <div className="card overflow-hidden">
             <div className="px-6 py-4 border-b border-[--border] flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-emerald-500" />
@@ -214,9 +301,7 @@ export default async function NewsPage() {
                 <Link key={bill.id} href={`/bills/${bill.id}`}
                   className="group flex items-start gap-3 px-6 py-4 hover:bg-[--surface-secondary] transition-colors"
                 >
-                  <span className="font-display text-base font-extrabold text-[--text-muted] mt-0.5 w-5 text-center shrink-0">
-                    {i + 1}
-                  </span>
+                  <span className="font-display text-base font-extrabold text-[--text-muted] mt-0.5 w-5 text-center shrink-0">{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-[--text] group-hover:text-[--accent] transition-colors line-clamp-2 leading-snug">
                       {bill.shortTitle || bill.title}
@@ -235,8 +320,8 @@ export default async function NewsPage() {
               )}
             </div>
             <div className="px-6 py-3 border-t border-[--border]">
-              <Link href="/bills" className="text-xs font-semibold text-[--accent] hover:text-[--accent-hover] transition-colors">
-                Browse all bills
+              <Link href="/bills?sort=most_voted" className="text-xs font-semibold text-[--accent] hover:text-[--accent-hover] transition-colors">
+                Browse all bills →
               </Link>
             </div>
           </div>
@@ -246,10 +331,10 @@ export default async function NewsPage() {
             <h3 className="font-display text-sm font-bold text-[--text] mb-3">Quick links</h3>
             <div className="space-y-2">
               {[
-                { href: '/bills', label: 'All bills', desc: 'Browse and vote on legislation' },
-                { href: '/policy-areas', label: 'Policy areas', desc: 'Bills organized by topic' },
-                { href: '/dashboard', label: 'Your dashboard', desc: 'Civic score and activity' },
-                { href: '/about', label: 'About', desc: 'Our mission and principles' },
+                { href: '/bills',              label: 'All bills',         desc: 'Browse and vote on legislation' },
+                { href: '/bills?groupBy=policy', label: 'By policy area',  desc: 'Bills organized by topic' },
+                { href: '/bills?recent=1',     label: 'Moving this week',  desc: 'Bills with recent action' },
+                { href: '/my-representatives', label: 'Your reps',         desc: 'Alignment scorecard' },
               ].map(link => (
                 <Link key={link.href} href={link.href}
                   className="flex items-center justify-between p-3 bg-[--surface-secondary] rounded-lg hover:bg-[--surface-tertiary] transition-colors group"
