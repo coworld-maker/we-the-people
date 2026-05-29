@@ -19,6 +19,7 @@ import YourImpact from '@/components/dashboard/YourImpact'
 import PersonalizedBills from '@/components/dashboard/PersonalizedBills'
 import WelcomeGuide from '@/components/ui/WelcomeGuide'
 import FadeIn from '@/components/ui/FadeIn'
+import MovingThisWeek from '@/components/dashboard/MovingThisWeek'
 
 export default async function DashboardPage() {
   const { userId: clerkUserId } = await auth()
@@ -27,10 +28,27 @@ export default async function DashboardPage() {
   const user = await UserService.getCurrentUser()
   if (!user) redirect('/sign-in')
 
-  const [profile, billsForYou, activityFeed] = await Promise.all([
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+  const [profile, billsForYou, activityFeed, movingBills, followedActiveCount] = await Promise.all([
     GamificationService.getCivicProfile(user.id),
     GamificationService.getBillsForYou(user.id, 5),
     GamificationService.getActivityFeed(15),
+    prisma.bill.findMany({
+      where: { latestActionDate: { gte: sevenDaysAgo } },
+      orderBy: { latestActionDate: 'desc' },
+      take: 6,
+      select: {
+        id: true, title: true, shortTitle: true, status: true,
+        latestActionDate: true, latestActionText: true, policyArea: true,
+      },
+    }),
+    prisma.billFollow.count({
+      where: {
+        userId: user.id,
+        bill: { latestActionDate: { gte: sevenDaysAgo } },
+      },
+    }),
   ])
 
   const earnedBadges = profile.badges.filter(b => b.earned).length
@@ -119,6 +137,12 @@ export default async function DashboardPage() {
                 <Link href="/bills" className="btn-primary mt-4 text-sm">
                   Cast your first vote <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
+              ) : followedActiveCount > 0 ? (
+                <Link href="/bills" className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-lg bg-amber-400/20 border border-amber-400/30 text-amber-200 text-sm font-semibold hover:bg-amber-400/30 transition-colors">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                  {followedActiveCount} bill{followedActiveCount > 1 ? 's' : ''} you follow moved this week
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               ) : (
                 <Link href="/my-representatives" className="inline-flex items-center gap-1.5 mt-4 text-sm text-white/80 hover:text-white font-medium transition-colors underline underline-offset-2">
                   See how you compare to your reps <ArrowRight className="w-3.5 h-3.5" />
@@ -152,6 +176,13 @@ export default async function DashboardPage() {
           ))}
         </div>
       </FadeIn>
+
+      {/* Moving this week — time-sensitive hook */}
+      {movingBills.length > 0 && (
+        <FadeIn delay={0.12}>
+          <MovingThisWeek bills={movingBills} />
+        </FadeIn>
+      )}
 
       {/* Row 1: Impact donut + Tracked Bills */}
       <FadeIn delay={0.15}>
