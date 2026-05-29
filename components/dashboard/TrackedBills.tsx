@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
+import CollapsibleCard from '@/components/ui/CollapsibleCard'
 
 interface TrackedBill {
   id: string
@@ -37,12 +38,13 @@ const VOTE_DISPLAY: Record<string, { label: string; cls: string }> = {
 
 export default function TrackedBills({ bills }: { bills: TrackedBill[] }) {
   return (
-    <div className="card overflow-hidden">
-      <div className="px-6 py-4 border-b border-[--border] flex items-center justify-between">
-        <h2 className="font-display text-base font-bold text-[--text]">Tracked Bills</h2>
-        <span className="text-sm text-[--text-muted]">{bills.length} active</span>
-      </div>
-
+    <CollapsibleCard
+      storageKey="tracked-bills"
+      title="Tracked Bills"
+      headerRight={
+        <span className="text-xs text-[--text-muted]">{bills.length} active</span>
+      }
+    >
       {bills.length === 0 ? (
         <div className="px-6 py-8 text-center">
           <p className="text-sm text-[--text-muted]">No votes yet. Browse bills to start tracking.</p>
@@ -51,45 +53,41 @@ export default function TrackedBills({ bills }: { bills: TrackedBill[] }) {
           </Link>
         </div>
       ) : (
-        <div className="divide-y divide-[--border]">
-          {bills.map(bill => {
-            const borderColor = STATUS_COLORS[bill.status] || 'bg-gray-400'
-            const statusLabel = STATUS_LABELS[bill.status] || bill.status
-            const vote = VOTE_DISPLAY[bill.position] || VOTE_DISPLAY.abstain
+        <>
+          <div className="divide-y divide-[--border]">
+            {bills.map(bill => {
+              const borderColor = STATUS_COLORS[bill.status] || 'bg-gray-400'
+              const statusLabel = STATUS_LABELS[bill.status] || bill.status
+              const vote = VOTE_DISPLAY[bill.position] || VOTE_DISPLAY.abstain
 
-            return (
-              <Link key={bill.id} href={`/bills/${bill.id}`}
-                className="flex items-stretch hover:bg-[--surface-secondary] transition-colors group"
-              >
-                {/* Color bar */}
-                <div className={`w-1 ${borderColor} shrink-0`} />
-
-                <div className="flex-1 px-5 py-4 min-w-0">
-                  <h3 className="text-sm font-semibold text-[--text] group-hover:text-[--accent] transition-colors leading-snug mb-1 line-clamp-1">
-                    {bill.shortTitle || bill.title}
-                  </h3>
-                  <p className="text-xs text-[--text-muted] mb-1">Status: {statusLabel}</p>
-                  <p className="text-xs">
-                    Your vote: <span className={vote.cls}>{vote.label}</span>
-                  </p>
-                </div>
-
-                <div className="flex items-center pr-4">
-                  <ChevronRight className="w-4 h-4 text-[--text-muted] group-hover:text-[--accent] transition-colors" />
-                </div>
-              </Link>
-            )
-          })}
-        </div>
+              return (
+                <Link key={bill.id} href={`/bills/${bill.id}`}
+                  className="flex items-stretch hover:bg-[--surface-secondary] transition-colors group"
+                >
+                  <div className={`w-1 ${borderColor} shrink-0`} />
+                  <div className="flex-1 px-5 py-4 min-w-0">
+                    <h3 className="text-sm font-semibold text-[--text] group-hover:text-[--accent] transition-colors leading-snug mb-1 line-clamp-1">
+                      {bill.shortTitle || bill.title}
+                    </h3>
+                    <p className="text-xs text-[--text-muted] mb-1">Status: {statusLabel}</p>
+                    <p className="text-xs">
+                      Your vote: <span className={vote.cls}>{vote.label}</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center pr-4">
+                    <ChevronRight className="w-4 h-4 text-[--text-muted] group-hover:text-[--accent] transition-colors" />
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+          <div className="px-6 py-3 border-t border-[--border]">
+            <Link href="/bills" className="text-xs font-semibold text-[--accent] hover:text-[--accent-hover] transition-colors">
+              View all bills →
+            </Link>
+          </div>
+        </>
       )}
-
-      {bills.length > 0 && (
-        <div className="px-6 py-3 border-t border-[--border]">
-          <Link href="/bills" className="text-xs font-semibold text-[--accent] hover:text-[--accent-hover] transition-colors">
-            View all bills →
-          </Link>
-        </div>
-      )}
-    </div>
+    </CollapsibleCard>
   )
 }

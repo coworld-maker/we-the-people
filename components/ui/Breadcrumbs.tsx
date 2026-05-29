@@ -17,6 +17,8 @@ const LABEL_MAP: Record<string, string> = {
   transparency: 'Transparency',
   news: 'News',
   about: 'About',
+  elections: 'Elections',
+  'state-bills': 'State Legislature',
 }
 
 export default function Breadcrumbs() {

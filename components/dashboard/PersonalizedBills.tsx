@@ -375,17 +375,17 @@ export default function PersonalizedBills() {
     setInterests(merged)
   }
 
-  // Avoid flash of poll before localStorage is read
+  // Don't render anything until localStorage is read (instant after hydration)
   if (!loaded) return null
 
   // User explicitly skipped — don't show anything
   if (skipped) return null
 
-  // Interests saved → show recommended bills
+  // Interests saved → show recommended bills inline
   if (interests.length > 0) {
     return <BillsList interests={interests} onReset={handleReset} onAdd={handleAdd} />
   }
 
-  // No interests yet → show poll
+  // No interests yet → show as a modal overlay (no layout shift, immediately visible)
   return <PollCard onSave={handleSave} />
 }

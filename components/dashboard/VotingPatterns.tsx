@@ -1,5 +1,7 @@
 'use client'
 
+import CollapsibleCard from '@/components/ui/CollapsibleCard'
+
 interface PolicyData {
   area: string
   userPct: number
@@ -14,14 +16,11 @@ interface Props {
 export default function VotingPatterns({ data, reps }: Props) {
   if (data.length === 0) {
     return (
-      <div className="card overflow-hidden">
-        <div className="px-6 py-4 border-b border-[--border]">
-          <h2 className="font-display text-base font-bold text-[--text]">Your Voting Patterns</h2>
-        </div>
+      <CollapsibleCard storageKey="voting-patterns" title="Your Voting Patterns">
         <div className="px-6 py-8 text-center">
           <p className="text-sm text-[--text-muted]">Vote on bills across different policy areas to see patterns.</p>
         </div>
-      </div>
+      </CollapsibleCard>
     )
   }
 
@@ -41,10 +40,7 @@ export default function VotingPatterns({ data, reps }: Props) {
   const yTicks = [0, 20, 40, 60, 80, 100]
 
   return (
-    <div className="card overflow-hidden">
-      <div className="px-6 py-4 border-b border-[--border]">
-        <h2 className="font-display text-base font-bold text-[--text]">Your Voting Patterns</h2>
-      </div>
+    <CollapsibleCard storageKey="voting-patterns" title="Your Voting Patterns">
       <div className="p-5">
         {/* Legend */}
         <div className="flex flex-wrap gap-4 mb-4">
@@ -136,6 +132,6 @@ export default function VotingPatterns({ data, reps }: Props) {
             stroke="var(--border)" strokeWidth={1} />
         </svg>
       </div>
-    </div>
+    </CollapsibleCard>
   )
 }

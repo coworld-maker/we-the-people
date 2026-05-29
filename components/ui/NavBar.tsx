@@ -9,6 +9,7 @@ import {
   Users, BarChart3, ClipboardList,
   Landmark, GraduationCap,
   Newspaper, Info, MessageSquare, ExternalLink,
+  Vote, MapPin,
 } from 'lucide-react'
 
 // ── Nav structure ────────────────────────────────────────────────────────────
@@ -30,9 +31,10 @@ const NAV_ITEMS: NavItem[] = [
   {
     kind: 'group', label: 'Legislation', icon: FileText,
     items: [
-      { href: '/bills',         icon: FileText,   label: 'All Bills' },
-      { href: '/policy-areas',  icon: Grid3X3,    label: 'Policy Areas' },
-      { href: '/documents',     icon: ScrollText, label: 'Documents' },
+      { href: '/bills',        icon: FileText,   label: 'Federal Bills' },
+      { href: '/state-bills',  icon: Landmark,   label: 'State Legislature' },
+      { href: '/policy-areas', icon: Grid3X3,    label: 'Policy Areas' },
+      { href: '/documents',    icon: ScrollText, label: 'Documents' },
     ],
   },
   {
@@ -54,8 +56,9 @@ const NAV_ITEMS: NavItem[] = [
         : []),
     ],
   },
-  { kind: 'link', href: '/news',  icon: Newspaper, label: 'News' },
-  { kind: 'link', href: '/about', icon: Info,      label: 'About' },
+  { kind: 'link', href: '/elections', icon: Vote,     label: 'Elections' },
+  { kind: 'link', href: '/news',      icon: Newspaper, label: 'News' },
+  { kind: 'link', href: '/about',     icon: Info,      label: 'About' },
 ]
 
 // ── Component ────────────────────────────────────────────────────────────────

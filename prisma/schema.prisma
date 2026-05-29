@@ -39,6 +39,7 @@ model User {
   discussions   Discussion[]
   notifications Notification[]
   auditLogs     AuditLog[]
+  billFollows   BillFollow[]
 }
 
 // ---------------------------------------------------------------------------
@@ -75,6 +76,7 @@ model Bill {
   discussions   Discussion[]
   impacts       Impact[]
   prosCons      ProCon[]
+  billFollows   BillFollow[]
   congressVotes CongressVote[]
   notifications Notification[]
 
@@ -153,6 +155,23 @@ model Impact {
   updatedAt        DateTime @updatedAt
 
   bill Bill @relation(fields: [billId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// BillFollow — users following a bill for status-change notifications
+// ---------------------------------------------------------------------------
+model BillFollow {
+  id        String   @id @default(cuid())
+  userId    String
+  billId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, billId])
+  @@index([userId])
+  @@index([billId])
 }
 
 // ---------------------------------------------------------------------------
