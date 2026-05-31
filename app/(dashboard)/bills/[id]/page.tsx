@@ -191,7 +191,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
                   communityStats={{ yesCount: stats.yesCount, noCount: stats.noCount, abstainCount: stats.abstainCount, totalVotes }}
                 />
               </div>
-              <CitizenImpact totalVotes={totalVotes} billId={bill.id} />
+              <CitizenImpact totalVotes={totalVotes} />
               <RepVotesOnBill
                 billId={bill.id}
                 userState={user.state ?? null}
