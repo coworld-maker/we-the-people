@@ -10,16 +10,17 @@ export async function GET() {
   const user = await UserService.getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const notifications = await prisma.notification.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: 'desc' },
-    take: 20,
-    include: {
-      bill: { select: { id: true, shortTitle: true, title: true } },
-    },
-  })
-
-  const unreadCount = notifications.filter(n => !n.read).length
+  const [notifications, unreadCount] = await Promise.all([
+    prisma.notification.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      include: {
+        bill: { select: { id: true, shortTitle: true, title: true } },
+      },
+    }),
+    prisma.notification.count({ where: { userId: user.id, read: false } }),
+  ])
 
   return NextResponse.json({ notifications, unreadCount })
 }

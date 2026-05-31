@@ -9,6 +9,15 @@
 const FROM = 'Democracy Unlocked <updates@democracyunlocked.com>'
 const RESEND_URL = 'https://api.resend.com/emails'
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export interface EmailPayload {
   to: string | string[]
   subject: string
@@ -82,8 +91,9 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 function billRow(bill: DigestBill): string {
-  const name = bill.shortTitle || bill.title
-  const status = STATUS_LABEL[bill.status] || 'Updated'
+  const name = escapeHtml(bill.shortTitle || bill.title)
+  const status = escapeHtml(STATUS_LABEL[bill.status] || 'Updated')
+  const url = encodeURI(bill.url)
   const date = bill.latestActionDate
     ? new Date(bill.latestActionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : ''
@@ -91,14 +101,14 @@ function billRow(bill: DigestBill): string {
   return `
     <tr>
       <td style="padding:12px 0;border-bottom:1px solid #e5e7eb;">
-        <a href="${bill.url}" style="font-weight:600;color:#2563eb;text-decoration:none;font-size:14px;line-height:1.4;">${name}</a>
+        <a href="${url}" style="font-weight:600;color:#2563eb;text-decoration:none;font-size:14px;line-height:1.4;">${name}</a>
         <div style="margin-top:4px;font-size:12px;color:#6b7280;">
           <span style="display:inline-block;background:#dbeafe;color:#1d4ed8;padding:1px 8px;border-radius:9999px;font-weight:600;">
             ${status}
           </span>
-          ${date ? `<span style="margin-left:8px;">${date}</span>` : ''}
+          ${date ? `<span style="margin-left:8px;">${escapeHtml(date)}</span>` : ''}
         </div>
-        ${bill.latestActionText ? `<div style="margin-top:4px;font-size:12px;color:#9ca3af;line-height:1.4;">${bill.latestActionText}</div>` : ''}
+        ${bill.latestActionText ? `<div style="margin-top:4px;font-size:12px;color:#9ca3af;line-height:1.4;">${escapeHtml(bill.latestActionText)}</div>` : ''}
       </td>
     </tr>`
 }

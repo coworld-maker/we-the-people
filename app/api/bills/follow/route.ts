@@ -28,22 +28,33 @@ export async function POST(req: Request) {
   const user = await UserService.getCurrentUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { billId } = await req.json()
+  let billId: string
+  try {
+    const body = await req.json()
+    billId = body?.billId
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
   if (!billId) return NextResponse.json({ error: 'billId required' }, { status: 400 })
 
-  const existing = await (prisma as any).billFollow.findUnique({
-    where: { userId_billId: { userId: user.id, billId } },
-  })
-
-  if (existing) {
-    await (prisma as any).billFollow.delete({
+  try {
+    const existing = await (prisma as any).billFollow.findUnique({
       where: { userId_billId: { userId: user.id, billId } },
     })
-    return NextResponse.json({ following: false })
-  } else {
-    await (prisma as any).billFollow.create({
-      data: { userId: user.id, billId },
-    })
-    return NextResponse.json({ following: true })
+
+    if (existing) {
+      await (prisma as any).billFollow.delete({
+        where: { userId_billId: { userId: user.id, billId } },
+      })
+      return NextResponse.json({ following: false })
+    } else {
+      await (prisma as any).billFollow.create({
+        data: { userId: user.id, billId },
+      })
+      return NextResponse.json({ following: true })
+    }
+  } catch (e) {
+    console.error('[follow] DB error:', e)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }

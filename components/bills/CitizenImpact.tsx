@@ -1,11 +1,7 @@
-'use client'
-
 import { Users, MessageSquare, TrendingUp, ArrowRight } from 'lucide-react'
-import Link from 'next/link'
 
 interface Props {
   totalVotes: number
-  billId: string
 }
 
 const STEPS = [
@@ -22,15 +18,11 @@ const STEPS = [
   {
     icon: MessageSquare,
     title: 'Your voice on the record',
-    body: 'Contact your rep directly — one constituent call can shift a staffer\'s priority list.',
+    body: "Contact your rep directly — one constituent call can shift a staffer's priority list.",
   },
 ]
 
-function plural(n: number, word: string) {
-  return `${n.toLocaleString()} ${word}${n === 1 ? '' : 's'}`
-}
-
-export default function CitizenImpact({ totalVotes, billId }: Props) {
+export default function CitizenImpact({ totalVotes }: Props) {
   return (
     <div className="card overflow-hidden">
       {/* Header */}
@@ -92,18 +84,18 @@ export default function CitizenImpact({ totalVotes, billId }: Props) {
           </p>
         </div>
 
-        {/* CTA */}
-        <Link
+        {/* CTA — scrolls to the VotingPanel */}
+        <a
           href="#vote"
-          className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-[--accent] text-white text-xs font-semibold hover:bg-[--accent-dark] transition-colors"
           onClick={e => {
             e.preventDefault()
             document.querySelector('#vote')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
           }}
+          className="flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-[--accent] text-white text-xs font-semibold hover:bg-[--accent-dark] transition-colors"
         >
           Cast your vote
           <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
+        </a>
       </div>
     </div>
   )

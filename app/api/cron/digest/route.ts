@@ -15,7 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { UserService } from '@/lib/services/userService'
+import { EncryptionService } from '@/lib/security/encryption'
 import { sendEmail, buildDigestHtml } from '@/lib/email'
 
 const CRON_SECRET = process.env.CRON_SECRET
@@ -32,7 +32,6 @@ function checkAuth(req: NextRequest): boolean {
 
 function decryptEmail(user: { emailEncrypted: string; emailIv: string; emailTag: string }): string | null {
   try {
-    const { EncryptionService } = require('@/lib/security/encryption') as typeof import('@/lib/security/encryption')
     return EncryptionService.decrypt({
       encrypted: user.emailEncrypted,
       iv: user.emailIv,
@@ -86,30 +85,23 @@ export async function GET(req: NextRequest) {
     },
   })
 
-  let sent = 0
-  let skipped = 0
-
-  for (const user of users) {
+  // Build per-user send tasks, skipping anyone with no email or nothing to say
+  async function sendToUser(user: (typeof users)[number]): Promise<'sent' | 'skipped'> {
     const email = decryptEmail(user)
-    if (!email) { skipped++; continue }
+    if (!email) return 'skipped'
 
     const followedBills = user.billFollows
       .map(f => f.bill)
       .filter(Boolean)
-      .map(b => ({
-        ...b!,
-        url: `${BASE_URL}/bills/${b!.id}`,
-      }))
+      .map(b => ({ ...b!, url: `${BASE_URL}/bills/${b!.id}` }))
 
-    // Trending bills not already in followed
     const followedIds = new Set(followedBills.map(b => b.id))
     const trending = trendingBills
       .filter(b => !followedIds.has(b.id))
       .slice(0, 3)
       .map(b => ({ ...b, url: `${BASE_URL}/bills/${b.id}` }))
 
-    // Skip if nothing to say
-    if (followedBills.length === 0 && trending.length === 0) { skipped++; continue }
+    if (followedBills.length === 0 && trending.length === 0) return 'skipped'
 
     const html = buildDigestHtml({
       firstName: user.firstName || '',
@@ -126,8 +118,21 @@ export async function GET(req: NextRequest) {
       html,
     })
 
-    if (ok) sent++
-    else skipped++
+    return ok ? 'sent' : 'skipped'
+  }
+
+  // Send in batches of 10 to stay well under Vercel's timeout
+  const BATCH = 10
+  let sent = 0
+  let skipped = 0
+
+  for (let i = 0; i < users.length; i += BATCH) {
+    const batch = users.slice(i, i + BATCH)
+    const results = await Promise.allSettled(batch.map(sendToUser))
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value === 'sent') sent++
+      else skipped++
+    }
   }
 
   return NextResponse.json({

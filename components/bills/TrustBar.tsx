@@ -1,11 +1,11 @@
 import { Database, Bot, Scale, Briefcase } from 'lucide-react'
 
 interface Props {
-  lastSyncedAt?: string | null
+  lastActionDate?: string | null
   lobbyingFirmCount?: number | null
 }
 
-export default function TrustBar({ lastSyncedAt, lobbyingFirmCount }: Props) {
+export default function TrustBar({ lastActionDate, lobbyingFirmCount }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 rounded-xl bg-[--surface] border border-[--border] text-[11px] text-[--text-muted] mb-4">
       {/* Source */}
@@ -21,7 +21,7 @@ export default function TrustBar({ lastSyncedAt, lobbyingFirmCount }: Props) {
           >
             Congress.gov API
           </a>
-          {lastSyncedAt ? ` · synced ${new Date(lastSyncedAt).toLocaleDateString()}` : ''}
+          {lastActionDate ? ` · last action ${new Date(lastActionDate).toLocaleDateString()}` : ''}
         </span>
       </span>
 

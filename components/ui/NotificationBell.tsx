@@ -62,7 +62,7 @@ export default function NotificationBell() {
     if (!open && unread > 0) markAllRead()
   }
 
-  if (!loaded) return null
+  if (!loaded) return <div className="w-9 h-9" aria-hidden />
 
   return (
     <div className="relative" ref={ref}>

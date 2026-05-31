@@ -125,7 +125,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
       )}
 
       <TrustBar
-        lastSyncedAt={(bill as any).latestActionDate?.toISOString() ?? null}
+        lastActionDate={(bill as any).latestActionDate?.toISOString() ?? null}
         lobbyingFirmCount={(bill as any).lobbyingFirmCount ?? null}
       />
 
@@ -230,7 +230,11 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
             </div>
           )}
 
+<<<<<<< HEAD
           <LobbyingPanel bill={bill} />
+=======
+          <CitizenImpact totalVotes={totalVotes} />
+>>>>>>> bc229f4 (Apply code review fixes: correctness, security, and cleanup)
 
           {/* Vote stats (always visible) */}
           <div className="card overflow-hidden">
