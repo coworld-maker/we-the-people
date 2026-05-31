@@ -230,11 +230,8 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
             </div>
           )}
 
-<<<<<<< HEAD
-          <LobbyingPanel bill={bill} />
-=======
           <CitizenImpact totalVotes={totalVotes} />
->>>>>>> bc229f4 (Apply code review fixes: correctness, security, and cleanup)
+          <LobbyingPanel bill={bill} />
 
           {/* Vote stats (always visible) */}
           <div className="card overflow-hidden">
