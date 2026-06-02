@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
   let totalSynced = 0;
   let offset = 0;
   const limit = 250;
+  const seenBioguideIds: string[] = [];
 
   try {
     while (true) {
@@ -60,6 +61,8 @@ export async function POST(req: NextRequest) {
       for (const member of members) {
         const bioguideId = member.bioguideId;
         if (!bioguideId) continue;
+
+        seenBioguideIds.push(bioguideId);
 
         // Congress.gov returns name as "LastName, FirstName" format
         const nameParts = (member.name || '').split(', ');
@@ -112,7 +115,16 @@ export async function POST(req: NextRequest) {
       await new Promise(r => setTimeout(r, 250));
     }
 
-    return NextResponse.json({ success: true, synced: totalSynced });
+    // Retire any members not returned by the API (resigned, died, term ended)
+    const { count: retired } = await prisma.representative.updateMany({
+      where: {
+        currentTerm: true,
+        bioguideId: { notIn: seenBioguideIds },
+      },
+      data: { currentTerm: false, updatedAt: new Date() },
+    });
+
+    return NextResponse.json({ success: true, synced: totalSynced, retired });
   } catch (error) {
     console.error('[sync-representatives] error:', error);
     return NextResponse.json(
