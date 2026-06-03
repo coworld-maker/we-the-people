@@ -136,9 +136,14 @@ export default async function DashboardPage() {
                 )}
               </p>
               {profile.stats.totalVotes === 0 ? (
-                <Link href="/bills" className="btn-primary mt-4 text-sm">
-                  Cast your first vote <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+                <div className="flex items-center gap-3 mt-4 flex-wrap">
+                  <Link href="/bills" className="btn-primary text-sm">
+                    Cast your first vote <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                  <Link href="/get-started" className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white font-medium transition-colors underline underline-offset-2">
+                    New here? See the guide →
+                  </Link>
+                </div>
               ) : repMismatchCount > 0 ? (
                 <Link href="/my-representatives" className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-lg bg-red-400/20 border border-red-400/30 text-red-200 text-sm font-semibold hover:bg-red-400/30 transition-colors">
                   <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse shrink-0" />

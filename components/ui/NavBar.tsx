@@ -7,7 +7,7 @@ import {
   Menu, X, ChevronDown,
   LayoutDashboard, FileText, ScrollText, Grid3X3,
   Users, BarChart3, ClipboardList,
-  Landmark, GraduationCap,
+  Landmark, GraduationCap, BookOpen,
   Newspaper, Info, MessageSquare, ExternalLink,
   Vote, MapPin,
 } from 'lucide-react'
@@ -48,9 +48,10 @@ const NAV_ITEMS: NavItem[] = [
   {
     kind: 'group', label: 'Engage', icon: Landmark,
     items: [
-      { href: '/action-center', icon: Landmark,        label: 'Action Center' },
-      { href: '/learn',         icon: GraduationCap,   label: 'Learn' },
-      { href: '/transparency',  icon: BarChart3,       label: 'Stats' },
+      { href: '/get-started',   icon: GraduationCap,   label: 'Get Started' },
+      { href: '/action-center', icon: Landmark,         label: 'Action Center' },
+      { href: '/learn',         icon: BookOpen,         label: 'Learn' },
+      { href: '/transparency',  icon: BarChart3,        label: 'Stats' },
       ...(FEEDBACK_URL
         ? [{ href: FEEDBACK_URL, icon: MessageSquare, label: 'Share Feedback', external: true } as NavLink]
         : []),
