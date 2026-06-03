@@ -1,3 +1,5 @@
+'use client'
+
 import { Users, MessageSquare, TrendingUp, ArrowRight } from 'lucide-react'
 
 interface Props {
