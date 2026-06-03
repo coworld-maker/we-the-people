@@ -9,6 +9,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   const state = searchParams.get('state')
+  const districtFilter = searchParams.get('district') // optional — filters House members to specific district
 
   if (!state) return NextResponse.json({ error: 'State is required' }, { status: 400 })
 
@@ -47,6 +48,7 @@ export async function GET(request: Request) {
             : member.partyName === 'Democratic' ? 'D'
             : member.partyName?.[0] || 'I',
           state: member.state || state,
+          district: member.district ? String(member.district) : null,
           phone: null,
           website: member.officialWebsiteUrl || member.url || null,
           chamber,
@@ -57,13 +59,21 @@ export async function GET(request: Request) {
       console.error('Congress API error:', res.status)
     }
 
-    representatives.sort((a, b) => {
+    // If a district filter was provided, keep both senators + only the matching House member
+    const filtered = districtFilter
+      ? representatives.filter(r =>
+          r.chamber === 'Senate' ||
+          (r.chamber === 'House' && r.district === districtFilter)
+        )
+      : representatives
+
+    filtered.sort((a, b) => {
       if (a.chamber === 'Senate' && b.chamber !== 'Senate') return -1
       if (a.chamber !== 'Senate' && b.chamber === 'Senate') return 1
       return a.name.localeCompare(b.name)
     })
 
-    return NextResponse.json({ representatives })
+    return NextResponse.json({ representatives: filtered, totalHouseMembers: representatives.filter(r => r.chamber === 'House').length })
   } catch (error: any) {
     console.error('Representative lookup error:', error)
     return NextResponse.json({ error: 'Failed to look up representatives.' }, { status: 500 })

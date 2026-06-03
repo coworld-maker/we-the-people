@@ -20,6 +20,7 @@ import BillImpactMap from '@/components/bills/BillImpactMap'
 import BillTimeline from '@/components/bills/BillTimeline'
 import CitizenImpact from '@/components/bills/CitizenImpact'
 import TrustBar from '@/components/bills/TrustBar'
+import BillTypeBadge from '@/components/bills/BillTypeBadge'
 import RepVotesOnBill from '@/components/bills/RepVotesOnBill'
 
 const SECTIONS = [
@@ -86,7 +87,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
       {/* Header */}
       <div className="hero-gradient rounded-2xl px-5 py-6 sm:px-8 sm:py-7 mb-6">
         <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <span className="badge bg-white/10 text-white border border-white/10">{bill.billType} {bill.billNumber}</span>
+          <BillTypeBadge billType={bill.billType} billNumber={bill.billNumber} className="bg-white/10 text-white border border-white/10" />
           <span className={`badge border ${st.cls}`}>{st.label}</span>
           {bill.policyArea && <span className="badge bg-[--accent]/20 text-[--accent-light] border border-[--accent]/20">{bill.policyArea}</span>}
           <span className="badge bg-white/5 text-white/60 border border-white/10">{bill.congress}th Congress</span>

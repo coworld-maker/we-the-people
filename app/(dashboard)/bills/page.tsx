@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import { ChevronRight, FileText, Calendar, Vote as VoteIcon, MapPin, Users } from 'lucide-react'
 import BillFilters from '@/components/bills/BillFilters'
+import BillTypeBadge from '@/components/bills/BillTypeBadge'
 
 // Per-policy-area accent palette — used for section headers in the grouped view
 // 6 semantic color groups instead of 18 one-offs — reduces badge noise on list pages
@@ -66,7 +67,7 @@ function BillCard({ bill, userState, showPolicyBadge = true }: {
     <Link href={`/bills/${bill.id}`} className="group card-interactive flex items-center gap-4 p-5">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-          <span className="badge bg-[--dark] text-white">{bill.billType} {bill.billNumber}</span>
+          <BillTypeBadge billType={bill.billType} billNumber={bill.billNumber} />
           <span className={`badge border ${st.cls}`}>{st.label}</span>
           {showPolicyBadge && bill.policyArea && (
             <span className="badge bg-[--accent-light] text-[--accent]">{bill.policyArea}</span>
