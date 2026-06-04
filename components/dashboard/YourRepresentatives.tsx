@@ -193,45 +193,51 @@ export default function YourRepresentatives({ userState }: { userState?: string 
         </div>
       )}
 
-      {/* Zip → district finder */}
+      {/* Zip → district finder — always visible once state is selected */}
       {state && (
-        <div className="px-5 py-3 border-b border-[--border] bg-[--surface-secondary]/40">
+        <div className="px-5 py-3.5 border-b border-[--border] bg-blue-50/60">
+          <div className="flex items-center gap-1.5 mb-2">
+            <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+            <p className="text-xs font-semibold text-blue-900">Find your specific district</p>
+          </div>
           {district ? (
             <div className="flex items-center justify-between">
-              <p className="text-xs text-[--text-secondary]">
-                Showing reps for <span className="font-semibold text-[--text]">{state} District {district}</span>
+              <p className="text-xs text-blue-800">
+                ✓ Showing reps for <span className="font-bold">{state} District {district}</span>
               </p>
-              <button onClick={clearDistrict} className="text-[10px] text-[--text-muted] hover:text-[--accent] flex items-center gap-1 transition-colors">
+              <button onClick={clearDistrict} className="text-[10px] text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors font-medium">
                 <X className="w-3 h-3" /> Show all {state} reps
               </button>
             </div>
           ) : (
             <div>
-              <p className="text-xs text-[--text-muted] mb-2">
-                {totalHouse > 1 ? `Showing all ${totalHouse} House members for ${state}. ` : ''}
-                <span className="font-medium text-[--text]">Enter your zip to find your specific district rep.</span>
+              <p className="text-xs text-blue-700 mb-2">
+                Enter your zip code to see just <strong>your</strong> House representative — not all {totalHouse > 1 ? totalHouse : ''} members for {state}.
               </p>
               <div className="flex gap-2">
                 <input
                   type="text"
                   inputMode="numeric"
                   maxLength={5}
-                  placeholder="Your zip code"
+                  placeholder="5-digit zip code (e.g. 30301)"
                   value={zipInput}
                   onChange={e => { setZipInput(e.target.value.replace(/\D/g, '')); setZipError('') }}
                   onKeyDown={e => e.key === 'Enter' && lookupDistrict()}
-                  className="flex-1 text-xs px-3 py-1.5 rounded-lg border border-[--border] bg-[--surface] text-[--text] placeholder-[--text-muted] focus:outline-none focus:ring-1 focus:ring-[--accent]"
+                  className="flex-1 text-xs px-3 py-2 rounded-lg border border-blue-200 bg-white text-[--text] placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <button
                   onClick={lookupDistrict}
                   disabled={zipLoading}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[--accent] text-white text-xs font-semibold hover:bg-[--accent-dark] transition-colors disabled:opacity-60"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
                 >
-                  {zipLoading ? <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" /> : <Search className="w-3 h-3" />}
-                  Find
+                  {zipLoading
+                    ? <span className="w-3 h-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                    : <Search className="w-3 h-3" />
+                  }
+                  Find my rep
                 </button>
               </div>
-              {zipError && <p className="text-[10px] text-red-500 mt-1">{zipError}</p>}
+              {zipError && <p className="text-[10px] text-red-600 mt-1.5 font-medium">{zipError}</p>}
             </div>
           )}
         </div>
