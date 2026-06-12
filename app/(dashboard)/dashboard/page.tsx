@@ -157,7 +157,7 @@ export default async function DashboardPage() {
                   <Link href={firstVoteHref} className="btn-primary text-sm">
                     Cast your first vote — takes a minute <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
-                  <Link href="/get-started" className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white font-medium transition-colors underline underline-offset-2">
+                  <Link href="/get-started?from=hero" className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white font-medium transition-colors underline underline-offset-2">
                     New here? See the guide →
                   </Link>
                 </div>

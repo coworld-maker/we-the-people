@@ -270,3 +270,19 @@ model AuditLog {
 
   user User? @relation(fields: [userId], references: [id])
 }
+
+// ---------------------------------------------------------------------------
+// AnalyticsEvent — anonymous product instrumentation (nav clicks, search
+// usage, page views). sessionId present only with functional cookie consent.
+// ---------------------------------------------------------------------------
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  event     String
+  path      String?
+  device    String?
+  sessionId String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([event, createdAt])
+}

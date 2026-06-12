@@ -16,6 +16,7 @@ import {
   Search, FileText, Users, Grid3X3, CornerDownLeft,
   LayoutDashboard, Landmark, Loader2,
 } from 'lucide-react'
+import { track } from '@/lib/track'
 
 interface Result {
   label: string
@@ -64,7 +65,18 @@ export default function CommandPalette() {
       ]
     : QUICK_LINKS.map(r => ({ ...r, group: 'Go to' }))
 
+  const selectedRef = useRef(false)
+  const queryRef = useRef('')
+
   const close = useCallback(() => {
+    // Abandoned search: closed with a real query and no selection —
+    // these queries are what users expected to find and didn't
+    const q = queryRef.current.trim()
+    if (!selectedRef.current && q.length >= 2) {
+      track('search_abandon', { query: q.slice(0, 80) })
+    }
+    selectedRef.current = false
+    queryRef.current = ''
     setOpen(false)
     setQuery('')
     setResults(null)
@@ -76,10 +88,16 @@ export default function CommandPalette() {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
-        setOpen(o => !o)
+        setOpen(o => {
+          if (!o) track('search_open', { source: 'shortcut' })
+          return !o
+        })
       }
     }
-    function onOpenEvent() { setOpen(true) }
+    function onOpenEvent() {
+      track('search_open', { source: 'header' })
+      setOpen(true)
+    }
     window.addEventListener('keydown', onKey)
     window.addEventListener('open-command-palette', onOpenEvent)
     return () => {
@@ -122,7 +140,13 @@ export default function CommandPalette() {
     return () => clearTimeout(t)
   }, [query])
 
-  function select(item: Result) {
+  function select(item: Result & { group?: string }) {
+    selectedRef.current = true
+    track('search_select', {
+      query: query.trim().slice(0, 80),
+      href: item.href,
+      group: item.group ?? null,
+    })
     close()
     router.push(item.href)
   }
@@ -184,7 +208,7 @@ export default function CommandPalette() {
             aria-activedescendant={flat[activeIndex] ? `palette-option-${activeIndex}` : undefined}
             placeholder="Search bills, representatives, topics…"
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => { queryRef.current = e.target.value; setQuery(e.target.value) }}
             onKeyDown={onInputKeyDown}
             className="flex-1 py-3.5 text-sm bg-transparent text-[--text] placeholder-[--text-muted] focus:outline-none"
           />

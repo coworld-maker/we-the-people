@@ -23,6 +23,7 @@ import TrustBar from '@/components/bills/TrustBar'
 import BillTypeBadge from '@/components/bills/BillTypeBadge'
 import RepVotesOnBill from '@/components/bills/RepVotesOnBill'
 import RelatedBills from '@/components/bills/RelatedBills'
+import PageViewTracker from '@/components/ui/PageViewTracker'
 
 const SECTIONS = [
   { id: 'timeline',   label: 'Timeline' },
@@ -81,6 +82,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div>
+      <PageViewTracker page="bill_detail" />
       <Link href="/bills" className="inline-flex items-center gap-1 text-sm text-[--text-muted] hover:text-[--accent] font-medium mb-6 transition-colors">
         <ArrowLeft className="w-3.5 h-3.5" /> Bills
       </Link>

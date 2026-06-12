@@ -25,7 +25,7 @@ const ACTIONS = [
     featured: true,
   },
   {
-    href: '/get-started',
+    href: '/get-started?from=act-hub',
     icon: GraduationCap,
     title: 'New here? Start with the guide',
     desc: 'How the app works, how a bill becomes law, and how to find your district — in plain English.',

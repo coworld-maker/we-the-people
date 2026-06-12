@@ -9,6 +9,7 @@ import {
   Users, BarChart3, ClipboardList,
   Landmark, Newspaper, Megaphone, GraduationCap,
 } from 'lucide-react'
+import { track } from '@/lib/track'
 
 // ── Nav structure ────────────────────────────────────────────────────────────
 // Task-based IA (Track/Know/Act, Jun 2026 — see docs/passdowns/2026-06-12-nav-overhaul.md):
@@ -45,7 +46,7 @@ const NAV_ITEMS: NavItem[] = [
     ],
   },
   { kind: 'link', href: '/act', icon: Megaphone, label: 'Act' },
-  { kind: 'link', href: '/get-started', icon: GraduationCap, label: 'Get Started' },
+  { kind: 'link', href: '/get-started?from=nav', icon: GraduationCap, label: 'Get Started' },
 ]
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -80,7 +81,8 @@ export default function NavBar() {
   }, [])
 
   function isActive(href: string) {
-    return pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+    const path = href.split('?')[0]
+    return pathname === path || (path !== '/dashboard' && pathname.startsWith(path))
   }
   function isGroupActive(group: NavGroup) {
     return group.items.some(i => isActive(i.href))
@@ -113,6 +115,7 @@ export default function NavBar() {
               href={item.href}
               aria-current={active ? 'page' : undefined}
               className={itemClass(active)}
+              onClick={() => track('nav_click', { label: item.label, href: item.href, surface: 'desktop' })}
             >
               <item.icon className="w-3.5 h-3.5" />
               {item.label}
@@ -153,6 +156,7 @@ export default function NavBar() {
                       key={sub.href}
                       href={sub.href}
                       role="menuitem"
+                      onClick={() => track('nav_click', { label: sub.label, href: sub.href, group: item.label, surface: 'desktop' })}
                       aria-current={subActive ? 'page' : undefined}
                       className={`flex items-center gap-2.5 px-3 py-2 text-xs transition-colors focus-visible:outline-2 focus-visible:outline-[--accent] focus-visible:-outline-offset-2 ${
                         subActive

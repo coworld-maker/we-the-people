@@ -10,6 +10,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { GraduationCap, X, ArrowRight } from 'lucide-react'
+import { track } from '@/lib/track'
 
 const DISMISS_KEY = 'guide-banner-dismissed'
 
@@ -17,7 +18,9 @@ export default function GuideBanner() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    setVisible(localStorage.getItem(DISMISS_KEY) !== '1')
+    const show = localStorage.getItem(DISMISS_KEY) !== '1'
+    setVisible(show)
+    if (show) track('guide_view', { surface: 'banner' })
   }, [])
 
   if (!visible) return null
@@ -37,7 +40,8 @@ export default function GuideBanner() {
         </span>
       </p>
       <Link
-        href="/get-started"
+        href="/get-started?from=banner"
+        onClick={() => track('guide_click', { source: 'banner' })}
         className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-[--accent] hover:underline"
       >
         See the guide <ArrowRight className="w-3 h-3" />

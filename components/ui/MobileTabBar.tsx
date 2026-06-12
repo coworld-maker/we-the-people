@@ -9,6 +9,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, FileText, Users, Megaphone } from 'lucide-react'
+import { track } from '@/lib/track'
 
 const TABS = [
   { href: '/dashboard',          icon: LayoutDashboard, label: 'Home' },
@@ -44,6 +45,7 @@ export default function MobileTabBar() {
             <Link
               key={tab.href}
               href={tab.href}
+              onClick={() => track('nav_click', { label: tab.label, href: tab.href, surface: 'tab_bar' })}
               aria-current={active ? 'page' : undefined}
               className={`relative flex flex-col items-center gap-0.5 py-2 transition-colors focus-visible:outline-2 focus-visible:outline-[--accent] focus-visible:-outline-offset-2 ${
                 active ? 'text-[--accent]' : 'text-[--text-muted]'

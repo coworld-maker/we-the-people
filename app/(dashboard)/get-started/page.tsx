@@ -4,6 +4,7 @@ import {
   ChevronRight, BookOpen, Landmark, MessageSquare,
   ArrowRight, CheckCircle2, Info,
 } from 'lucide-react'
+import PageViewTracker from '@/components/ui/PageViewTracker'
 
 // ─── How a bill becomes law ──────────────────────────────────────────────────
 const BILL_STEPS = [
@@ -86,6 +87,7 @@ const APP_STEPS = [
 export default function GetStartedPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-10 pb-16">
+      <PageViewTracker page="get-started" />
 
       {/* Hero */}
       <div className="hero-gradient rounded-2xl px-6 py-8 sm:px-10 sm:py-10 text-white">

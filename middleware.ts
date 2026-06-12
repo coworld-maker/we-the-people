@@ -15,6 +15,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/alignment',             // alignment API
   '/api/debug-vote',            // temporary debug
   '/api/scorecard/(.*)',        // scorecard API
+  '/api/track',                 // anonymous analytics — signed-out share-link visitors included
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
