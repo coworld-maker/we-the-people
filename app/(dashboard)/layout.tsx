@@ -6,6 +6,9 @@ import NavBar from '@/components/ui/NavBar'
 import Logo from '@/components/ui/Logo'
 import CookieConsent from '@/components/legal/CookieConsent'
 import NotificationBell from '@/components/ui/NotificationBell'
+import CommandPalette from '@/components/ui/CommandPalette'
+import SearchButton from '@/components/ui/SearchButton'
+import MobileTabBar from '@/components/ui/MobileTabBar'
 
 export default function DashboardLayout({
   children,
@@ -34,8 +37,12 @@ export default function DashboardLayout({
             {/* Nav links — flex-1 so it's bounded between logo and avatar */}
             <NavBar />
 
-            {/* Notification bell + Avatar */}
-            <div className="shrink-0 flex items-center gap-1">
+            {/* Spacer on mobile (NavBar is hidden < md; tab bar handles nav) */}
+            <div className="flex-1 md:hidden" />
+
+            {/* Search + Notification bell + Avatar */}
+            <div className="shrink-0 flex items-center gap-2">
+              <SearchButton />
               <NotificationBell />
               <UserButton
                 afterSignOutUrl="/"
@@ -46,7 +53,7 @@ export default function DashboardLayout({
         </div>
       </nav>
 
-      <main className="flex-1 max-w-6xl mx-auto px-5 py-8 w-full">
+      <main className="flex-1 max-w-6xl mx-auto px-5 py-8 pb-24 md:pb-8 w-full">
         <Breadcrumbs />
         <PageTransition>
           {children}
@@ -65,7 +72,10 @@ export default function DashboardLayout({
             <p>
               &copy; {new Date().getFullYear()} Democracy Unlocked. Not affiliated with the U.S. Government.
             </p>
-            <nav className="flex items-center gap-4 font-medium">
+            <nav className="flex items-center gap-4 font-medium flex-wrap justify-center">
+              <Link href="/about" className="hover:text-[--accent] transition-colors">About</Link>
+              <Link href="/news" className="hover:text-[--accent] transition-colors">News</Link>
+              <Link href="/elections" className="hover:text-[--accent] transition-colors">Elections</Link>
               <Link href="/privacy" className="hover:text-[--accent] transition-colors">Privacy</Link>
               <Link href="/terms" className="hover:text-[--accent] transition-colors">Terms</Link>
               <Link href="/account/privacy" className="hover:text-[--accent] transition-colors">Your data</Link>
@@ -73,6 +83,10 @@ export default function DashboardLayout({
           </div>
         </div>
       </footer>
+
+      {/* Global search palette (Cmd+K) + mobile bottom tabs */}
+      <CommandPalette />
+      <MobileTabBar />
 
       {/* GDPR cookie banner — renders only when the user hasn't decided yet */}
       <CookieConsent />
