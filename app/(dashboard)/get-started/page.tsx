@@ -93,7 +93,7 @@ export default function GetStartedPage() {
           <Landmark className="w-6 h-6 opacity-80" />
           <span className="text-sm font-semibold opacity-80 uppercase tracking-wider">Getting started</span>
         </div>
-        <h1 className="font-display text-3xl sm:text-4xl font-extrabold leading-tight mb-3">
+        <h1 className="font-display text-3xl sm:text-4xl font-extrabold leading-tight mb-3 text-white">
           Your guide to Democracy Unlocked
         </h1>
         <p className="text-white/80 text-base leading-relaxed max-w-xl">
