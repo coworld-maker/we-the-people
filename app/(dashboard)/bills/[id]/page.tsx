@@ -22,6 +22,7 @@ import CitizenImpact from '@/components/bills/CitizenImpact'
 import TrustBar from '@/components/bills/TrustBar'
 import BillTypeBadge from '@/components/bills/BillTypeBadge'
 import RepVotesOnBill from '@/components/bills/RepVotesOnBill'
+import RelatedBills from '@/components/bills/RelatedBills'
 
 const SECTIONS = [
   { id: 'timeline',   label: 'Timeline' },
@@ -192,7 +193,6 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
                   communityStats={{ yesCount: stats.yesCount, noCount: stats.noCount, abstainCount: stats.abstainCount, totalVotes }}
                 />
               </div>
-              <CitizenImpact totalVotes={totalVotes} />
               <RepVotesOnBill
                 billId={bill.id}
                 userState={user.state ?? null}
@@ -269,6 +269,9 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
               </div>
             </div>
           )}
+
+          {/* Cross-links — keep share-link visitors from dead-ending here */}
+          <RelatedBills billId={bill.id} policyArea={bill.policyArea ?? null} />
         </div>
       </div>
     </div>
