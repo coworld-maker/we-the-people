@@ -83,6 +83,8 @@ Next.js App Router codebase deployed on Vercel. Existing relevant work: fade/sli
 | Feb 2026 | Fade/slide transitions, scroll reveals, breadcrumbs | First pass at wayfinding |
 | Jun 12, 2026 | **Adopt Track/Know/Act task-based IA** (Option 1) | Overwhelming feedback: content valued, navigation failing; council review |
 | Jun 12, 2026 | Build order: search → nav → mobile tabs → cross-links → empty states | Impact-per-effort ranking |
+| Jun 12, 2026 | Items 1–4 shipped and live-verified (search, Track/Know/Act + /act hub, bottom tab bar, RelatedBills) | This session; item 5 deferred per ranking |
+| Jun 12, 2026 | Get Started promoted to top-level nav item (desktop); mobile tab bar stays at 4 tabs | Founder call: beta audience is mostly new users; guide needs zero-hunt visibility |
 
 ---
 
