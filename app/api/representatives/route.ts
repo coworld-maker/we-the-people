@@ -59,11 +59,12 @@ export async function GET(request: Request) {
       console.error('Congress API error:', res.status)
     }
 
-    // If a district filter was provided, keep both senators + only the matching House member
+    // If a district filter was provided, keep both senators + only the matching
+    // House member. district === null means at-large (the state's only rep).
     const filtered = districtFilter
       ? representatives.filter(r =>
           r.chamber === 'Senate' ||
-          (r.chamber === 'House' && r.district === districtFilter)
+          (r.chamber === 'House' && (r.district === districtFilter || r.district === null))
         )
       : representatives
 

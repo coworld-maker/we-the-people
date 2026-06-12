@@ -203,7 +203,7 @@ export default function YourRepresentatives({ userState }: { userState?: string 
           {district ? (
             <div className="flex items-center justify-between">
               <p className="text-xs text-blue-800">
-                ✓ Showing reps for <span className="font-bold">{state} District {district}</span>
+                ✓ Showing reps for <span className="font-bold">{state} {district === '0' ? '(at-large)' : `District ${district}`}</span>
               </p>
               <button onClick={clearDistrict} className="text-[10px] text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors font-medium">
                 <X className="w-3 h-3" /> Show all {state} reps

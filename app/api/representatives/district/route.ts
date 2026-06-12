@@ -1,17 +1,19 @@
 /**
  * GET /api/representatives/district?zip=30310
  *
- * Uses the Congress.gov API to find the congressional district for a zip code.
- * /v3/member?zipCode= returns current members for that zip — we extract the
- * House member's district number and state from the results.
+ * Resolves a zip code to a congressional district using a bundled static
+ * ZCTA→district dataset (OpenSourceActivismTech/us-zipcodes-congress).
+ * No external API: Google retired the Civic Information API's representative
+ * lookup, and Congress.gov's /v3/member silently ignores its zipCode param
+ * (it returns an arbitrary member list — we shipped that bug briefly).
  *
- * Uses CONGRESS_API_KEY, the same key powering all bill data on the site.
+ * Multi-district zips are mapped to their dominant district. PO-box-only
+ * zips aren't ZCTAs and won't resolve — the UI suggests a nearby zip.
  */
 
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-
-const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY
+import zipDistricts from '@/lib/data/zip-districts.json'
 
 export async function GET(req: Request) {
   const { userId } = await auth()
@@ -23,42 +25,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Valid 5-digit zip required' }, { status: 400 })
   }
 
-  if (!CONGRESS_API_KEY) {
-    console.error('[district] CONGRESS_API_KEY not set')
-    return NextResponse.json({ error: 'API key not configured', district: null })
+  const entry = (zipDistricts as Record<string, string>)[zip]
+  if (!entry) {
+    return NextResponse.json({ error: 'No district found for this zip', district: null })
   }
 
-  try {
-    const url = `https://api.congress.gov/v3/member?zipCode=${zip}&currentMember=true&limit=10&api_key=${CONGRESS_API_KEY}`
-    const res = await fetch(url, {
-      headers: { Accept: 'application/json' },
-      next: { revalidate: 86400 },
-    })
+  // Entries look like "GA-5"; at-large states use district 0
+  const [state, district] = entry.split('-')
 
-    if (!res.ok) {
-      console.error('[district] Congress API error:', res.status)
-      return NextResponse.json({ error: 'Lookup failed', district: null })
-    }
-
-    const data = await res.json()
-    const members: any[] = data.members || []
-
-    // Find the House member — they carry a district number
-    const houseMember = members.find((m: any) => {
-      const term = m.terms?.item?.[0]
-      return term?.chamber === 'House of Representatives'
-    })
-
-    if (!houseMember) {
-      return NextResponse.json({ error: 'No House member found for this zip', district: null })
-    }
-
-    const district = houseMember.district != null ? String(houseMember.district) : null
-    const state = houseMember.state || null
-
-    return NextResponse.json({ district, state, zip, memberName: houseMember.name })
-  } catch (e) {
-    console.error('[district] fetch error:', e)
-    return NextResponse.json({ error: 'Lookup failed', district: null })
-  }
+  return NextResponse.json({ district, state, zip })
 }
