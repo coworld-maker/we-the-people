@@ -46,11 +46,21 @@ export default function TrackedBills({ bills }: { bills: TrackedBill[] }) {
       }
     >
       {bills.length === 0 ? (
-        <div className="px-6 py-8 text-center">
-          <p className="text-sm text-[--text-muted]">No votes yet. Browse bills to start tracking.</p>
-          <Link href="/bills" className="text-sm font-semibold text-[--accent] hover:text-[--accent-hover] mt-2 inline-block">
-            Browse bills →
-          </Link>
+        <div className="px-6 py-7">
+          <p className="text-sm font-semibold text-[--text] text-center mb-1">You&apos;re not tracking any bills yet</p>
+          <p className="text-xs text-[--text-muted] text-center mb-4">
+            Voting on a bill tracks it automatically — you&apos;ll see its status here as it moves through Congress.
+          </p>
+          <ol className="text-xs text-[--text-secondary] space-y-1.5 max-w-xs mx-auto mb-4">
+            <li><span className="font-bold text-[--accent]">1.</span> Open any bill from the Track section</li>
+            <li><span className="font-bold text-[--accent]">2.</span> Read the plain-English summary</li>
+            <li><span className="font-bold text-[--accent]">3.</span> Vote yes, no, or abstain — that&apos;s it</li>
+          </ol>
+          <div className="text-center">
+            <Link href="/bills" className="btn-primary text-xs inline-flex">
+              Find a bill to track →
+            </Link>
+          </div>
         </div>
       ) : (
         <>

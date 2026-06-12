@@ -29,7 +29,14 @@ export default function ActivityFeed({ items }: { items: FeedItem[] }) {
       </div>
       {items.length === 0 ? (
         <div className="p-8 text-center">
-          <p className="text-sm text-[--text-muted]">Activity will appear as citizens engage</p>
+          <p className="text-sm font-semibold text-[--text] mb-1">It&apos;s quiet right now</p>
+          <p className="text-xs text-[--text-muted] mb-3">
+            Votes and comments from citizens across the country show up here in real time.
+            Yours can be the first.
+          </p>
+          <Link href="/bills" className="text-xs font-semibold text-[--accent] hover:underline">
+            Cast a vote to get things moving →
+          </Link>
         </div>
       ) : (
         <div className="max-h-[420px] overflow-y-auto">

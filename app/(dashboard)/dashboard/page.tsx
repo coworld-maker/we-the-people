@@ -20,6 +20,7 @@ import PersonalizedBills from '@/components/dashboard/PersonalizedBills'
 import WelcomeGuide from '@/components/ui/WelcomeGuide'
 import FadeIn from '@/components/ui/FadeIn'
 import MovingThisWeek from '@/components/dashboard/MovingThisWeek'
+import GuideBanner from '@/components/ui/GuideBanner'
 
 export default async function DashboardPage() {
   const { userId: clerkUserId } = await auth()
@@ -30,7 +31,7 @@ export default async function DashboardPage() {
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
-  const [profile, billsForYou, activityFeed, movingBills, followedActiveCount] = await Promise.all([
+  const [profile, billsForYou, activityFeed, movingBills, followedActiveCount, popularAggregate] = await Promise.all([
     GamificationService.getCivicProfile(user.id),
     GamificationService.getBillsForYou(user.id, 5),
     GamificationService.getActivityFeed(15, { userId: user.id, userState: user.state ?? undefined }),
@@ -49,7 +50,20 @@ export default async function DashboardPage() {
         bill: { latestActionDate: { gte: sevenDaysAgo } },
       },
     }),
+    // 60-second first action: the single most-voted bill, so a brand-new
+    // user lands on one concrete thing instead of a 9,000-bill index
+    prisma.billVoteAggregate.findFirst({
+      orderBy: { totalVotes: 'desc' },
+      where: { totalVotes: { gt: 0 } },
+      select: { billId: true },
+    }),
   ])
+
+  const firstVoteHref = popularAggregate
+    ? `/bills/${popularAggregate.billId}#vote`
+    : movingBills[0]
+      ? `/bills/${movingBills[0].id}#vote`
+      : '/bills'
 
   const earnedBadges = profile.badges.filter(b => b.earned).length
   const serializedBadges = profile.badges.map(({ check, ...rest }) => rest)
@@ -119,6 +133,9 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
 
+      {/* Newcomer guide strip — the mobile-visible path to /get-started */}
+      {isNewcomer && <GuideBanner />}
+
       {/* Welcome hero — always first */}
       <FadeIn delay={0.05}>
         <div className="hero-gradient rounded-2xl px-5 py-6 sm:px-8 sm:py-7">
@@ -137,8 +154,8 @@ export default async function DashboardPage() {
               </p>
               {profile.stats.totalVotes === 0 ? (
                 <div className="flex items-center gap-3 mt-4 flex-wrap">
-                  <Link href="/bills" className="btn-primary text-sm">
-                    Cast your first vote <ArrowRight className="w-3.5 h-3.5" />
+                  <Link href={firstVoteHref} className="btn-primary text-sm">
+                    Cast your first vote — takes a minute <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                   <Link href="/get-started" className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white font-medium transition-colors underline underline-offset-2">
                     New here? See the guide →
@@ -205,7 +222,7 @@ export default async function DashboardPage() {
             </div>
             <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[--border]">
               {([
-                { step: 1, done: profile.stats.totalVotes > 0, title: 'Cast your first vote', desc: 'Find a bill and vote yes, no, or abstain', href: '/bills', cta: 'Browse bills' },
+                { step: 1, done: profile.stats.totalVotes > 0, title: 'Cast your first vote', desc: 'We picked an active bill — read the summary, vote yes or no', href: firstVoteHref, cta: 'Vote on a bill' },
                 { step: 2, done: !!user.state, title: 'Set your state', desc: 'See how your reps vote vs. how you do', href: '/my-representatives', cta: 'Find my reps' },
                 { step: 3, done: false, title: 'Take action', desc: 'Contact your rep about a bill you care about', href: '/action-center', cta: 'Action center' },
               ] as const).map(s => (

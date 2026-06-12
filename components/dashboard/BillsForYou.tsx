@@ -17,7 +17,14 @@ export default function BillsForYou({ bills }: { bills: Bill[] }) {
       </div>
       {bills.length === 0 ? (
         <div className="p-8 text-center">
-          <p className="text-sm text-[--text-muted]">You&apos;ve voted on everything available. Check back soon.</p>
+          <p className="text-sm font-semibold text-[--text] mb-1">Nothing left to recommend — impressive</p>
+          <p className="text-xs text-[--text-muted] mb-3">
+            You&apos;ve voted on everything matching your interests. New bills sync from Congress daily,
+            or branch out into another policy area.
+          </p>
+          <Link href="/policy-areas" className="text-xs font-semibold text-[--accent] hover:underline">
+            Explore policy areas →
+          </Link>
         </div>
       ) : (
         <>
