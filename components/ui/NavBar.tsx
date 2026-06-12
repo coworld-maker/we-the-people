@@ -116,9 +116,10 @@ export default function NavBar() {
               aria-current={active ? 'page' : undefined}
               className={itemClass(active)}
               onClick={() => track('nav_click', { label: item.label, href: item.href, surface: 'desktop' })}
+              title={item.label}
             >
               <item.icon className="w-3.5 h-3.5" />
-              {item.label}
+              <span className="hidden lg:inline">{item.label}</span>
               {active && <ActiveBar />}
             </Link>
           )
@@ -134,9 +135,10 @@ export default function NavBar() {
               aria-expanded={open}
               aria-haspopup="menu"
               className={itemClass(active, open)}
+              title={item.label}
             >
               <item.icon className="w-3.5 h-3.5" />
-              {item.label}
+              <span className="hidden lg:inline">{item.label}</span>
               <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
               {active && <ActiveBar />}
             </button>
