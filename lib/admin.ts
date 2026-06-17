@@ -22,3 +22,13 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
   if (!userId) return false
   return isAdminUserId(userId)
 }
+
+/**
+ * Moderator = env-listed admin OR a User row with isModerator=true.
+ * Used to gate comment deletion and the report queue. Pass the already-loaded
+ * User row when you have it to avoid a second query.
+ */
+export function isModerator(clerkUserId: string | null, user?: { isModerator?: boolean } | null): boolean {
+  if (clerkUserId && isAdminUserId(clerkUserId)) return true
+  return !!user?.isModerator
+}

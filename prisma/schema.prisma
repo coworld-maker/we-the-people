@@ -27,6 +27,9 @@ model User {
   zipCodeTag         String?
   firstName          String?
   lastName           String?
+  username           String?   @unique  // public pseudonym for discussions; null until chosen
+  isModerator        Boolean   @default(false) // DB-backed mod flag (in addition to ADMIN_USER_IDS env)
+  isBanned           Boolean   @default(false) // blocked from posting UGC
   state              String?   // 2-letter state code (or 'DC') — used for state-level sentiment aggregation
   profilePublic      Boolean   @default(false)
   votesPublic        Boolean   @default(false)
@@ -35,11 +38,32 @@ model User {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  votes         Vote[]
-  discussions   Discussion[]
-  notifications Notification[]
-  auditLogs     AuditLog[]
-  billFollows   BillFollow[]
+  votes          Vote[]
+  discussions    Discussion[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+  billFollows    BillFollow[]
+  reportsFiled   ContentReport[] @relation("ReportsFiled")
+}
+
+// ---------------------------------------------------------------------------
+// ContentReport — user-reported discussion comments, queued for moderators.
+// The reporting+escalation rail the council gated all UGC features behind.
+// ---------------------------------------------------------------------------
+model ContentReport {
+  id           String   @id @default(cuid())
+  discussionId String
+  reporterId   String
+  reason       String   // 'spam' | 'harassment' | 'misinfo' | 'offensive' | 'other'
+  detail       String?
+  status       String   @default("open") // 'open' | 'reviewed' | 'actioned' | 'dismissed'
+  createdAt    DateTime @default(now())
+  reviewedAt   DateTime?
+
+  reporter User @relation("ReportsFiled", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([discussionId, reporterId]) // one report per user per comment
+  @@index([status, createdAt])
 }
 
 // ---------------------------------------------------------------------------

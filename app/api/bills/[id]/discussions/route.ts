@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { UserService } from '@/lib/services/userService'
-import { isAdminUserId } from '@/lib/admin'
+import { isAdminUserId, isModerator } from '@/lib/admin'
 
 // Content moderation (inline — if you have lib/moderation.ts, import from there instead)
 function moderateContent(content: string): { ok: boolean; reason?: string } {
@@ -47,13 +47,13 @@ export async function GET(
   const discussions = await prisma.discussion.findMany({
     where: { billId, parentId: null },
     include: {
-      user: { select: { id: true, firstName: true, lastName: true } },
+      user: { select: { id: true, firstName: true, lastName: true, username: true } },
       replies: {
         include: {
-          user: { select: { id: true, firstName: true, lastName: true } },
+          user: { select: { id: true, firstName: true, lastName: true, username: true } },
           replies: {
             include: {
-              user: { select: { id: true, firstName: true, lastName: true } },
+              user: { select: { id: true, firstName: true, lastName: true, username: true } },
             },
             orderBy: { createdAt: 'asc' },
           },
@@ -64,8 +64,9 @@ export async function GET(
     orderBy: { createdAt: 'desc' },
   })
 
-  // Check if current user is admin
-  const isAdmin = isAdminUserId(userId)
+  // Moderator = env admin OR DB isModerator flag
+  const me = await UserService.getCurrentUser()
+  const isAdmin = isModerator(userId, me as any)
 
   return NextResponse.json({ discussions, isAdmin })
 }
@@ -79,6 +80,9 @@ export async function POST(
 
   const user = await UserService.getCurrentUser()
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  if ((user as any).isBanned) {
+    return NextResponse.json({ error: 'Your account is suspended from posting.' }, { status: 403 })
+  }
 
   const { id: billId } = await params
   const body = await request.json()
@@ -123,7 +127,7 @@ export async function POST(
       parentId: parentId || null,
     },
     include: {
-      user: { select: { id: true, firstName: true, lastName: true } },
+      user: { select: { id: true, firstName: true, lastName: true, username: true } },
     },
   })
 
@@ -137,9 +141,10 @@ export async function DELETE(
   const { userId: clerkUserId } = await auth()
   if (!clerkUserId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Only admins can delete
-  if (!isAdminUserId(clerkUserId)) {
-    return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+  // Only moderators (env admins or DB isModerator) can delete
+  const me = await UserService.getCurrentUser()
+  if (!isModerator(clerkUserId, me as any)) {
+    return NextResponse.json({ error: 'Moderator access required' }, { status: 403 })
   }
 
   const { searchParams } = new URL(request.url)
@@ -149,7 +154,11 @@ export async function DELETE(
     return NextResponse.json({ error: 'commentId is required' }, { status: 400 })
   }
 
-  // Delete replies first (cascade), then the comment
+  // Resolve any open reports against this comment, then delete replies + comment
+  await (prisma as any).contentReport.updateMany({
+    where: { discussionId: commentId, status: 'open' },
+    data: { status: 'actioned', reviewedAt: new Date() },
+  })
   await prisma.discussion.deleteMany({ where: { parentId: commentId } })
   await prisma.discussion.delete({ where: { id: commentId } })
 

@@ -1,12 +1,76 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MessageSquare, Send, CornerDownRight, AlertCircle, Trash2, ShieldAlert } from 'lucide-react'
+import { MessageSquare, Send, CornerDownRight, AlertCircle, Trash2, ShieldAlert, Flag, Check } from 'lucide-react'
+import UsernamePicker from '@/components/ui/UsernamePicker'
 
-interface User { id: string; firstName: string | null; lastName: string | null }
+interface User { id: string; firstName: string | null; lastName: string | null; username?: string | null }
 interface Item { id: string; content: string; createdAt: string; user: User; replies?: Item[] }
 
-function name(u: User) { return u.firstName ? `${u.firstName} ${(u.lastName || '').charAt(0)}.`.trim() : 'Citizen' }
+function name(u: User) {
+  if (u.username) return `@${u.username}`
+  return u.firstName ? `${u.firstName} ${(u.lastName || '').charAt(0)}.`.trim() : 'Citizen'
+}
+function initial(u: User) {
+  return (u.username || u.firstName || 'C').charAt(0).toUpperCase()
+}
+
+const REPORT_REASONS: { value: string; label: string }[] = [
+  { value: 'harassment', label: 'Harassment or hate' },
+  { value: 'spam', label: 'Spam' },
+  { value: 'misinfo', label: 'Misinformation' },
+  { value: 'offensive', label: 'Offensive content' },
+  { value: 'other', label: 'Something else' },
+]
+
+function ReportControl({ discussionId }: { discussionId: string }) {
+  const [open, setOpen] = useState(false)
+  const [done, setDone] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  async function report(reason: string) {
+    setBusy(true)
+    try {
+      await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discussionId, reason }),
+      })
+      setDone(true); setOpen(false)
+    } catch {} finally { setBusy(false) }
+  }
+
+  if (done) {
+    return (
+      <span className="ml-auto flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
+        <Check className="w-3 h-3" /> Reported
+      </span>
+    )
+  }
+
+  return (
+    <div className="ml-auto relative">
+      <button onClick={() => setOpen(o => !o)}
+        className="opacity-0 group-hover/comment:opacity-100 transition-opacity text-[--text-muted] hover:text-amber-600"
+        title="Report comment"
+      >
+        <Flag className="w-3.5 h-3.5" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-6 z-20 w-44 bg-[--surface] border border-[--border] rounded-lg shadow-lg py-1">
+          <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[--text-muted]">Report for</p>
+          {REPORT_REASONS.map(r => (
+            <button key={r.value} disabled={busy} onClick={() => report(r.value)}
+              className="w-full text-left px-3 py-1.5 text-xs text-[--text-secondary] hover:bg-[--surface-secondary] hover:text-[--text] disabled:opacity-50"
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 function timeAgo(d: string) {
   const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000)
   if (s < 60) return 'now'; if (s < 3600) return `${Math.floor(s/60)}m`; if (s < 86400) return `${Math.floor(s/3600)}h`; return `${Math.floor(s/86400)}d`
@@ -49,19 +113,23 @@ function Comment({ c, billId, onRefresh, depth=0, isAdmin }: { c: Item; billId: 
       <div className="py-4 group/comment">
         <div className="flex items-center gap-2.5 mb-2">
           <div className={`w-7 h-7 rounded-full ${avatarBg(c.user.id)} flex items-center justify-center text-white text-xs font-semibold`}>
-            {(c.user.firstName||'C').charAt(0).toUpperCase()}
+            {initial(c.user)}
           </div>
           <span className="text-sm font-semibold text-[--text]">{name(c.user)}</span>
           <span className="text-xs text-[--text-muted]">{timeAgo(c.createdAt)}</span>
 
-          {/* Admin delete */}
-          {isAdmin && !confirmDelete && (
-            <button onClick={() => setConfirmDelete(true)}
-              className="ml-auto opacity-0 group-hover/comment:opacity-100 transition-opacity text-[--text-muted] hover:text-red-500"
-              title="Delete comment (admin)"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+          {/* Moderator delete takes priority; otherwise anyone can report */}
+          {isAdmin ? (
+            !confirmDelete && (
+              <button onClick={() => setConfirmDelete(true)}
+                className="ml-auto opacity-0 group-hover/comment:opacity-100 transition-opacity text-[--text-muted] hover:text-red-500"
+                title="Delete comment (moderator)"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )
+          ) : (
+            <ReportControl discussionId={c.id} />
           )}
         </div>
 
@@ -131,6 +199,8 @@ export default function DiscussionBoard({ billId }: { billId: string }) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
+  // undefined = still loading, null = no username yet, string = set
+  const [username, setUsername] = useState<string | null | undefined>(undefined)
 
   async function load() {
     try {
@@ -143,6 +213,13 @@ export default function DiscussionBoard({ billId }: { billId: string }) {
     } catch {} finally { setLoading(false) }
   }
   useEffect(() => { load() }, [billId])
+
+  useEffect(() => {
+    fetch('/api/user/username')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setUsername(d ? d.username : null))
+      .catch(() => setUsername(null))
+  }, [])
 
   async function handlePost() {
     if (!text.trim()) return; setSubmitting(true); setError('')
@@ -169,8 +246,11 @@ export default function DiscussionBoard({ billId }: { billId: string }) {
         <span className="text-xs text-[--text-muted]">{discussions.length} comment{discussions.length !== 1 ? 's' : ''}</span>
       </div>
       <div className="p-6">
+        {/* Username gate — pseudonym required before posting */}
+        {username === null && <UsernamePicker onSet={setUsername} />}
+
         {/* Compose */}
-        <div className="mb-6">
+        <div className={`mb-6 ${username == null ? 'opacity-50 pointer-events-none' : ''}`}>
           <textarea value={text} onChange={e => setText(e.target.value)}
             placeholder="Share your perspective. Be respectful and constructive."
             maxLength={2000} rows={3}
