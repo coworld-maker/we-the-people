@@ -94,6 +94,20 @@ export default function SyncAdminPage() {
         </div>
       </div>
 
+      {/* News Sync */}
+      <div className="card p-5 space-y-3">
+        <h2 className="font-medium text-[--text]">📰 Press Coverage Sync</h2>
+        <p className="text-xs text-[--text-muted]">
+          Pulls trusted, lean-labeled news for recently-active bills into the DB. Runs ~3 min
+          (sequential, rate-limit-paced). Powers the /news feed and bill-page cards.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {btn('Sync Press Coverage', () =>
+            call('/api/sync-news', {}, 'Sync Press Coverage')
+          )}
+        </div>
+      </div>
+
       {/* Result */}
       {result && (
         <div className="card p-5">
