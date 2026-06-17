@@ -251,11 +251,17 @@ async function fromGdelt(query: string, billCode: string): Promise<NewsArticle[]
  * Live fetch from both providers + filter. Used by the daily sync job, NOT by
  * page renders (page renders read the synced DB rows via getStoredNewsForBill).
  */
-export async function fetchBillNewsFromProviders(query: string, billCode: string): Promise<NewsArticle[]> {
-  const results = await Promise.allSettled([
-    fromNewsdata(query, billCode),
-    fromGdelt(query, billCode),
-  ])
+export async function fetchBillNewsFromProviders(
+  query: string,
+  billCode: string,
+  opts: { skipGdelt?: boolean } = {},
+): Promise<NewsArticle[]> {
+  // GDELT rate-limits to 1 req/5s per IP and reliably 429s from Vercel's
+  // shared egress IPs during a bulk sync — skip it there; Newsdata carries it.
+  const providers = opts.skipGdelt
+    ? [fromNewsdata(query, billCode)]
+    : [fromNewsdata(query, billCode), fromGdelt(query, billCode)]
+  const results = await Promise.allSettled(providers)
   const all = results.flatMap(r => (r.status === 'fulfilled' ? r.value : []))
 
   const cutoff = Date.now() - NINETY_DAYS
