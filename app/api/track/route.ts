@@ -19,6 +19,7 @@ const ALLOWED_EVENTS = new Set([
   'guide_view',
   'guide_click',
   'page_view',
+  'social_share',
 ])
 
 export async function POST(req: Request) {

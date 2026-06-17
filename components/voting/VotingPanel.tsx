@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Check, X, MinusCircle, Phone, Copy, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 import Confetti from '@/components/ui/Confetti'
 import ShareButton from '@/components/ui/ShareButton'
+import SocialShare from '@/components/ui/SocialShare'
 
 interface CommunityStats {
   yesCount: number
@@ -254,6 +255,17 @@ export default function VotingPanel({ billId, billTitle, currentVote, communityS
 
               {/* Post-vote action */}
               {billTitle && <ContactPanel position={position} billTitle={billTitle} />}
+
+              {/* Share your vote — the growth loop the AI-summary clones can't run */}
+              {pageUrl && (
+                <div className="mt-4 p-3.5 rounded-xl bg-[--accent-light] border border-[--accent]/15">
+                  <p className="text-xs font-bold text-[--text] mb-0.5">Share your vote</p>
+                  <p className="text-[11px] text-[--text-muted] mb-2.5">
+                    Bring someone else into the conversation — every share grows the community.
+                  </p>
+                  <SocialShare url={pageUrl} text={shareText} context="vote" />
+                </div>
+              )}
 
               <button
                 onClick={() => setSubmitted(false)}
