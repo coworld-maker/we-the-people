@@ -24,7 +24,6 @@ import BillTypeBadge from '@/components/bills/BillTypeBadge'
 import RepVotesOnBill from '@/components/bills/RepVotesOnBill'
 import RelatedBills from '@/components/bills/RelatedBills'
 import BillNews from '@/components/bills/BillNews'
-import BillChat from '@/components/bills/BillChat'
 import PageViewTracker from '@/components/ui/PageViewTracker'
 
 const SECTIONS = [
@@ -33,7 +32,6 @@ const SECTIONS = [
   { id: 'arguments',  label: 'Arguments' },
   { id: 'sentiment',  label: 'By State' },
   { id: 'discussion', label: 'Discussion' },
-  { id: 'chat', label: 'Live chat' },
 ]
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -185,11 +183,6 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
           <div id="discussion" className="scroll-mt-20">
             <DiscussionBoard billId={bill.id} />
           </div>
-          {user && (
-            <div id="chat" className="scroll-mt-20">
-              <BillChat billId={bill.id} />
-            </div>
-          )}
         </div>
 
         <div className="space-y-6 order-first lg:order-last">

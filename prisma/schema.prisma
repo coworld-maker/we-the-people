@@ -66,9 +66,10 @@ model BillNewsArticle {
 }
 
 // ---------------------------------------------------------------------------
-// ChatMessage — live (polled) per-bill chat. Lighter + faster-moving than the
-// threaded discussions. Gated behind the same moderation rails: username
-// required, banned users blocked, moderators can delete.
+// ChatMessage — DEPRECATED (Jun 2026). Live chat was removed as redundant with
+// the discussion board (kept discussion: async, attributable, SEO, lower mod
+// risk). Table retained dormant to avoid a destructive migration; safe to drop
+// later. No code references it.
 // ---------------------------------------------------------------------------
 model ChatMessage {
   id        String   @id @default(cuid())
