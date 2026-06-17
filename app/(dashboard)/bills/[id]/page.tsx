@@ -23,6 +23,7 @@ import TrustBar from '@/components/bills/TrustBar'
 import BillTypeBadge from '@/components/bills/BillTypeBadge'
 import RepVotesOnBill from '@/components/bills/RepVotesOnBill'
 import RelatedBills from '@/components/bills/RelatedBills'
+import BillNews from '@/components/bills/BillNews'
 import PageViewTracker from '@/components/ui/PageViewTracker'
 
 const SECTIONS = [
@@ -271,6 +272,9 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
               </div>
             </div>
           )}
+
+          {/* External coverage — labeled by source lean, never curated */}
+          <BillNews query={bill.shortTitle || bill.title} billCode={`${bill.billType} ${bill.billNumber}`} />
 
           {/* Cross-links — keep share-link visitors from dead-ending here */}
           <RelatedBills billId={bill.id} policyArea={bill.policyArea ?? null} />
