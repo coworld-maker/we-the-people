@@ -15,12 +15,17 @@ double down on the moat the clones structurally lack — community + accountabil
 | 3 | Bipartisan news feed | ⚠️ Conditional yes | **Per-bill, source-labeled, balanced** — articles attached to specific bills, not a curated "top stories" surface. Bias liability lives in curation, so don't curate: attach + label. |
 | 4 | Live chat | ⏸️ Deferred → now bundled with #2 | Hard gate: ships only alongside the moderation pipeline from #2, never before. |
 
-## Build sequence (risk-adjusted ROI)
+## Build sequence (risk-adjusted ROI) — ALL SHIPPED June 12, 2026
 
-1. **Share-your-vote card** — low risk, feeds the growth loop clones can't (they have no vote to share). Prefilled X / Bluesky / Facebook / Threads / copy-link.
-2. **Usernames + moderation tooling** — `username` + report/block models, username picker, report UI, rate-limiting. Unlocks the discussion moat.
-3. **Per-bill news feed** — news source attached to bill pages, source + lean labels, balanced pairing. Retention win between roll calls.
-4. **Live chat (gated)** — per-bill, only behind the #2 moderation pipeline.
+1. ✅ **Share-your-vote card** — prefilled X / Bluesky / Facebook / Threads / copy-link in the post-vote panel (`SocialShare`). Outbound only.
+2. ✅ **Usernames + moderation tooling** — `User.username/isModerator/isBanned`, `ContentReport` model, username picker + gate, report control, `/moderation` queue, rate-limit, DB-backed moderator role.
+3. ✅ **Per-bill news feed** — `lib/api/news.ts` + `BillNews`, source-lean labeled & balanced. **Needs `NEWS_API_KEY` in Vercel to activate** (degrades to nothing without it).
+4. ✅ **Live chat (gated)** — `ChatMessage` + polled `BillChat`, behind all of #2's rails. Real-time websockets are a future upgrade.
+
+### Activation / follow-ups
+- Set **`NEWS_API_KEY`** (newsapi.org) in Vercel env to turn on the news feed.
+- Promote at least one **moderator**: `UPDATE "User" SET "isModerator" = true WHERE ...`, or add the Clerk ID to `ADMIN_USER_IDS`.
+- Live chat is polling-based; revisit Supabase Realtime / websockets if volume warrants.
 
 **Hard gate (council insists):** no user-generated-content feature ships without
 reporting + blocking + escalation in place first. Moderation is a launch
