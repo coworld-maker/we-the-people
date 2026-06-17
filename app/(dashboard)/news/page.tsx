@@ -7,6 +7,8 @@ import {
   Calendar, ChevronRight, Clock, FileText, Eye, MapPin,
 } from 'lucide-react'
 import { CongressAPI } from '@/lib/api/congress'
+import { getRecentNews } from '@/lib/api/news'
+import PressFeed from '@/components/news/PressFeed'
 
 export const metadata = {
   title: 'News & Activity | Democracy Unlocked',
@@ -101,11 +103,18 @@ export default async function NewsPage() {
     )
   ).filter(Boolean) as NonNullable<Awaited<ReturnType<typeof prisma.bill.findFirst>>>[]
 
+  const pressArticles = await getRecentNews(40)
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-8">
         <h1 className="font-display text-2xl font-extrabold text-[--text]">News & Activity</h1>
-        <p className="text-sm text-[--text-secondary] mt-1">Latest congressional actions and platform engagement</p>
+        <p className="text-sm text-[--text-secondary] mt-1">Press coverage of Congress, plus platform engagement</p>
+      </div>
+
+      {/* Press coverage feed — the lead section */}
+      <div className="mb-8">
+        <PressFeed articles={pressArticles} />
       </div>
 
       {/* Platform pulse */}

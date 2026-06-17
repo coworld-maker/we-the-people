@@ -98,6 +98,14 @@ export async function POST(req: NextRequest) {
     results.lobbying = { error: String(e) };
   }
 
+  // 7. Sync external press coverage for recently-active bills
+  try {
+    results.news = await callSync('/api/sync-news', {}, secret);
+    console.log('[cron/sync] News:', results.news);
+  } catch (e) {
+    results.news = { error: String(e) };
+  }
+
   console.log('[cron/sync] Complete:', results);
 
   return NextResponse.json({

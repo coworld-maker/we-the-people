@@ -247,7 +247,11 @@ async function fromGdelt(query: string, billCode: string): Promise<NewsArticle[]
 
 // ── Public ───────────────────────────────────────────────────────────────────
 
-export async function getBillNews(query: string, billCode: string): Promise<NewsArticle[]> {
+/**
+ * Live fetch from both providers + filter. Used by the daily sync job, NOT by
+ * page renders (page renders read the synced DB rows via getStoredNewsForBill).
+ */
+export async function fetchBillNewsFromProviders(query: string, billCode: string): Promise<NewsArticle[]> {
   const results = await Promise.allSettled([
     fromNewsdata(query, billCode),
     fromGdelt(query, billCode),
@@ -267,4 +271,56 @@ export async function getBillNews(query: string, billCode: string): Promise<News
   })
 
   return balance(dedupe(filtered)).slice(0, 8)
+}
+
+// ── DB reads (what page renders use) ─────────────────────────────────────────
+import prisma from '@/lib/prisma'
+
+interface StoredArticle {
+  title: string; url: string; source: string; lean: Lean
+  publishedAt: string; billId: string
+}
+
+function rowToArticle(r: any): StoredArticle {
+  return {
+    title: r.title, url: r.url, source: r.source, lean: r.lean as Lean,
+    publishedAt: (r.publishedAt instanceof Date ? r.publishedAt : new Date(r.publishedAt)).toISOString(),
+    billId: r.billId,
+  }
+}
+
+/** Synced coverage for a single bill (used by the bill-page card). */
+export async function getStoredNewsForBill(billId: string, limit = 6): Promise<StoredArticle[]> {
+  const rows = await (prisma as any).billNewsArticle.findMany({
+    where: { billId },
+    orderBy: { publishedAt: 'desc' },
+    take: limit,
+  })
+  return balance(rows.map(rowToArticle)) as StoredArticle[]
+}
+
+export interface FeedArticle extends StoredArticle {
+  bill: { id: string; code: string; title: string } | null
+}
+
+/** Most recent coverage across all bills (used by the dedicated News page),
+ *  each joined to its bill for linking. */
+export async function getRecentNews(limit = 40): Promise<FeedArticle[]> {
+  const rows = await (prisma as any).billNewsArticle.findMany({
+    orderBy: { publishedAt: 'desc' },
+    take: limit,
+  })
+  const billIds = Array.from(new Set(rows.map((r: any) => r.billId)))
+  const bills = await prisma.bill.findMany({
+    where: { id: { in: billIds as string[] } },
+    select: { id: true, billType: true, billNumber: true, shortTitle: true, title: true },
+  })
+  const byId = new Map(bills.map(b => [b.id, b]))
+  return rows.map((r: any): FeedArticle => {
+    const b = byId.get(r.billId)
+    return {
+      ...rowToArticle(r),
+      bill: b ? { id: b.id, code: `${b.billType} ${b.billNumber}`, title: b.shortTitle || b.title } : null,
+    }
+  })
 }

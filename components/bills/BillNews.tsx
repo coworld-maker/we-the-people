@@ -4,7 +4,7 @@
  * Server component; renders nothing when there's no coverage (or no API key).
  */
 
-import { getBillNews, type Lean } from '@/lib/api/news'
+import { getStoredNewsForBill, type Lean } from '@/lib/api/news'
 import { Newspaper, ExternalLink } from 'lucide-react'
 
 const LEAN_BADGE: Record<Lean, { label: string; cls: string }> = {
@@ -21,8 +21,8 @@ function timeAgo(d: string) {
   return `${Math.floor(s / 86400)}d ago`
 }
 
-export default async function BillNews({ query, billCode }: { query: string; billCode: string }) {
-  const articles = await getBillNews(query, billCode)
+export default async function BillNews({ billId }: { billId: string }) {
+  const articles = await getStoredNewsForBill(billId)
   if (articles.length === 0) return null
 
   return (

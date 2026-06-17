@@ -281,7 +281,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
           )}
 
           {/* External coverage — labeled by source lean, never curated */}
-          <BillNews query={bill.shortTitle || bill.title} billCode={`${bill.billType} ${bill.billNumber}`} />
+          <BillNews billId={bill.id} />
 
           {/* Cross-links — keep share-link visitors from dead-ending here */}
           <RelatedBills billId={bill.id} policyArea={bill.policyArea ?? null} />

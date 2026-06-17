@@ -47,6 +47,25 @@ model User {
 }
 
 // ---------------------------------------------------------------------------
+// BillNewsArticle — external press coverage of a bill, synced daily into the
+// DB (not fetched live) so pages render instantly and we stay within the news
+// providers' rate limits. Trusted, lean-labeled outlets only.
+// ---------------------------------------------------------------------------
+model BillNewsArticle {
+  id          String   @id @default(cuid())
+  billId      String
+  url         String   @unique
+  title       String
+  source      String
+  lean        String   // 'left' | 'center' | 'right'
+  publishedAt DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([billId, publishedAt])
+  @@index([publishedAt])
+}
+
+// ---------------------------------------------------------------------------
 // ChatMessage — live (polled) per-bill chat. Lighter + faster-moving than the
 // threaded discussions. Gated behind the same moderation rails: username
 // required, banned users blocked, moderators can delete.

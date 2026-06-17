@@ -11,6 +11,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/sync-representatives',  // rep sync (protected by CRON_SECRET)
   '/api/sync-fec-ids',          // FEC ID sync (protected by CRON_SECRET)
   '/api/sync-lobbying',         // LDA lobbying firm count sync (protected by CRON_SECRET)
+  '/api/sync-news',             // per-bill news sync (protected by CRON_SECRET)
   '/api/cron/sync',             // daily cron orchestrator (protected by CRON_SECRET)
   '/api/alignment',             // alignment API
   '/api/debug-vote',            // temporary debug
