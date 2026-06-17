@@ -13,10 +13,16 @@ const LEAN_DOT: Record<string, string> = {
 }
 
 export default async function NewsTeaser() {
-  const articles = (await getRecentNews(20))
-    // one-per-bill so the teaser isn't three takes on the same story
-    .filter((a, i, arr) => arr.findIndex(x => x.bill?.id === a.bill?.id) === i)
-    .slice(0, 4)
+  const all = await getRecentNews(20)
+  // De-dupe only among bill-linked items (avoid 3 takes on the same bill);
+  // keep all general (unlinked) coverage.
+  const seenBills = new Set<string>()
+  const articles = all.filter(a => {
+    if (!a.bill) return true
+    if (seenBills.has(a.bill.id)) return false
+    seenBills.add(a.bill.id)
+    return true
+  }).slice(0, 4)
   if (articles.length === 0) return null
 
   return (

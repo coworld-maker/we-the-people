@@ -53,7 +53,7 @@ model User {
 // ---------------------------------------------------------------------------
 model BillNewsArticle {
   id          String   @id @default(cuid())
-  billId      String
+  billId      String?  // null = general congressional coverage (not tied to a specific bill)
   url         String   @unique
   title       String
   source      String

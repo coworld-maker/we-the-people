@@ -284,7 +284,7 @@ import prisma from '@/lib/prisma'
 
 interface StoredArticle {
   title: string; url: string; source: string; lean: Lean
-  publishedAt: string; billId: string
+  publishedAt: string; billId: string | null
 }
 
 function rowToArticle(r: any): StoredArticle {
@@ -316,7 +316,7 @@ export async function getRecentNews(limit = 40): Promise<FeedArticle[]> {
     orderBy: { publishedAt: 'desc' },
     take: limit,
   })
-  const billIds = Array.from(new Set(rows.map((r: any) => r.billId)))
+  const billIds = Array.from(new Set(rows.map((r: any) => r.billId).filter(Boolean)))
   const bills = await prisma.bill.findMany({
     where: { id: { in: billIds as string[] } },
     select: { id: true, billType: true, billNumber: true, shortTitle: true, title: true },
