@@ -237,31 +237,6 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
           <CitizenImpact totalVotes={totalVotes} />
           <LobbyingPanel bill={bill} />
 
-          {/* Vote stats (always visible) */}
-          <div className="card overflow-hidden">
-            <div className="px-6 py-4 border-b border-[--border]"><h3 className="font-display text-sm font-bold text-[--text]">Public opinion</h3></div>
-            <div className="p-5 space-y-4">
-              {[
-                { label: 'Yes',     pct: yesP, count: stats.yesCount,     color: '#22C55E' },
-                { label: 'No',      pct: noP,  count: stats.noCount,      color: '#E5484D' },
-                { label: 'Abstain', pct: absP, count: stats.abstainCount, color: '#8A8F98' },
-              ].map(v => (
-                <div key={v.label}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium text-[--text]">{v.label}</span>
-                    <span className="text-sm font-semibold" style={{ color: v.color }}>{v.pct}% <span className="text-[--text-muted] font-normal">({v.count})</span></span>
-                  </div>
-                  <div className="h-2 rounded-full bg-[--surface-tertiary] overflow-hidden">
-                    <div className="h-2 rounded-full transition-all duration-500" style={{ width: `${v.pct}%`, backgroundColor: v.color }} />
-                  </div>
-                </div>
-              ))}
-              <div className="pt-3 border-t border-[--border] text-center">
-                <p className="text-sm text-[--text-muted]"><span className="font-semibold text-[--text]">{totalVotes}</span> citizen{totalVotes !== 1 ? 's' : ''} voted</p>
-              </div>
-            </div>
-          </div>
-
           {bill.subjects && bill.subjects.length > 0 && (
             <div className="card p-5">
               <h3 className="font-display text-sm font-bold text-[--text] mb-3">Topics</h3>
