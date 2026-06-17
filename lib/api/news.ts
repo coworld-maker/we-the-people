@@ -60,6 +60,26 @@ const OUTLETS: Record<string, { name: string; lean: Lean }> = {
   'breitbart.com':      { name: 'Breitbart',           lean: 'right' },
   'thefederalist.com':  { name: 'The Federalist',      lean: 'right' },
   'reason.com':         { name: 'Reason',              lean: 'right' },
+  'rollcall.com':       { name: 'Roll Call',           lean: 'center' },
+  'realclearpolitics.com': { name: 'RealClearPolitics', lean: 'center' },
+  'newsweek.com':       { name: 'Newsweek',            lean: 'center' },
+  'semafor.com':        { name: 'Semafor',             lean: 'center' },
+  'cnbc.com':           { name: 'CNBC',                lean: 'center' },
+  'forbes.com':         { name: 'Forbes',              lean: 'center' },
+  'marketwatch.com':    { name: 'MarketWatch',         lean: 'center' },
+  'huffpost.com':       { name: 'HuffPost',            lean: 'left' },
+  'motherjones.com':    { name: 'Mother Jones',        lean: 'left' },
+  'slate.com':          { name: 'Slate',               lean: 'left' },
+  'salon.com':          { name: 'Salon',               lean: 'left' },
+  'thedailybeast.com':  { name: 'The Daily Beast',     lean: 'left' },
+  'newrepublic.com':    { name: 'The New Republic',    lean: 'left' },
+  'businessinsider.com':{ name: 'Business Insider',    lean: 'left' },
+  'townhall.com':       { name: 'Townhall',            lean: 'right' },
+  'dailycaller.com':    { name: 'The Daily Caller',    lean: 'right' },
+  'freebeacon.com':     { name: 'Washington Free Beacon', lean: 'right' },
+  'thedispatch.com':    { name: 'The Dispatch',        lean: 'right' },
+  'spectator.org':      { name: 'The American Spectator', lean: 'right' },
+  'justthenews.com':    { name: 'Just the News',       lean: 'right' },
 }
 
 function hostOf(urlOrDomain: string): string {
@@ -109,6 +129,18 @@ function titleKeywords(title: string): string[] {
     .filter(w => w.length > 3 && !STOPWORDS.has(w))
 }
 
+/**
+ * Compact search term for the providers. A bill's full official title is a
+ * long sentence that never matches journalist framing as an exact phrase, so
+ * we send the distinctive keywords instead and let the post-filter enforce
+ * precision. Short titles (≤6 words) are used as-is.
+ */
+function searchTerms(query: string): string {
+  const words = query.trim().split(/\s+/)
+  if (words.length <= 6) return query.trim()
+  return titleKeywords(query).slice(0, 5).join(' ')
+}
+
 function isRelevant(text: string, billCode: string, title: string): boolean {
   const t = text.toLowerCase()
   const codeHit = billCodeVariants(billCode).some(v => t.includes(v))
@@ -156,8 +188,9 @@ const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000
 async function fromNewsdata(query: string, billCode: string): Promise<NewsArticle[]> {
   const key = process.env.NEWSDATA_API_KEY
   if (!key) return []
-  // Constrain at the source: bill code/title AND congressional context, US politics.
-  const q = `("${billCode}" OR "${query}") AND (Congress OR Senate OR House OR legislation)`
+  // Distinctive keywords (not the full title sentence) + bill code; the
+  // post-filter enforces precision. US politics only.
+  const q = `"${billCode}" OR ${searchTerms(query)}`
   const url = `https://newsdata.io/api/1/latest?apikey=${key}&q=${encodeURIComponent(q)}&language=en&country=us&category=politics`
   try {
     const res = await fetch(url, { next: { revalidate: 3600 } })
@@ -183,7 +216,7 @@ async function fromNewsdata(query: string, billCode: string): Promise<NewsArticl
 
 async function fromGdelt(query: string, billCode: string): Promise<NewsArticle[]> {
   // GDELT query language: space = AND, OR uppercase, quotes for phrases.
-  const q = `("${billCode}" OR "${query}") (Congress OR Senate OR House OR legislation) sourcelang:english`
+  const q = `("${billCode}" OR "${searchTerms(query)}") (Congress OR Senate OR House OR legislation) sourcelang:english`
   const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(q)}&mode=ArtList&format=json&maxrecords=30&sort=DateDesc`
   try {
     const res = await fetch(url, { next: { revalidate: 3600 } })
@@ -225,6 +258,10 @@ export async function getBillNews(query: string, billCode: string): Promise<News
   const filtered = all.filter(a => {
     if (!a.title || !a.url || a.title === '[Removed]') return false
     if (new Date(a.publishedAt).getTime() < cutoff) return false
+    // Recognized outlets only — guarantees a real lean label and filters out
+    // the obscure local blogs the free tiers surface. The whole value prop is
+    // a *labeled, balanced* spread, so unlabeled sources don't belong.
+    if (a.lean === 'unknown') return false
     // Hard congressional + bill relevance gate
     return isRelevant(`${a.title} ${a.description ?? ''}`, billCode, query)
   })
