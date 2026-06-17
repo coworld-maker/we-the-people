@@ -17,7 +17,6 @@ import YourRepresentatives from '@/components/dashboard/YourRepresentatives'
 import VotingPatterns from '@/components/dashboard/VotingPatterns'
 import YourImpact from '@/components/dashboard/YourImpact'
 import PersonalizedBills from '@/components/dashboard/PersonalizedBills'
-import WelcomeGuide from '@/components/ui/WelcomeGuide'
 import FadeIn from '@/components/ui/FadeIn'
 import MovingThisWeek from '@/components/dashboard/MovingThisWeek'
 import GuideBanner from '@/components/ui/GuideBanner'
@@ -184,9 +183,8 @@ export default async function DashboardPage() {
         </div>
       </FadeIn>
 
-      {/* Interest poll / recommended bills + first-visit guide */}
+      {/* Interest poll / recommended bills */}
       <PersonalizedBills />
-      <WelcomeGuide />
 
       {/* Quick stats */}
       <FadeIn delay={0.1}>

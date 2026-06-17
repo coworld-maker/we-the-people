@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   ChevronDown,
   LayoutDashboard, FileText, ScrollText, Grid3X3,
-  Users, BarChart3, ClipboardList,
+  Users, BarChart3,
   Landmark, Newspaper, Megaphone, GraduationCap,
 } from 'lucide-react'
 import { track } from '@/lib/track'
@@ -39,10 +39,9 @@ const NAV_ITEMS: NavItem[] = [
     kind: 'group', label: 'Know', icon: Users, href: '/my-representatives',
     description: 'Understand who represents you',
     items: [
-      { href: '/my-representatives', icon: Users,         label: 'My Reps' },
-      { href: '/scorecards',         icon: BarChart3,     label: 'Scorecards' },
-      { href: '/voting-records',     icon: ClipboardList, label: 'Voting Records' },
-      { href: '/news',               icon: Newspaper,     label: 'News' },
+      { href: '/my-representatives', icon: Users,      label: 'My Reps' },
+      { href: '/scorecards',         icon: BarChart3,  label: 'Scorecards' },
+      { href: '/news',               icon: Newspaper,  label: 'News' },
     ],
   },
   { kind: 'link', href: '/act', icon: Megaphone, label: 'Act' },
