@@ -167,11 +167,11 @@ function dedupe(articles: NewsArticle[]): NewsArticle[] {
 }
 
 /** Center/wire first, then interleave left & right so the top is never one-sided. */
-function balance(articles: NewsArticle[]): NewsArticle[] {
+function balance<T extends { lean: Lean }>(articles: T[]): T[] {
   const center = articles.filter(a => a.lean === 'center' || a.lean === 'unknown')
   const left = articles.filter(a => a.lean === 'left')
   const right = articles.filter(a => a.lean === 'right')
-  const out: NewsArticle[] = [...center.slice(0, 2)]
+  const out: T[] = [...center.slice(0, 2)]
   const max = Math.max(left.length, right.length)
   for (let i = 0; i < max; i++) {
     if (left[i]) out.push(left[i])
@@ -296,7 +296,7 @@ export async function getStoredNewsForBill(billId: string, limit = 6): Promise<S
     orderBy: { publishedAt: 'desc' },
     take: limit,
   })
-  return balance(rows.map(rowToArticle)) as StoredArticle[]
+  return balance(rows.map(rowToArticle))
 }
 
 export interface FeedArticle extends StoredArticle {
