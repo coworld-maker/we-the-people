@@ -47,6 +47,22 @@ model User {
 }
 
 // ---------------------------------------------------------------------------
+// ChatMessage — live (polled) per-bill chat. Lighter + faster-moving than the
+// threaded discussions. Gated behind the same moderation rails: username
+// required, banned users blocked, moderators can delete.
+// ---------------------------------------------------------------------------
+model ChatMessage {
+  id        String   @id @default(cuid())
+  billId    String
+  userId    String
+  username  String   // denormalized pseudonym snapshot at post time
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([billId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
 // ContentReport — user-reported discussion comments, queued for moderators.
 // The reporting+escalation rail the council gated all UGC features behind.
 // ---------------------------------------------------------------------------
