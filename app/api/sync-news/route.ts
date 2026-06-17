@@ -46,8 +46,19 @@ export async function POST(req: NextRequest) {
   const offset = Math.max(0, parseInt(new URL(req.url).searchParams.get('offset') || '0', 10) || 0)
   const since = new Date(Date.now() - ACTIVE_DAYS * 24 * 60 * 60 * 1000)
   const bills = await prisma.bill.findMany({
-    where: { latestActionDate: { gte: since } },
-    orderBy: { latestActionDate: 'desc' },
+    where: {
+      latestActionDate: { gte: since },
+      // Ceremonial resolutions (honoring/recognizing/commemorating) are
+      // never covered by the press — exclude so the budget targets bills
+      // that can actually have coverage.
+      billType: { notIn: ['HRES', 'SRES', 'HCONRES', 'SCONRES'] },
+    },
+    // Prominence first: bills with lobbying activity are substantive and far
+    // likelier to be covered; then most recent.
+    orderBy: [
+      { lobbyingFirmCount: { sort: 'desc', nulls: 'last' } },
+      { latestActionDate: 'desc' },
+    ],
     skip: offset,
     take: MAX_BILLS,
     select: { id: true, billType: true, billNumber: true, shortTitle: true, title: true },
