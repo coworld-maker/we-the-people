@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { MapPin, Edit3, Search, X } from 'lucide-react'
+import { MapPin, Edit3, Search, X, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import USStateMap from '@/components/ui/USStateMap'
 import CollapsibleCard from '@/components/ui/CollapsibleCard'
@@ -54,8 +54,8 @@ function RepCard({ rep }: { rep: Representative }) {
   const initials = rep.name.split(',')[0]?.split(' ').map(n => n[0]).join('').slice(0, 2) || '?'
   const avatarBg = rep.party === 'R' ? 'bg-red-100 text-red-600' : rep.party === 'D' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
 
-  return (
-    <div className="p-4 bg-[--surface-secondary] rounded-xl flex items-center gap-4">
+  const body = (
+    <>
       {/* Avatar */}
       <div className={`w-12 h-12 rounded-full ${avatarBg} flex items-center justify-center text-sm font-bold shrink-0`}>
         {initials}
@@ -83,7 +83,22 @@ function RepCard({ rep }: { rep: Representative }) {
           <p className="text-[10px] text-[--text-muted] mt-1 italic">Vote on bills to see alignment</p>
         )}
       </div>
+      {rep.bioguideId && <ChevronRight className="w-4 h-4 text-[--text-muted] shrink-0" />}
+    </>
+  )
 
+  // Link to the full scorecard when we have a bioguide id — the rep card was
+  // a dead-end into the app's richest page.
+  return rep.bioguideId ? (
+    <Link
+      href={`/scorecards/${rep.bioguideId}`}
+      className="p-4 bg-[--surface-secondary] rounded-xl flex items-center gap-4 hover:bg-[--surface-tertiary] hover:ring-1 hover:ring-[--accent]/20 transition-all"
+    >
+      {body}
+    </Link>
+  ) : (
+    <div className="p-4 bg-[--surface-secondary] rounded-xl flex items-center gap-4">
+      {body}
     </div>
   )
 }

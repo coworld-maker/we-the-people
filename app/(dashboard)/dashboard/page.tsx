@@ -21,6 +21,7 @@ import WelcomeGuide from '@/components/ui/WelcomeGuide'
 import FadeIn from '@/components/ui/FadeIn'
 import MovingThisWeek from '@/components/dashboard/MovingThisWeek'
 import GuideBanner from '@/components/ui/GuideBanner'
+import NewsTeaser from '@/components/dashboard/NewsTeaser'
 
 export default async function DashboardPage() {
   const { userId: clerkUserId } = await auth()
@@ -300,6 +301,11 @@ export default async function DashboardPage() {
           <BillsForYou bills={billsForYou} />
           <ActivityFeed items={activityFeed} />
         </div>
+      </FadeIn>
+
+      {/* News teaser — connects Home to the press feed */}
+      <FadeIn>
+        <NewsTeaser />
       </FadeIn>
 
       {/* Activity timeline — returning users only */}

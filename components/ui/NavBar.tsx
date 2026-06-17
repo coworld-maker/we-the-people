@@ -18,7 +18,7 @@ import { track } from '@/lib/track'
 // Mobile gets a bottom tab bar (MobileTabBar.tsx) instead of a hamburger.
 
 interface NavLink { href: string; icon: any; label: string }
-interface NavGroup { label: string; icon: any; description: string; items: NavLink[] }
+interface NavGroup { label: string; icon: any; description: string; href: string; items: NavLink[] }
 type NavItem =
   | ({ kind: 'link' } & NavLink)
   | ({ kind: 'group' } & NavGroup)
@@ -26,7 +26,7 @@ type NavItem =
 const NAV_ITEMS: NavItem[] = [
   { kind: 'link', href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
   {
-    kind: 'group', label: 'Track', icon: FileText,
+    kind: 'group', label: 'Track', icon: FileText, href: '/bills',
     description: 'Follow legislation that affects you',
     items: [
       { href: '/bills',        icon: FileText,   label: 'Federal Bills' },
@@ -36,7 +36,7 @@ const NAV_ITEMS: NavItem[] = [
     ],
   },
   {
-    kind: 'group', label: 'Know', icon: Users,
+    kind: 'group', label: 'Know', icon: Users, href: '/my-representatives',
     description: 'Understand who represents you',
     items: [
       { href: '/my-representatives', icon: Users,         label: 'My Reps' },
@@ -129,18 +129,27 @@ export default function NavBar() {
         const active = isGroupActive(item)
         const open = openGroup === item.label
         return (
-          <div key={item.label} className="relative self-stretch flex">
+          <div key={item.label} className="relative self-stretch flex items-stretch">
+            {/* Label navigates to the section hub; chevron toggles the menu */}
+            <Link
+              href={item.href}
+              aria-current={active ? 'page' : undefined}
+              className={itemClass(active, open).replace('px-3', 'pl-3 pr-1.5')}
+              title={item.label}
+              onClick={() => { setOpenGroup(null); track('nav_click', { label: item.label, href: item.href, surface: 'desktop' }) }}
+            >
+              <item.icon className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">{item.label}</span>
+              {active && <ActiveBar />}
+            </Link>
             <button
               onClick={() => setOpenGroup(open ? null : item.label)}
               aria-expanded={open}
               aria-haspopup="menu"
-              className={itemClass(active, open)}
-              title={item.label}
+              aria-label={`${item.label} menu`}
+              className={itemClass(active, open).replace('px-3', 'pl-1 pr-2.5')}
             >
-              <item.icon className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">{item.label}</span>
               <ChevronDown className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''}`} />
-              {active && <ActiveBar />}
             </button>
 
             {open && (

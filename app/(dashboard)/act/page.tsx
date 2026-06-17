@@ -5,11 +5,14 @@
  */
 
 import Link from 'next/link'
+import { auth } from '@clerk/nextjs/server'
 import {
   GraduationCap, Landmark, BookOpen, Vote,
-  MessageSquare, BarChart3, ExternalLink, ArrowRight, Megaphone,
+  MessageSquare, BarChart3, ExternalLink, ArrowRight, Megaphone, ShieldCheck,
 } from 'lucide-react'
 import FadeIn from '@/components/ui/FadeIn'
+import { UserService } from '@/lib/services/userService'
+import { isModerator } from '@/lib/admin'
 
 export const metadata = { title: 'Act · Democracy Unlocked' }
 
@@ -62,7 +65,11 @@ const ACTIONS = [
   },
 ]
 
-export default function ActPage() {
+export default async function ActPage() {
+  const { userId } = await auth()
+  const user = await UserService.getCurrentUser()
+  const showModeration = isModerator(userId, user as any)
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <FadeIn delay={0.05}>
@@ -123,6 +130,26 @@ export default function ActPage() {
                 Open feedback form <ExternalLink className="w-3 h-3" />
               </span>
             </a>
+          )}
+
+          {showModeration && (
+            <Link
+              href="/moderation"
+              className="card p-5 group hover:border-[--accent]/40 transition-colors flex flex-col border-amber-200 bg-amber-50/40"
+            >
+              <div className="flex items-center gap-2.5 mb-2">
+                <span className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-[18px] h-[18px]" />
+                </span>
+                <h2 className="font-display text-sm font-bold text-[--text]">Moderation queue</h2>
+              </div>
+              <p className="text-xs text-[--text-muted] leading-relaxed flex-1">
+                Review reported comments and keep discussions healthy. Visible to moderators only.
+              </p>
+              <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-amber-700 group-hover:underline">
+                Open queue <ArrowRight className="w-3 h-3" />
+              </span>
+            </Link>
           )}
         </div>
       </FadeIn>
