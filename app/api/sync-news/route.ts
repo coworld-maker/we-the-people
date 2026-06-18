@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getCongressionalNewsFromRss } from '@/lib/api/rss'
 import { getNewsdataCongressional } from '@/lib/api/news'
+import { billCodeKeys } from '@/lib/news-match'
 
 export const maxDuration = 60
 
@@ -20,18 +21,6 @@ function checkAuth(req: NextRequest): boolean {
   const authHeader = req.headers.get('authorization')
   const secretHeader = req.headers.get('x-sync-secret')
   return authHeader === `Bearer ${CRON_SECRET}` || secretHeader === CRON_SECRET
-}
-
-// Extract normalized bill-code keys (e.g. "HR1234", "S2", "HJRES5") from text.
-function billCodeKeys(text: string): string[] {
-  const keys = new Set<string>()
-  const re = /\b(h\.?\s?j\.?\s?res|s\.?\s?j\.?\s?res|h\.?\s?con\.?\s?res|s\.?\s?con\.?\s?res|h\.?\s?res|s\.?\s?res|h\.?\s?r|s)\.?\s*(\d{1,5})\b/gi
-  let m: RegExpExecArray | null
-  while ((m = re.exec(text)) !== null) {
-    const prefix = m[1].replace(/[^a-z]/gi, '').toUpperCase()
-    keys.add(`${prefix}${m[2]}`)
-  }
-  return Array.from(keys)
 }
 
 export async function GET(req: NextRequest) {
@@ -56,6 +45,13 @@ export async function POST(req: NextRequest) {
     seenUrls.add(a.url)
     return true
   })
+
+  // Health floor: a healthy run pulls dozens of articles. A low count means
+  // feeds are failing — surface it in logs (response also reports the counts).
+  const FLOOR = 20
+  if (articles.length < FLOOR) {
+    console.error(`[sync-news] LOW YIELD: ${articles.length} articles (rss=${rss.length}, newsdata=${newsdata.length}) — feeds may be failing`)
+  }
 
   // 2. Build a bill-code → id map for linking (cheap: ~2.5k rows)
   const bills = await prisma.bill.findMany({

@@ -56,7 +56,8 @@ export default function PressFeed({ articles }: { articles: Article[] }) {
           <h2 className="font-display text-base font-bold text-[--text]">In the news</h2>
         </div>
         <p className="text-xs text-[--text-muted]">
-          Press coverage of bills in Congress, labeled by source lean. We attach and label — we don’t curate or endorse.
+          Congressional coverage across the spectrum. Lean reflects each outlet’s general editorial tilt
+          (our assessment, applied at the source level) — not the article. We attach and label; we don’t curate or endorse.
         </p>
         {/* Balance summary + filter */}
         <div className="flex items-center gap-1.5 mt-3 flex-wrap">

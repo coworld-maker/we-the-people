@@ -113,8 +113,14 @@ export default async function NewsPage() {
       </div>
 
       {/* Press coverage feed — the lead section */}
-      <div className="mb-8">
+      <div className="mb-10">
         <PressFeed articles={pressArticles} />
+      </div>
+
+      {/* Section divider — second half of the page is platform activity, not press */}
+      <div className="mb-6 pb-2 border-b border-[--border]">
+        <h2 className="font-display text-lg font-bold text-[--text]">On Democracy Unlocked</h2>
+        <p className="text-xs text-[--text-muted] mt-0.5">What's moving in Congress and how citizens here are engaging</p>
       </div>
 
       {/* Platform pulse */}

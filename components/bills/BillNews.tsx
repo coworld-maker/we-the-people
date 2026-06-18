@@ -59,7 +59,7 @@ export default async function BillNews({ billId }: { billId: string }) {
         All congressional news <ArrowRight className="w-3 h-3" />
       </Link>
       <p className="px-5 py-2.5 border-t border-[--border] text-[10px] text-[--text-muted]">
-        Lean labels are source-level (AllSides-style), not article-level. Democracy Unlocked doesn’t curate or endorse coverage.
+        Lean reflects each outlet’s general editorial tilt, not the individual article — judge each piece for yourself. We attach and label coverage; we don’t curate or endorse it.
       </p>
     </div>
   )

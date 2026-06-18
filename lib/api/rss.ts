@@ -87,43 +87,63 @@ async function parseFeed(feed: Feed): Promise<NewsArticle[]> {
       headers: { 'User-Agent': 'DemocracyUnlocked/1.0 (+https://www.democracyunlocked.com)' },
       next: { revalidate: 3600 },
     })
-    if (!res.ok) return []
-    const xml = await res.text()
-
-    // Split into <item> (RSS) or <entry> (Atom) blocks
-    const blocks = xml.split(/<item[\s>]/i).slice(1).map(b => '<item ' + b)
-    const entryBlocks = blocks.length > 0 ? blocks : xml.split(/<entry[\s>]/i).slice(1).map(b => '<entry ' + b)
-    const items = blocks.length > 0 ? blocks : entryBlocks
-
-    const out: NewsArticle[] = []
-    for (const raw of items.slice(0, 40)) {
-      const block = raw.split(/<\/(item|entry)>/i)[0]
-      const title = firstTag(block, ['title'])
-      const url = extractLink(block)
-      const desc = firstTag(block, ['description', 'summary', 'content:encoded'])
-      const dateStr = firstTag(block, ['pubDate', 'published', 'updated', 'dc:date'])
-      if (!title || !url) continue
-      if (!isCongressional(`${title} ${desc ?? ''}`)) continue
-      const publishedAt = dateStr ? new Date(dateStr) : new Date()
-      out.push({
-        title,
-        url,
-        source: feed.name,
-        lean: feed.lean,
-        publishedAt: isNaN(publishedAt.getTime()) ? new Date().toISOString() : publishedAt.toISOString(),
-        description: desc ? desc.slice(0, 300) : null,
-      })
+    if (!res.ok) {
+      console.warn(`[rss] feed unhealthy: ${feed.name} (${feed.url}) → HTTP ${res.status}`)
+      return []
     }
-    return out
+    const xml = await res.text()
+    return parseRssDocument(xml, feed)
   } catch {
     return []
   }
+}
+
+/**
+ * Pure RSS/Atom → NewsArticle[] parser (no network) — exported for unit tests.
+ * Keeps only congressionally-relevant items; labels with the feed's lean.
+ */
+export function parseRssDocument(xml: string, feed: { name: string; lean: Lean }): NewsArticle[] {
+  // Split into <item> (RSS) or <entry> (Atom) blocks
+  const itemBlocks = xml.split(/<item[\s>]/i).slice(1).map(b => '<item ' + b)
+  const items = itemBlocks.length > 0
+    ? itemBlocks
+    : xml.split(/<entry[\s>]/i).slice(1).map(b => '<entry ' + b)
+
+  const out: NewsArticle[] = []
+  for (const raw of items.slice(0, 40)) {
+    const block = raw.split(/<\/(item|entry)>/i)[0]
+    const title = firstTag(block, ['title'])
+    const url = extractLink(block)
+    const desc = firstTag(block, ['description', 'summary', 'content:encoded'])
+    const dateStr = firstTag(block, ['pubDate', 'published', 'updated', 'dc:date'])
+    if (!title || !url) continue
+    if (!isCongressional(`${title} ${desc ?? ''}`)) continue
+    const publishedAt = dateStr ? new Date(dateStr) : new Date()
+    out.push({
+      title,
+      url,
+      source: feed.name,
+      lean: feed.lean,
+      publishedAt: isNaN(publishedAt.getTime()) ? new Date().toISOString() : publishedAt.toISOString(),
+      description: desc ? desc.slice(0, 300) : null,
+    })
+  }
+  return out
 }
 
 /** All congressionally-relevant articles from the curated feeds, recent first. */
 export async function getCongressionalNewsFromRss(daysBack = 14): Promise<NewsArticle[]> {
   const results = await Promise.allSettled(FEEDS.map(parseFeed))
   const all = results.flatMap(r => (r.status === 'fulfilled' ? r.value : []))
+
+  // Feed-health surfacing: warn when feeds go dark so silent rot is visible.
+  const empty = FEEDS.filter((_, i) => {
+    const r = results[i]
+    return r.status === 'rejected' || r.value.length === 0
+  }).map(f => f.name)
+  const healthy = FEEDS.length - empty.length
+  if (empty.length > 0) console.warn(`[rss] ${empty.length}/${FEEDS.length} feeds returned nothing: ${empty.join(', ')}`)
+  if (healthy < FEEDS.length / 2) console.error(`[rss] FEED HEALTH LOW: only ${healthy}/${FEEDS.length} feeds healthy — check lib/api/rss.ts FEEDS`)
 
   const cutoff = Date.now() - daysBack * 24 * 60 * 60 * 1000
   const seen = new Set<string>()
