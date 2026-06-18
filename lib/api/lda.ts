@@ -92,10 +92,19 @@ async function fetchExactFilings(
       if (seen.has(key)) continue
       seen.add(key)
 
+      // Snippet centered on the actual bill mention — a single LDA filing often
+      // lists many bills, so showing the start of the text would surface an
+      // unrelated bill. Window around the match instead.
+      const full = match.description || ''
+      const idx = full.search(re)
+      const start = Math.max(0, idx - 70)
+      const end = Math.min(full.length, idx + 150)
+      const description = `${start > 0 ? '…' : ''}${full.slice(start, end).trim()}${end < full.length ? '…' : ''}`
+
       filings.push({
         registrant,
         client,
-        description: (match.description || '').slice(0, 200),
+        description,
         income: r.income ? parseFloat(r.income) : undefined,
         expenses: r.expenses ? parseFloat(r.expenses) : undefined,
       })

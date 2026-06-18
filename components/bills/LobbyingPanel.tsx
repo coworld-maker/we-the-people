@@ -180,10 +180,13 @@ export default async function LobbyingPanel({ bill }: { bill: any }) {
                 </div>
               ))}
             </div>
-            <div className="px-5 py-3 border-t border-[--border]">
+            <div className="px-5 py-3 border-t border-[--border] space-y-1.5">
+              <p className="text-[10px] text-[--text-muted]">
+                Firms whose quarterly LDA filings listed this bill. One filing often covers many bills, so this reflects disclosed interest — not necessarily active or paid lobbying on this bill alone.
+              </p>
               <a href={ldaVerifyUrl(billType, billNumber)}
                 target="_blank" rel="noopener noreferrer"
-                className="text-[10px] text-[--text-muted] hover:text-[--text] transition-colors flex items-center gap-1">
+                className="text-[10px] text-[--accent] hover:text-[--accent-hover] transition-colors flex items-center gap-1">
                 Verify these filings on the Senate LDA database <ExternalLink className="w-3 h-3" />
               </a>
             </div>
