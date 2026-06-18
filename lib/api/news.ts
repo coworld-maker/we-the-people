@@ -214,6 +214,47 @@ async function fromNewsdata(query: string, billCode: string): Promise<NewsArticl
   }
 }
 
+/**
+ * Backup/supplement to the curated RSS feeds: general congressional coverage
+ * from Newsdata (NEWSDATA_API_KEY). Trusted outlets only (lean != unknown) so
+ * labels stay valid even though the free tier is aggregator-heavy. Returns []
+ * when the key is absent. Keeps the news feed alive if RSS feeds fail.
+ */
+export async function getNewsdataCongressional(daysBack = 14): Promise<NewsArticle[]> {
+  const key = process.env.NEWSDATA_API_KEY
+  if (!key) return []
+  const q = 'Congress OR Senate OR "House of Representatives" OR legislation'
+  const url = `https://newsdata.io/api/1/latest?apikey=${key}&q=${encodeURIComponent(q)}&language=en&country=us&category=politics`
+  const cutoff = Date.now() - daysBack * 24 * 60 * 60 * 1000
+  try {
+    const res = await fetch(url, { next: { revalidate: 3600 } })
+    if (!res.ok) { console.error('[news] newsdata backup error:', res.status); return [] }
+    const data = await res.json()
+    return (data.results || [])
+      .map((r: any): NewsArticle => {
+        const o = outletFor(r.source_url || r.link || '')
+        return {
+          title: r.title,
+          url: r.link,
+          source: o.name,
+          lean: o.lean,
+          publishedAt: r.pubDate ? new Date(r.pubDate).toISOString() : new Date().toISOString(),
+          description: r.description ?? null,
+        }
+      })
+      .filter((a: NewsArticle) => {
+        if (!a.title || !a.url) return false
+        if (a.lean === 'unknown') return false // trusted outlets only
+        if (new Date(a.publishedAt).getTime() < cutoff) return false
+        const t = `${a.title} ${a.description ?? ''}`.toLowerCase()
+        return CONGRESS_TERMS.some(k => t.includes(k))
+      })
+  } catch (e) {
+    console.error('[news] newsdata backup failed:', e)
+    return []
+  }
+}
+
 async function fromGdelt(query: string, billCode: string): Promise<NewsArticle[]> {
   // GDELT query language: space = AND, OR uppercase, quotes for phrases.
   const q = `("${billCode}" OR "${searchTerms(query)}") (Congress OR Senate OR House OR legislation) sourcelang:english`

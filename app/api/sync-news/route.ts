@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getCongressionalNewsFromRss } from '@/lib/api/rss'
+import { getNewsdataCongressional } from '@/lib/api/news'
 
 export const maxDuration = 60
 
@@ -42,8 +43,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // 1. Pull balanced congressional coverage from the curated feeds
-  const articles = await getCongressionalNewsFromRss(14)
+  // 1. Pull balanced congressional coverage. RSS is primary (free, reliable,
+  //    balanced by construction); Newsdata is a backup/supplement that keeps
+  //    the feed alive if feeds fail. Merge, RSS winning on duplicate URLs.
+  const [rss, newsdata] = await Promise.all([
+    getCongressionalNewsFromRss(14),
+    getNewsdataCongressional(14),
+  ])
+  const seenUrls = new Set<string>()
+  const articles = [...rss, ...newsdata].filter(a => {
+    if (seenUrls.has(a.url)) return false
+    seenUrls.add(a.url)
+    return true
+  })
 
   // 2. Build a bill-code → id map for linking (cheap: ~2.5k rows)
   const bills = await prisma.bill.findMany({
@@ -87,6 +99,8 @@ export async function POST(req: NextRequest) {
     success: true,
     timestamp: new Date().toISOString(),
     articlesFetched: articles.length,
+    fromRss: rss.length,
+    fromNewsdata: newsdata.length,
     stored,
     linkedToBills: linked,
     pruned: pruned.count,
