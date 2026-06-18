@@ -3,18 +3,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getLobbyingFirmCount } from '@/lib/api/lda'
+import { checkSyncAuth } from '@/lib/auth/syncAuth'
 
-const CRON_SECRET = process.env.CRON_SECRET
 const LDA_API_KEY = process.env.LDA_API_KEY
 
 // Without a key: 15 req/min → ~4s between calls. With key: 120 req/min → ~0.5s.
 const DELAY_MS = LDA_API_KEY ? 550 : 4100
 
-function checkAuth(req: NextRequest): boolean {
-  const authHeader = req.headers.get('authorization')
-  const secretHeader = req.headers.get('x-sync-secret')
-  return authHeader === `Bearer ${CRON_SECRET}` || secretHeader === CRON_SECRET
-}
+export const maxDuration = 300
 
 function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -25,7 +21,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) {
+  if (!checkSyncAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -38,7 +34,10 @@ export async function POST(req: NextRequest) {
     let updated = 0
     let errors = 0
 
-    for (const bill of bills) {
+    for (let i = 0; i < bills.length; i++) {
+      const bill = bills[i]
+      // Throttle between calls only — no trailing delay after the last bill.
+      if (i > 0) await delay(DELAY_MS)
       try {
         const count = await getLobbyingFirmCount(bill.billType, bill.billNumber)
         await prisma.bill.update({
@@ -49,7 +48,6 @@ export async function POST(req: NextRequest) {
       } catch {
         errors++
       }
-      await delay(DELAY_MS)
     }
 
     return NextResponse.json({

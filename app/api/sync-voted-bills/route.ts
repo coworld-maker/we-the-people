@@ -6,16 +6,10 @@
 //
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { checkSyncAuth } from '@/lib/auth/syncAuth';
 
 const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY;
-const CRON_SECRET = process.env.CRON_SECRET;
 const BASE_URL = 'https://api.congress.gov/v3';
-
-function checkAuth(req: NextRequest): boolean {
-  const secret = req.headers.get('x-sync-secret');
-  const auth = req.headers.get('authorization');
-  return secret === CRON_SECRET || auth === `Bearer ${CRON_SECRET}`;
-}
 
 function cuid(): string {
   return `bill_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -31,7 +25,7 @@ async function fetchBillDetail(congress: number, billType: string, billNumber: s
 }
 
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) {
+  if (!checkSyncAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

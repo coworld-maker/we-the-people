@@ -17,18 +17,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { EncryptionService } from '@/lib/security/encryption'
 import { sendEmail, buildDigestHtml } from '@/lib/email'
+import { checkSyncAuth } from '@/lib/auth/syncAuth'
 
-const CRON_SECRET = process.env.CRON_SECRET
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.democracyunlocked.com'
-
-function checkAuth(req: NextRequest): boolean {
-  const authHeader = req.headers.get('authorization')
-  const cronHeader = req.headers.get('x-vercel-cron')
-  return (
-    cronHeader === '1' ||
-    authHeader === `Bearer ${CRON_SECRET}`
-  )
-}
 
 function decryptEmail(user: { emailEncrypted: string; emailIv: string; emailTag: string }): string | null {
   try {
@@ -43,7 +34,7 @@ function decryptEmail(user: { emailEncrypted: string; emailIv: string; emailTag:
 }
 
 export async function GET(req: NextRequest) {
-  if (!checkAuth(req)) {
+  if (!checkSyncAuth(req, { allowVercelCron: true })) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

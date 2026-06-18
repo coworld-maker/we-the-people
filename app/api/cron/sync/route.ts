@@ -2,18 +2,13 @@
 // Daily sync endpoint — called by GitHub Actions at 2AM UTC
 // Syncs: bills, congress member votes, and representatives
 import { NextRequest, NextResponse } from 'next/server';
+import { checkSyncAuth } from '@/lib/auth/syncAuth';
 
 const CRON_SECRET = process.env.CRON_SECRET;
 // Important: must point at the WWW host (the apex 301-redirects to www
 // and fetch() strips Authorization headers across that hop). Override
 // via NEXT_PUBLIC_APP_URL for preview deploys.
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.democracyunlocked.com';
-
-function checkAuth(req: NextRequest): boolean {
-  const authHeader = req.headers.get('authorization');
-  const secretHeader = req.headers.get('x-sync-secret');
-  return authHeader === `Bearer ${CRON_SECRET}` || secretHeader === CRON_SECRET;
-}
 
 async function callSync(path: string, body: object, secret: string) {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -33,7 +28,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) {
+  if (!checkSyncAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

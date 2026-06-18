@@ -10,14 +10,9 @@
 // the body parameters (chamber, maxVotes, etc.) that the sync route expects.
 
 import { NextRequest, NextResponse } from 'next/server'
+import { checkSyncAuth } from '@/lib/auth/syncAuth'
 
 const CRON_SECRET = process.env.CRON_SECRET
-
-// Vercel cron requests always include "Authorization: Bearer <CRON_SECRET>"
-function isAuthorized(req: NextRequest): boolean {
-  const auth = req.headers.get('authorization')
-  return auth === `Bearer ${CRON_SECRET}`
-}
 
 // Resolve the base URL for internal API calls.
 // On Vercel: VERCEL_URL is set automatically (e.g. democracyunlocked.com).
@@ -33,7 +28,7 @@ function baseUrl(): string {
 export const maxDuration = 55 // stay under Vercel's 60s hobby limit
 
 export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) {
+  if (!checkSyncAuth(req, { allowVercelCron: true })) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

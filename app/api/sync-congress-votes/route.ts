@@ -5,16 +5,10 @@
 //
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { checkSyncAuth } from '@/lib/auth/syncAuth';
 
 const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY;
-const CRON_SECRET = process.env.CRON_SECRET;
 const BASE_URL = 'https://api.congress.gov/v3';
-
-function checkAuth(req: NextRequest): boolean {
-  const authHeader = req.headers.get('authorization');
-  const secretHeader = req.headers.get('x-sync-secret');
-  return authHeader === `Bearer ${CRON_SECRET}` || secretHeader === CRON_SECRET;
-}
 
 // US state full name → 2-letter abbreviation (matches Senate.gov XML format)
 const STATE_ABBR: Record<string, string> = {
@@ -148,7 +142,7 @@ function makeId(): string {
 }
 
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) {
+  if (!checkSyncAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

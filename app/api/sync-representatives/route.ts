@@ -1,16 +1,17 @@
 // app/api/sync-representatives/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { checkSyncAuth } from '@/lib/auth/syncAuth';
 
 const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY;
-const CRON_SECRET = process.env.CRON_SECRET;
 const BASE_URL = 'https://api.congress.gov/v3';
 
-function checkAuth(req: NextRequest): boolean {
-  const authHeader = req.headers.get('authorization');
-  const secretHeader = req.headers.get('x-sync-secret');
-  return authHeader === `Bearer ${CRON_SECRET}` || secretHeader === CRON_SECRET;
-}
+// Congress has ~535 members. If a sync run sees far fewer, the upstream API
+// likely returned a partial/garbled response — never retire members in that
+// case, or a transient outage would wipe the entire roster.
+const MIN_EXPECTED_MEMBERS = 400;
+
+export const maxDuration = 300;
 
 async function fetchMembers(offset = 0, limit = 250) {
   const url = `${BASE_URL}/member?currentMember=true&limit=${limit}&offset=${offset}&format=json&api_key=${CONGRESS_API_KEY}`;
@@ -42,13 +43,14 @@ function extractTermStart(terms: any): Date {
 }
 
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) {
+  if (!checkSyncAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   let totalSynced = 0;
   let offset = 0;
   const limit = 250;
+  const seenBioguideIds: string[] = [];
 
   try {
     while (true) {
@@ -60,6 +62,8 @@ export async function POST(req: NextRequest) {
       for (const member of members) {
         const bioguideId = member.bioguideId;
         if (!bioguideId) continue;
+
+        seenBioguideIds.push(bioguideId);
 
         // Congress.gov returns name as "LastName, FirstName" format
         const nameParts = (member.name || '').split(', ');
@@ -112,7 +116,28 @@ export async function POST(req: NextRequest) {
       await new Promise(r => setTimeout(r, 250));
     }
 
-    return NextResponse.json({ success: true, synced: totalSynced });
+    // Retire any members not returned by the API (resigned, died, term ended).
+    // Guard against a partial/empty upstream response retiring everyone:
+    // `notIn: []` would match all rows, and a truncated page would retire
+    // valid members. Only retire when we saw a plausible full roster.
+    let retired = 0;
+    if (seenBioguideIds.length >= MIN_EXPECTED_MEMBERS) {
+      const result = await prisma.representative.updateMany({
+        where: {
+          currentTerm: true,
+          bioguideId: { notIn: seenBioguideIds },
+        },
+        data: { currentTerm: false, updatedAt: new Date() },
+      });
+      retired = result.count;
+    }
+
+    return NextResponse.json({
+      success: true,
+      synced: totalSynced,
+      retired,
+      retireSkipped: seenBioguideIds.length < MIN_EXPECTED_MEMBERS,
+    });
   } catch (error) {
     console.error('[sync-representatives] error:', error);
     return NextResponse.json(
