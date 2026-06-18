@@ -32,7 +32,7 @@ export default async function LandingPage() {
           <Link href="/" className="flex items-center gap-3 group hover:opacity-90 transition-opacity">
             <Logo className="w-10 h-10 text-white" variant="mark" priority />
             <span className="font-display text-lg font-bold text-white tracking-tight">
-              Democracy Unlocked
+              Democracy Unlocked<span className="align-super text-[9px] font-semibold ml-0.5">™</span>
             </span>
             <span
               className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/15 text-white border border-white/25 backdrop-blur-sm"
@@ -219,14 +219,14 @@ export default async function LandingPage() {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-[--accent]">
             <Logo className="w-6 h-6" variant="mark" />
-            <span className="font-display text-sm font-semibold text-[--text-secondary]">Democracy Unlocked</span>
+            <span className="font-display text-sm font-semibold text-[--text-secondary]">Democracy Unlocked<span className="align-super text-[8px] ml-0.5">™</span></span>
           </div>
           <nav className="flex items-center gap-4 text-xs font-medium text-[--text-muted]">
             <Link href="/privacy" className="hover:text-[--accent] transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-[--accent] transition-colors">Terms</Link>
           </nav>
           <p className="text-xs text-[--text-muted]">
-            &copy; {new Date().getFullYear()} Democracy Unlocked.
+            &copy; {new Date().getFullYear()} Democracy Unlocked&trade;. &ldquo;Democracy Unlocked&rdquo; and the logo are trademarks of Democracy Unlocked.
           </p>
         </div>
       </footer>

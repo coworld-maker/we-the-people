@@ -24,7 +24,7 @@ export default function DashboardLayout({
             <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
               <Logo className="w-7 h-7 text-[--accent]" />
               <span className="font-display text-sm font-bold text-[--text] hidden sm:block">
-                Democracy Unlocked
+                Democracy Unlocked<span className="align-super text-[8px] font-semibold ml-0.5">™</span>
               </span>
               <span
                 className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200"
@@ -70,7 +70,7 @@ export default function DashboardLayout({
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <p>
-              &copy; {new Date().getFullYear()} Democracy Unlocked. Not affiliated with the U.S. Government.
+              &copy; {new Date().getFullYear()} Democracy Unlocked&trade;. Not affiliated with the U.S. Government. &ldquo;Democracy Unlocked&rdquo; and the Democracy Unlocked logo are trademarks of Democracy Unlocked.
             </p>
             <nav className="flex items-center gap-4 font-medium flex-wrap justify-center">
               <Link href="/about" className="hover:text-[--accent] transition-colors">About</Link>

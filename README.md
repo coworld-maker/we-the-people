@@ -1,4 +1,4 @@
-# Democracy Unlocked
+# Democracy Unlocked&trade;
 
 > Read real legislation. Cast your vote. See how your views compare to Congress.
 > Powered by AI and official data from Congress.gov.
@@ -137,6 +137,25 @@ software, but:
 This license preserves the open-source character of civic infrastructure: anyone
 can fork and improve, but no one can take this work proprietary while still
 benefiting from community contributions.
+
+---
+
+## Trademarks
+
+The **AGPL-3.0 license covers the source code only** — it does **not** grant any
+rights to the Democracy Unlocked name or brand.
+
+"**Democracy Unlocked**"&trade;, the Democracy Unlocked logo, and associated
+wordmarks and design marks are trademarks of Democracy Unlocked (common-law
+marks; not yet USPTO-registered). All rights reserved.
+
+If you fork or self-host this software under the AGPL, you **must**:
+
+- Remove or replace the Democracy Unlocked name, logo, and wordmarks with your own branding
+- Not present your deployment in a way that implies affiliation with, or endorsement by, Democracy Unlocked
+
+Nominative references (e.g. "based on Democracy Unlocked") are fine. Trademark
+rights are separate from and not waived by the open-source code license.
 
 ---
 
