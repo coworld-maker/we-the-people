@@ -10,6 +10,7 @@ import StateLegBills from '@/components/states/StateLegBills'
 import StateAIDigest from '@/components/states/StateAIDigest'
 import PolicyAreaPieChart from '@/components/states/PolicyAreaPieChart'
 import DelegationCard from '@/components/states/DelegationCard'
+import StateDistrictFinder from '@/components/states/StateDistrictFinder'
 
 const STATE_NAMES: Record<string, string> = {
   AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',
@@ -303,6 +304,12 @@ export default async function StatePage({ params }: { params: Promise<{ code: st
                     <p className="text-[10px] font-semibold text-[--text-muted] uppercase tracking-wider">House</p>
                     <span className="text-[10px] text-[--text-muted]">{houseReps.length} {houseReps.length === 1 ? 'seat' : 'seats'}</span>
                   </div>
+                  {houseReps.length > 1 && (
+                    <StateDistrictFinder
+                      stateCode={code.toUpperCase()}
+                      houseReps={houseReps.map((r: any) => ({ bioguideId: r.bioguideId, fullName: r.fullName, district: r.district ?? null, party: r.party }))}
+                    />
+                  )}
                   <div className="space-y-2">
                     {houseReps.map((r: any) => <DelegationCard key={r.bioguideId} rep={r} />)}
                   </div>

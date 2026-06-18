@@ -11,7 +11,7 @@ import BillFullText from '@/components/bills/BillFullText'
 import LobbyingPanel from '@/components/bills/LobbyingPanel'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ExternalLink, Calendar, Zap, RefreshCw, LogIn } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Calendar, Zap, RefreshCw, LogIn, ChevronRight } from 'lucide-react'
 import SectionNav from '@/components/ui/SectionNav'
 import ShareButton from '@/components/ui/ShareButton'
 import FollowButton from '@/components/bills/FollowButton'
@@ -165,17 +165,30 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
             <div className="card overflow-hidden">
               <div className="px-6 py-4 border-b border-[--border]"><h2 className="font-display text-sm font-bold text-[--text]">Sponsors</h2></div>
               <div className="p-5 grid sm:grid-cols-2 gap-3">
-                {(bill.sponsors as any[]).map((s: any, i: number) => (
-                  <div key={i} className="flex items-center gap-3 p-3 bg-[--surface-secondary] rounded-lg">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold ${s.party === 'R' ? 'bg-red-500' : s.party === 'D' ? 'bg-blue-500' : 'bg-gray-400'}`}>
-                      {s.party || '?'}
+                {(bill.sponsors as any[]).map((s: any, i: number) => {
+                  const inner = (
+                    <>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0 ${s.party === 'R' ? 'bg-red-500' : s.party === 'D' ? 'bg-blue-500' : 'bg-gray-400'}`}>
+                        {s.party || '?'}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-[--text] truncate">{s.fullName || `${s.firstName} ${s.lastName}`}</p>
+                        <p className="text-xs text-[--text-muted]">{s.state}{s.district ? `-${s.district}` : ''}</p>
+                      </div>
+                      {s.bioguideId && <ChevronRight className="w-4 h-4 text-[--text-muted] shrink-0" />}
+                    </>
+                  )
+                  return s.bioguideId ? (
+                    <Link key={i} href={`/scorecards/${s.bioguideId}`}
+                      className="flex items-center gap-3 p-3 bg-[--surface-secondary] rounded-lg hover:bg-[--surface-tertiary] hover:ring-1 hover:ring-[--accent]/20 transition-all">
+                      {inner}
+                    </Link>
+                  ) : (
+                    <div key={i} className="flex items-center gap-3 p-3 bg-[--surface-secondary] rounded-lg">
+                      {inner}
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-[--text]">{s.fullName || `${s.firstName} ${s.lastName}`}</p>
-                      <p className="text-xs text-[--text-muted]">{s.state}{s.district ? `-${s.district}` : ''}</p>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
