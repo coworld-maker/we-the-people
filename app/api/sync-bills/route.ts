@@ -2,18 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import { checkSyncAuth } from '@/lib/auth/syncAuth'
 
 const CONGRESS_API_BASE = 'https://api.congress.gov/v3'
 const API_KEY = process.env.CONGRESS_API_KEY
-
-function isAuthorized(req: NextRequest): boolean {
-  // Accept either header style. The /api/cron/sync orchestrator sends
-  // `Authorization: Bearer …` so we have to honor that too; external
-  // scripts and the GitHub Actions workflow use `x-sync-secret`.
-  const secret = process.env.CRON_SECRET
-  const auth = req.headers.get('authorization')
-  return req.headers.get('x-sync-secret') === secret || auth === `Bearer ${secret}`
-}
 
 async function fetchBills(congress: number, limit: number, offset: number, policyArea?: string) {
   let url = `${CONGRESS_API_BASE}/bill/${congress}?limit=${limit}&offset=${offset}&sort=updateDate+desc&api_key=${API_KEY}&format=json`
@@ -48,7 +40,7 @@ function normalizeStatus(latestActionText: string, laws: any[]): string {
 }
 
 export async function POST(req: NextRequest) {
-  if (!isAuthorized(req)) {
+  if (!checkSyncAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

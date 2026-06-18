@@ -31,7 +31,7 @@ export default async function DashboardPage() {
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
-  const [profile, billsForYou, activityFeed, movingBills, followedActiveCount, popularAggregate] = await Promise.all([
+  const [profile, billsForYou, activityFeed, movingBills, followedActiveCount, popularAggregate, repMismatchCount] = await Promise.all([
     GamificationService.getCivicProfile(user.id),
     GamificationService.getBillsForYou(user.id, 5),
     GamificationService.getActivityFeed(15, { userId: user.id, userState: user.state ?? undefined }),
@@ -57,6 +57,9 @@ export default async function DashboardPage() {
       where: { totalVotes: { gt: 0 } },
       select: { billId: true },
     }),
+    user.state
+      ? GamificationService.getRepMismatchCount(user.id, user.state)
+      : Promise.resolve(0),
   ])
 
   const firstVoteHref = popularAggregate
@@ -88,11 +91,8 @@ export default async function DashboardPage() {
       position: v.position,
     }))
 
-  // Impact stats
-  const [userVoteCount, userDiscussionCount] = await Promise.all([
-    prisma.vote.count({ where: { userId: user.id } }),
-    prisma.discussion.count({ where: { userId: user.id } }),
-  ])
+  // Impact stats (totalVotes already computed in profile.stats — no extra count query)
+  const userDiscussionCount = await prisma.discussion.count({ where: { userId: user.id } })
 
   // Voting patterns by policy area
   const votesWithArea = await prisma.vote.findMany({
@@ -121,14 +121,13 @@ export default async function DashboardPage() {
 
   const impactStats = {
     alignmentPct: profile.stats.totalVotes > 0 ? Math.min(Math.round((profile.stats.totalVotes / (profile.stats.totalVotes + 5)) * 100), 95) : 0,
-    billsInfluenced: userVoteCount,
+    billsInfluenced: profile.stats.totalVotes,
     communityDiscussions: userDiscussionCount,
     representativeContacts: 0,
   }
 
   const daysSinceJoin = profile.stats.joinedDaysAgo
   const isNewcomer = profile.stats.totalVotes <= 2
-  const repMismatchCount = activityFeed.filter((i: any) => i.type === 'rep_mismatch').length
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">

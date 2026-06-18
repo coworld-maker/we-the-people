@@ -258,51 +258,108 @@ export class GamificationService {
 
     // Rep-mismatch items: your rep voted against your position
     if (opts?.userId && opts?.userState) {
-      const [userVotes, stateReps] = await Promise.all([
-        prisma.vote.findMany({
-          where: { userId: opts.userId },
-          select: { billId: true, position: true },
-        }),
-        prisma.representative.findMany({
-          where: { state: opts.userState, currentTerm: true },
-          select: { bioguideId: true, fullName: true },
-        }),
-      ])
-
-      if (userVotes.length > 0 && stateReps.length > 0) {
-        const votedBillIds = userVotes.map(v => v.billId)
-        const repBioguideIds = stateReps.map(r => r.bioguideId)
-        const congressVotes = await prisma.congressVote.findMany({
-          where: { billId: { in: votedBillIds }, bioguideId: { in: repBioguideIds } },
-          include: { bill: { select: { id: true, billType: true, billNumber: true } } },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
+      const mismatches = await this.computeRepMismatches(opts.userId, opts.userState, { take: 10 })
+      for (const m of mismatches) {
+        feed.push({
+          id: `mm-${m.id}`,
+          type: 'rep_mismatch',
+          emoji: '⚡',
+          text: `${m.repName} voted ${m.position === 'Yea' ? 'YES' : 'NO'} on ${m.billType} ${m.billNumber} — opposite of you`,
+          billId: m.billId,
+          date: m.createdAt.toISOString(),
+          user: 'Your rep',
         })
-
-        const userVoteMap = new Map(userVotes.map(v => [v.billId, v.position]))
-        const repNameMap = new Map(stateReps.map(r => [r.bioguideId, r.fullName]))
-
-        for (const cv of congressVotes) {
-          const myPos = userVoteMap.get(cv.billId)
-          const repName = repNameMap.get(cv.bioguideId)
-          if (!myPos || !repName) continue
-          const isMismatch = (myPos === 'yes' && cv.position === 'Nay') || (myPos === 'no' && cv.position === 'Yea')
-          if (!isMismatch) continue
-          feed.push({
-            id: `mm-${cv.id}`,
-            type: 'rep_mismatch',
-            emoji: '⚡',
-            text: `${repName} voted ${cv.position === 'Yea' ? 'YES' : 'NO'} on ${cv.bill?.billType} ${cv.bill?.billNumber} — opposite of you`,
-            billId: cv.billId,
-            date: cv.createdAt.toISOString(),
-            user: 'Your rep',
-          })
-        }
       }
     }
 
     return feed
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, limit)
+  }
+
+  /**
+   * Count of bills this user's current reps voted opposite to the user, within
+   * the last `sinceDays` (default 7). Unlike deriving the count from the sliced
+   * activity feed, this is date-bounded and not truncated — so "this week" copy
+   * built on it is accurate.
+   */
+  static async getRepMismatchCount(
+    userId: string,
+    userState: string,
+    sinceDays: number = 7
+  ): Promise<number> {
+    const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000)
+    const mismatches = await this.computeRepMismatches(userId, userState, { since })
+    return mismatches.length
+  }
+
+  /**
+   * Shared rep-vote-vs-user-vote mismatch detection. Returns one entry per bill
+   * where a current state rep voted opposite the user's recorded position.
+   */
+  private static async computeRepMismatches(
+    userId: string,
+    userState: string,
+    opts: { since?: Date; take?: number } = {}
+  ): Promise<Array<{
+    id: string; billId: string; position: string; createdAt: Date
+    billType?: string; billNumber?: string; repName: string
+  }>> {
+    const [userVotes, stateReps] = await Promise.all([
+      prisma.vote.findMany({
+        where: { userId },
+        select: { billId: true, position: true },
+      }),
+      prisma.representative.findMany({
+        where: { state: userState, currentTerm: true },
+        select: { bioguideId: true, fullName: true },
+      }),
+    ])
+
+    if (userVotes.length === 0 || stateReps.length === 0) return []
+
+    const votedBillIds = userVotes.map(v => v.billId)
+    const repBioguideIds = stateReps.map(r => r.bioguideId)
+    const congressVotes = await prisma.congressVote.findMany({
+      where: {
+        billId: { in: votedBillIds },
+        bioguideId: { in: repBioguideIds },
+        ...(opts.since ? { createdAt: { gte: opts.since } } : {}),
+      },
+      include: { bill: { select: { id: true, billType: true, billNumber: true } } },
+      orderBy: { createdAt: 'desc' },
+      ...(opts.take ? { take: opts.take } : {}),
+    })
+
+    const userVoteMap = new Map(userVotes.map(v => [v.billId, v.position]))
+    const repNameMap = new Map(stateReps.map(r => [r.bioguideId, r.fullName]))
+
+    const results: Array<{
+      id: string; billId: string; position: string; createdAt: Date
+      billType?: string; billNumber?: string; repName: string
+    }> = []
+    const seenBills = new Set<string>()
+
+    for (const cv of congressVotes) {
+      const myPos = userVoteMap.get(cv.billId)
+      const repName = repNameMap.get(cv.bioguideId)
+      if (!myPos || !repName) continue
+      const isMismatch = (myPos === 'yes' && cv.position === 'Nay') || (myPos === 'no' && cv.position === 'Yea')
+      if (!isMismatch) continue
+      // One entry per bill, so the count reflects distinct bills, not roll calls.
+      if (seenBills.has(cv.billId)) continue
+      seenBills.add(cv.billId)
+      results.push({
+        id: cv.id,
+        billId: cv.billId,
+        position: cv.position,
+        createdAt: cv.createdAt,
+        billType: cv.bill?.billType,
+        billNumber: cv.bill?.billNumber,
+        repName,
+      })
+    }
+
+    return results
   }
 }

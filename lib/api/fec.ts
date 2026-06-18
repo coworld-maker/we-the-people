@@ -46,7 +46,11 @@ export async function getFECCommittees(fecCandidateId: string): Promise<FECCommi
   return data.results.map(r => ({
     committeeId: r.committee_id,
     name: r.name,
-    cycle: Math.max(...(r.cycles || [Number(currentFECCycle())])),
+    // Guard against an empty cycles array: [] is truthy, so `|| fallback`
+    // would not fire and Math.max(...[]) returns -Infinity.
+    cycle: Math.max(
+      ...(r.cycles?.length ? r.cycles : [Number(currentFECCycle())])
+    ),
   }))
 }
 

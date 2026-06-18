@@ -12,23 +12,16 @@ import prisma from '@/lib/prisma'
 import { getCongressionalNewsFromRss } from '@/lib/api/rss'
 import { getNewsdataCongressional } from '@/lib/api/news'
 import { billCodeKeys } from '@/lib/news-match'
+import { checkSyncAuth } from '@/lib/auth/syncAuth'
 
 export const maxDuration = 60
-
-const CRON_SECRET = process.env.CRON_SECRET
-
-function checkAuth(req: NextRequest): boolean {
-  const authHeader = req.headers.get('authorization')
-  const secretHeader = req.headers.get('x-sync-secret')
-  return authHeader === `Bearer ${CRON_SECRET}` || secretHeader === CRON_SECRET
-}
 
 export async function GET(req: NextRequest) {
   return POST(req)
 }
 
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) {
+  if (!checkSyncAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

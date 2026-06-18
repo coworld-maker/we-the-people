@@ -3,16 +3,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getFECCommittees } from '@/lib/api/fec'
+import { checkSyncAuth } from '@/lib/auth/syncAuth'
 
-const CRON_SECRET = process.env.CRON_SECRET
 const LEGISLATORS_URL =
   'https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.json'
-
-function checkAuth(req: NextRequest): boolean {
-  const authHeader = req.headers.get('authorization')
-  const secretHeader = req.headers.get('x-sync-secret')
-  return authHeader === `Bearer ${CRON_SECRET}` || secretHeader === CRON_SECRET
-}
 
 interface Legislator {
   id: { bioguide?: string; fec?: string[] }
@@ -24,7 +18,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!checkAuth(req)) {
+  if (!checkSyncAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

@@ -17,36 +17,29 @@ function normalizeBillNumber(billType: string, billNumber: string): string {
   return `${type}${num}`.replace(/[^A-Z0-9]/g, '')
 }
 
-export async function getLobbyingFirmCount(billType: string, billNumber: string): Promise<number> {
-  const normalized = normalizeBillNumber(billType, billNumber)
-  if (!normalized) return 0
-
-  const url = new URL(`${LDA_BASE}/filings/`)
-  url.searchParams.set('filing_type', 'LD2')
-  url.searchParams.set('issue_bill_number', normalized)
-  url.searchParams.set('page_size', '1') // we only need the count
-
-  const headers: Record<string, string> = { Accept: 'application/json' }
-  if (LDA_API_KEY) headers['Authorization'] = `Token ${LDA_API_KEY}`
-
-  try {
-    const res = await fetch(url.toString(), { headers })
-    if (!res.ok) return 0
-    const data: { count?: number } = await res.json()
-    return data.count ?? 0
-  } catch {
-    return 0
-  }
+interface LDARawFiling {
+  registrant?: { name?: string }
+  client?: { name?: string }
+  lobbying_activities?: Array<{ description?: string }>
+  income?: string | null
+  expenses?: string | null
 }
 
-export async function getLobbyingForBill(billType: string, billNumber: string): Promise<LDAFiling[]> {
+// Single fetch shared by both public functions. Returns the LD-2 filings for a
+// bill, de-duplicated by registrant+client so a firm that files multiple
+// disclosures for the same bill is counted once.
+async function fetchDedupedFilings(
+  billType: string,
+  billNumber: string,
+  pageSize: number,
+): Promise<LDAFiling[] | null> {
   const normalized = normalizeBillNumber(billType, billNumber)
-  if (!normalized) return []
+  if (!normalized) return null
 
   const url = new URL(`${LDA_BASE}/filings/`)
   url.searchParams.set('filing_type', 'LD2')
   url.searchParams.set('issue_bill_number', normalized)
-  url.searchParams.set('page_size', '20')
+  url.searchParams.set('page_size', String(pageSize))
 
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (LDA_API_KEY) headers['Authorization'] = `Token ${LDA_API_KEY}`
@@ -56,18 +49,9 @@ export async function getLobbyingForBill(billType: string, billNumber: string): 
       headers,
       next: { revalidate: 86400 }, // 24h cache
     })
-    if (!res.ok) return []
+    if (!res.ok) return null
 
-    const data: {
-      results?: Array<{
-        registrant?: { name?: string }
-        client?: { name?: string }
-        lobbying_activities?: Array<{ description?: string }>
-        income?: string | null
-        expenses?: string | null
-      }>
-    } = await res.json()
-
+    const data: { results?: LDARawFiling[] } = await res.json()
     if (!data.results?.length) return []
 
     const seen = new Set<string>()
@@ -87,8 +71,21 @@ export async function getLobbyingForBill(billType: string, billNumber: string): 
       filings.push({ registrant, client, description, income, expenses })
     }
 
-    return filings.slice(0, 10)
+    return filings
   } catch {
-    return []
+    return null
   }
+}
+
+// Count of distinct lobbying firm+client pairs for a bill. Fetches a wide page
+// and de-dupes, so this reflects unique firms — not the raw filing count, which
+// over-reports when one firm files several LD-2s for the same bill.
+export async function getLobbyingFirmCount(billType: string, billNumber: string): Promise<number> {
+  const filings = await fetchDedupedFilings(billType, billNumber, 100)
+  return filings?.length ?? 0
+}
+
+export async function getLobbyingForBill(billType: string, billNumber: string): Promise<LDAFiling[]> {
+  const filings = await fetchDedupedFilings(billType, billNumber, 20)
+  return (filings ?? []).slice(0, 10)
 }

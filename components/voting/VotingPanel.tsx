@@ -132,6 +132,10 @@ export default function VotingPanel({ billId, billTitle, currentVote, communityS
   const [reasoning, setReasoning] = useState(currentVote?.reasoning ?? '')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(!!currentVote)
+  // The position currently reflected in liveStats. Starts at the server vote
+  // and updates after each submit. Reading currentVote?.position directly would
+  // be a stale prop that double-subtracts the original on a second vote change.
+  const [lastSubmittedPosition, setLastSubmittedPosition] = useState(currentVote?.position ?? '')
   const [error, setError] = useState('')
   const [showConfetti, setShowConfetti] = useState(false)
   const [pageUrl, setPageUrl] = useState('')
@@ -157,8 +161,8 @@ export default function VotingPanel({ billId, billTitle, currentVote, communityS
         throw new Error(d.error || 'Vote failed')
       }
 
+      const prev = lastSubmittedPosition
       if (liveStats) {
-        const prev = currentVote?.position
         const updated = {
           yesCount:     liveStats.yesCount     + (position === 'yes'     ? 1 : 0) - (prev === 'yes'     ? 1 : 0),
           noCount:      liveStats.noCount      + (position === 'no'      ? 1 : 0) - (prev === 'no'      ? 1 : 0),
@@ -169,10 +173,11 @@ export default function VotingPanel({ billId, billTitle, currentVote, communityS
       }
 
       setSubmitted(true)
-      if (!currentVote) {
+      if (!prev) {
         setShowConfetti(true)
         setTimeout(() => setShowConfetti(false), 3500)
       }
+      setLastSubmittedPosition(position)
     } catch (err: any) {
       setError(err.message)
     } finally {
