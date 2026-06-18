@@ -9,6 +9,7 @@ import NotificationBell from '@/components/ui/NotificationBell'
 import CommandPalette from '@/components/ui/CommandPalette'
 import SearchButton from '@/components/ui/SearchButton'
 import MobileTabBar from '@/components/ui/MobileTabBar'
+import MobileSectionNav from '@/components/ui/MobileSectionNav'
 
 export default function DashboardLayout({
   children,
@@ -53,7 +54,8 @@ export default function DashboardLayout({
         </div>
       </nav>
 
-      <main className="flex-1 max-w-6xl mx-auto px-5 py-8 pb-24 md:pb-8 w-full">
+      <main className="flex-1 max-w-6xl mx-auto px-5 pt-4 pb-24 md:py-8 md:pb-8 w-full">
+        <MobileSectionNav />
         <Breadcrumbs />
         <PageTransition>
           {children}

@@ -136,8 +136,8 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
 
       <SectionNav sections={SECTIONS} />
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid lg:grid-cols-3 gap-6 lg:items-start">
+        <div className="lg:col-span-2 space-y-6 min-w-0 order-2 lg:order-1 lg:row-span-2">
           <div id="timeline" className="scroll-mt-20">
             <BillTimeline
               status={bill.status}
@@ -185,7 +185,8 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
-        <div className="space-y-6 order-first lg:order-last">
+        {/* Vote — first on mobile (primary action); right column top on desktop */}
+        <div className="space-y-6 order-1 lg:order-2 lg:col-start-3 min-w-0">
           {user ? (
             <>
               <div id="vote">
@@ -233,7 +234,10 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
               </div>
             </div>
           )}
+        </div>
 
+        {/* Secondary cards — after the bill content on mobile; right column below vote on desktop */}
+        <div className="space-y-6 order-3 lg:col-start-3 min-w-0">
           <CitizenImpact totalVotes={totalVotes} />
           <LobbyingPanel bill={bill} />
 
