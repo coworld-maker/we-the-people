@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma'
 import { ExternalLink, DollarSign, Users, AlertCircle } from 'lucide-react'
 import { getTopDonorsForCandidate } from '@/lib/api/fec'
-import { getLobbyingForBill } from '@/lib/api/lda'
+import { getLobbyingForBill, ldaVerifyUrl } from '@/lib/api/lda'
 
 function fmt(n: number) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
@@ -181,17 +181,24 @@ export default async function LobbyingPanel({ bill }: { bill: any }) {
               ))}
             </div>
             <div className="px-5 py-3 border-t border-[--border]">
-              <a href={`https://lda.senate.gov/filings/public/filing/search/?issue_bill_number=${bill.billType}${bill.billNumber}`}
+              <a href={ldaVerifyUrl(billType, billNumber)}
                 target="_blank" rel="noopener noreferrer"
                 className="text-[10px] text-[--text-muted] hover:text-[--text] transition-colors flex items-center gap-1">
-                View all filings on lda.senate.gov <ExternalLink className="w-3 h-3" />
+                Verify these filings on the Senate LDA database <ExternalLink className="w-3 h-3" />
               </a>
             </div>
           </>
         ) : (
-          <div className="px-5 py-4 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-[--text-muted] shrink-0" />
-            <p className="text-xs text-[--text-muted]">No lobbying disclosures found for this bill</p>
+          <div className="px-5 py-4">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-4 h-4 text-[--text-muted] shrink-0" />
+              <p className="text-xs text-[--text-muted]">No lobbying disclosures matched this bill.</p>
+            </div>
+            <a href={ldaVerifyUrl(billType, billNumber)}
+              target="_blank" rel="noopener noreferrer"
+              className="text-[10px] text-[--accent] hover:text-[--accent-hover] transition-colors flex items-center gap-1 ml-6">
+              Search the Senate LDA database yourself <ExternalLink className="w-3 h-3" />
+            </a>
           </div>
         )}
       </div>
