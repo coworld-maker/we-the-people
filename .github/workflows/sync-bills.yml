@@ -161,3 +161,41 @@ jobs:
           cat /tmp/body 2>/dev/null
           echo
           [ "$response" = "200" ] || exit 1
+
+  sync-fec-ids:
+    name: Sync FEC candidate IDs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: POST /api/sync-fec-ids
+        run: |
+          response=$(curl -s -o /tmp/body -w "%{http_code}" \
+            --max-time 480 \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            "https://www.democracyunlocked.com/api/sync-fec-ids")
+          echo "Response code: $response"
+          cat /tmp/body 2>/dev/null
+          echo
+          [ "$response" = "200" ] || exit 1
+
+  sync-committees:
+    name: Sync committee assignments
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: POST /api/sync-committees
+        run: |
+          response=$(curl -s -o /tmp/body -w "%{http_code}" \
+            --max-time 480 \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            "https://www.democracyunlocked.com/api/sync-committees")
+          echo "Response code: $response"
+          cat /tmp/body 2>/dev/null
+          echo
+          [ "$response" = "200" ] || exit 1

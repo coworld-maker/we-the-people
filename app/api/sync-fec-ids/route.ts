@@ -5,8 +5,10 @@ import prisma from '@/lib/prisma'
 import { getFECCommittees } from '@/lib/api/fec'
 import { checkSyncAuth } from '@/lib/auth/syncAuth'
 
+// NOTE: the repo publishes JSON via GitHub Pages, not raw.githubusercontent
+// (the old raw/main/*.json path now 404s — which silently broke this sync).
 const LEGISLATORS_URL =
-  'https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.json'
+  'https://unitedstates.github.io/congress-legislators/legislators-current.json'
 
 interface Legislator {
   id: { bioguide?: string; fec?: string[] }
