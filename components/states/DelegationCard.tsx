@@ -9,6 +9,8 @@ interface Rep {
   party: string
   chamber: string
   district?: string | null
+  committees?: string[] | null
+  votesTracked?: number
 }
 
 interface Props {
@@ -71,7 +73,7 @@ export default function DelegationCard({ rep }: Props) {
             {rep.firstName[0]}{rep.lastName[0]}
           </div>
 
-          {/* Name + role */}
+          {/* Name + role + committees (buried info, surfaced inline) */}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-[--text] truncate group-hover:text-[--accent] transition-colors">
               {rep.fullName}
@@ -83,6 +85,17 @@ export default function DelegationCard({ rep }: Props) {
               <span>·</span>
               <span className="truncate">{role}</span>
             </p>
+            {rep.committees && rep.committees.length > 0 ? (
+              <p className="text-[10px] text-[--text-muted] mt-1 truncate">
+                <span className="font-semibold text-[--text-secondary]">Committees:</span>{' '}
+                {rep.committees.slice(0, 2).join(', ')}
+                {rep.committees.length > 2 && ` +${rep.committees.length - 2}`}
+              </p>
+            ) : rep.votesTracked && rep.votesTracked > 0 ? (
+              <p className="text-[10px] text-[--accent] mt-1 font-medium">
+                {rep.votesTracked} votes tracked · see scorecard →
+              </p>
+            ) : null}
           </div>
 
           <ChevronRight className="w-3.5 h-3.5 text-[--text-muted] group-hover:text-[--accent] transition-colors shrink-0" />

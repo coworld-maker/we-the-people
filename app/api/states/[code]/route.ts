@@ -109,12 +109,24 @@ export async function GET(
     orderBy: [{ chamber: 'asc' }, { lastName: 'asc' }],
     select: {
       bioguideId: true, fullName: true, firstName: true, lastName: true,
-      party: true, chamber: true, district: true, state: true,
+      party: true, chamber: true, district: true, state: true, committees: true,
     },
   })
 
   // ── Recent roll-call votes by this state's reps ────────────────────────────
   const repBioguides = reps.map(r => r.bioguideId)
+
+  // Per-rep votes-tracked count — the scorecard's headline stat, surfaced
+  // inline on the delegation tiles (committees/FEC aren't synced yet).
+  const voteCounts = repBioguides.length > 0
+    ? await prisma.congressVote.groupBy({
+        by: ['bioguideId'],
+        where: { bioguideId: { in: repBioguides } },
+        _count: { _all: true },
+      })
+    : []
+  const voteCountMap = new Map(voteCounts.map(v => [v.bioguideId, v._count._all]))
+  const repsWithStats = reps.map(r => ({ ...r, votesTracked: voteCountMap.get(r.bioguideId) ?? 0 }))
   const recentRepVotes = repBioguides.length > 0
     ? await prisma.congressVote.findMany({
         where: { bioguideId: { in: repBioguides } },
@@ -152,7 +164,7 @@ export async function GET(
     topBills,
     policyAreas,
     discussions,
-    reps,
+    reps: repsWithStats,
     repActivity,
   })
 }
