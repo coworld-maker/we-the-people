@@ -208,24 +208,27 @@ ${summaryInstruction} Provide 3-4 pros, 3-4 cons, 4-5 impacts. Be balanced.`
     await prisma.proCon.deleteMany({ where: { billId, source: 'ai' } })
     await prisma.impact.deleteMany({ where: { billId } })
 
-    // Save pros & cons
-    for (const item of [...analysis.pros.map(p => ({ ...p, type: 'pro' })), ...analysis.cons.map(c => ({ ...c, type: 'con' }))]) {
-      await prisma.proCon.create({
-        data: { billId, type: item.type, title: item.title, description: item.description, category: item.category || 'Other', source: 'ai' },
-      })
-    }
+    // Save pros & cons + impacts in two batched writes rather than a create()
+    // per row in a loop — fewer round-trips, less time spent after the LLM call.
+    const proConRows = [
+      ...analysis.pros.map(p => ({ ...p, type: 'pro' })),
+      ...analysis.cons.map(c => ({ ...c, type: 'con' })),
+    ].map(item => ({
+      billId, type: item.type, title: item.title, description: item.description,
+      category: item.category || 'Other', source: 'ai',
+    }))
 
-    // Save impacts
-    for (const impact of (analysis.impacts || [])) {
-      await prisma.impact.create({
-        data: {
-          billId, category: impact.category || 'Social', demographic: impact.demographic,
-          impactType: impact.impactType || 'neutral', shortDescription: impact.shortDescription,
-          detailedAnalysis: impact.detailedAnalysis, affectedGroups: impact.affectedGroups || [],
-          confidence: impact.confidence || 70,
-        },
-      })
-    }
+    const impactRows = (analysis.impacts || []).map(impact => ({
+      billId, category: impact.category || 'Social', demographic: impact.demographic,
+      impactType: impact.impactType || 'neutral', shortDescription: impact.shortDescription,
+      detailedAnalysis: impact.detailedAnalysis, affectedGroups: impact.affectedGroups || [],
+      confidence: impact.confidence || 70,
+    }))
+
+    await Promise.all([
+      proConRows.length ? prisma.proCon.createMany({ data: proConRows }) : Promise.resolve(),
+      impactRows.length ? prisma.impact.createMany({ data: impactRows }) : Promise.resolve(),
+    ])
 
     console.log(`✓ Saved analysis for bill ${billId}: ${analysis.pros.length} pros, ${analysis.cons.length} cons, ${analysis.impacts?.length || 0} impacts`)
   }

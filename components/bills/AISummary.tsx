@@ -28,8 +28,16 @@ export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyz
       const res = await fetch(`/api/bills/${billId}/analyze`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.details || data.error || 'Analysis failed')
-      // Soft refresh — re-fetches server-component data (pros/cons/impacts/summary)
-      // without a full page reload
+      // Render the summary immediately from the response. Relying on router.refresh()
+      // alone left the section stuck on "Analyzing…" because this component's
+      // summary state is seeded once from props at mount and ignores later prop
+      // changes — users had to hard-reload to see the result.
+      if (data.summary) {
+        setSummary(data.summary)
+        setAnalyzedAt(data.analyzedAt ?? new Date().toISOString())
+      }
+      // Soft refresh so the sibling pros/cons/impacts server components pick up
+      // the freshly saved rows too.
       router.refresh()
     } catch (err: any) {
       setError(err.message)
@@ -43,6 +51,16 @@ export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyz
   // ── into view and no analysis exists yet. IntersectionObserver means we
   // ── don't burn a Claude call on every page bounce — only users who
   // ── actually scroll to the AI section trigger generation.
+  // Keep local state in sync if the server passes a summary in later (e.g. a
+  // router.refresh() after another path generated it). useState only seeds at
+  // mount, so without this the section can stay blank despite fresh props.
+  useEffect(() => {
+    if (aiSummary && !summary) {
+      setSummary(aiSummary)
+      setAnalyzedAt(aiAnalyzedAt)
+    }
+  }, [aiSummary, aiAnalyzedAt, summary])
+
   const sectionRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (summary || triggeredRef.current || !sectionRef.current) return
