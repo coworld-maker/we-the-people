@@ -1,12 +1,17 @@
 # ▶ RESUME HERE — fast bootstrap for the next session
 
-_Last updated: 2026-06-18. This is the "start here" file. For full detail see
-[2026-06-18-news-community-consolidation.md](./2026-06-18-news-community-consolidation.md)._
+_Last updated: 2026-06-19. This is the "start here" file. Latest detail:
+[2026-06-19-mobile-rep-data-fixes.md](./2026-06-19-mobile-rep-data-fixes.md)
+(prior: [2026-06-18-news-community-consolidation.md](./2026-06-18-news-community-consolidation.md))._
 
 ## 30-second context
 Democracy Unlocked™ — civic app, Next.js 15 on Vercel, public repo (AGPL), Supabase/Prisma, Clerk auth.
 No local Node → Vercel build = typechecker; GitHub Actions `test.yml` = unit tests.
 Strategic moat: **community + accountability** (citizen voting, discussions, money-in-politics), not AI summaries.
+
+## Recently fixed (2026-06-19)
+Mobile sub-nav (scorecards reachable again) · bill-page overflow + ordering · lobbying LDA query (real firms, was 0) · sponsor/rep tiles link to scorecards · votes-tracked inline on delegation · zip lookup on /states · **FEC IDs (536/537) + committees (528/537) backfilled** + their syncs fixed/scheduled.
+**Known silent-empty risks (not fixed):** `/elections` (retired Google Civic API), lobbying firm-count badge (sync-lobbying unscheduled). See latest passdown §2.
 
 ## ⛳ DO THESE FIRST (in order)
 1. **PUSH** — 2 commits are committed locally but unpushed (GitHub keychain auth died mid-session):
