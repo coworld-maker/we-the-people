@@ -54,6 +54,20 @@ export async function getFECCommittees(fecCandidateId: string): Promise<FECCommi
   }))
 }
 
+// FEC "employer" buckets that carry no funder signal (occupation status, not an
+// organization). Without filtering these, "RETIRED" and "SELF-EMPLOYED" dominate
+// every candidate's top-employer list and the panel looks meaningless.
+const NON_EMPLOYER_BUCKETS = new Set([
+  'NONE', 'NULL', 'N/A', 'NA', 'NOT EMPLOYED', 'UNEMPLOYED', 'RETIRED',
+  'SELF-EMPLOYED', 'SELF EMPLOYED', 'SELF', 'HOMEMAKER', 'INFORMATION REQUESTED',
+  'REQUESTED', 'BEST EFFORTS', 'DECLINED', 'REFUSED', 'NOT PROVIDED',
+])
+
+function isMeaningfulEmployer(employer: string | null | undefined): boolean {
+  if (!employer) return false
+  return !NON_EMPLOYER_BUCKETS.has(employer.trim().toUpperCase())
+}
+
 export async function getTopDonorsByEmployer(committeeId: string, cycle = currentFECCycle()): Promise<FECDonor[]> {
   // Try current cycle first, fall back to previous cycle
   for (const c of [cycle, String(Number(cycle) - 2)]) {
@@ -62,11 +76,13 @@ export async function getTopDonorsByEmployer(committeeId: string, cycle = curren
     }>('/schedules/schedule_a/by_employer/', {
       committee_id: committeeId,
       cycle: c,
-      per_page: '10',
+      // Pull extra rows so we still have 8 real employers after dropping the
+      // occupation-status buckets (RETIRED/SELF-EMPLOYED, etc.).
+      per_page: '30',
       sort: '-total',
     })
 
-    const results = data?.results?.filter(r => r.employer && r.employer !== 'NONE') ?? []
+    const results = data?.results?.filter(r => isMeaningfulEmployer(r.employer)) ?? []
     if (results.length > 0) {
       return results.slice(0, 8).map(r => ({
         employer: r.employer,
