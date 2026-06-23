@@ -37,7 +37,7 @@ jobs:
       - name: POST /api/sync-bills
         run: |
           response=$(curl -s -o /tmp/body -w "%{http_code}" \
-            --max-time 480 \
+            --max-time 480 --retry 2 --retry-delay 10 --retry-all-errors \
             -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
@@ -56,7 +56,7 @@ jobs:
       - name: POST /api/sync-representatives
         run: |
           response=$(curl -s -o /tmp/body -w "%{http_code}" \
-            --max-time 480 \
+            --max-time 480 --retry 2 --retry-delay 10 --retry-all-errors \
             -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
@@ -75,7 +75,7 @@ jobs:
       - name: POST /api/sync-congress-votes (house, session 2)
         run: |
           response=$(curl -s -o /tmp/body -w "%{http_code}" \
-            --max-time 480 \
+            --max-time 480 --retry 2 --retry-delay 10 --retry-all-errors \
             -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
@@ -94,7 +94,7 @@ jobs:
       - name: POST /api/sync-congress-votes (house, session 1)
         run: |
           response=$(curl -s -o /tmp/body -w "%{http_code}" \
-            --max-time 480 \
+            --max-time 480 --retry 2 --retry-delay 10 --retry-all-errors \
             -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
@@ -113,7 +113,7 @@ jobs:
       - name: POST /api/sync-congress-votes (senate, session 2)
         run: |
           response=$(curl -s -o /tmp/body -w "%{http_code}" \
-            --max-time 480 \
+            --max-time 480 --retry 2 --retry-delay 10 --retry-all-errors \
             -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
@@ -132,7 +132,7 @@ jobs:
       - name: POST /api/sync-congress-votes (senate, session 1)
         run: |
           response=$(curl -s -o /tmp/body -w "%{http_code}" \
-            --max-time 480 \
+            --max-time 480 --retry 2 --retry-delay 10 --retry-all-errors \
             -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
@@ -151,7 +151,7 @@ jobs:
       - name: POST /api/sync-news
         run: |
           response=$(curl -s -o /tmp/body -w "%{http_code}" \
-            --max-time 480 \
+            --max-time 480 --retry 2 --retry-delay 10 --retry-all-errors \
             -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
@@ -170,7 +170,7 @@ jobs:
       - name: POST /api/sync-fec-ids
         run: |
           response=$(curl -s -o /tmp/body -w "%{http_code}" \
-            --max-time 480 \
+            --max-time 480 --retry 2 --retry-delay 10 --retry-all-errors \
             -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
@@ -189,7 +189,7 @@ jobs:
       - name: POST /api/sync-committees
         run: |
           response=$(curl -s -o /tmp/body -w "%{http_code}" \
-            --max-time 480 \
+            --max-time 480 --retry 2 --retry-delay 10 --retry-all-errors \
             -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
@@ -214,7 +214,7 @@ jobs:
           total=0
           for i in $(seq 1 15); do
             response=$(curl -s -o /tmp/body -w "%{http_code}" \
-              --max-time 70 \
+              --max-time 70 --retry 2 --retry-delay 10 --retry-all-errors \
               -X POST \
               -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
               -H "Content-Type: application/json" \
