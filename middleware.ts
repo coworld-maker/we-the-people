@@ -14,6 +14,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/sync-lobbying',         // LDA lobbying firm count sync (protected by CRON_SECRET)
   '/api/sync-news',             // per-bill news sync (protected by CRON_SECRET)
   '/api/sync-summaries',        // AI summary pre-warm (protected by CRON_SECRET)
+  '/api/cron/digest',           // weekly email digest (Vercel cron; protected by CRON_SECRET / cron header)
   '/api/alignment',             // alignment API
   '/api/scorecard/(.*)',        // scorecard API
   '/api/track',                 // anonymous analytics — signed-out share-link visitors included
