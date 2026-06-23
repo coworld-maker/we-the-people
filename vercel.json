@@ -1,14 +1,6 @@
 {
   "crons": [
     {
-      "path": "/api/cron/sync",
-      "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/sync-votes",
-      "schedule": "0 7 * * *"
-    },
-    {
       "path": "/api/cron/digest",
       "schedule": "0 8 * * 1"
     }

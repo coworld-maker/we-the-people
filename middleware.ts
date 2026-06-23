@@ -13,9 +13,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/sync-committees',       // committee assignments sync (protected by CRON_SECRET)
   '/api/sync-lobbying',         // LDA lobbying firm count sync (protected by CRON_SECRET)
   '/api/sync-news',             // per-bill news sync (protected by CRON_SECRET)
-  '/api/cron/sync',             // daily cron orchestrator (protected by CRON_SECRET)
+  '/api/sync-summaries',        // AI summary pre-warm (protected by CRON_SECRET)
   '/api/alignment',             // alignment API
-  '/api/debug-vote',            // temporary debug
   '/api/scorecard/(.*)',        // scorecard API
   '/api/track',                 // anonymous analytics — signed-out share-link visitors included
 ]);

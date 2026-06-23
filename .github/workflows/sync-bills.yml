@@ -199,3 +199,33 @@ jobs:
           cat /tmp/body 2>/dev/null
           echo
           [ "$response" = "200" ] || exit 1
+
+  # Pre-warm AI analysis for the most prominent un-analyzed bills so visitors
+  # land on a ready summary instead of waiting for the on-view auto-fire. Each
+  # call analyzes a small batch (one Claude call each, ~10-20s) under a wall-
+  # clock budget; we loop until the night's backlog drains or we hit a cap.
+  prewarm-summaries:
+    name: Pre-warm AI bill summaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Loop POST /api/sync-summaries until drained (cap ~60 bills)
+        run: |
+          total=0
+          for i in $(seq 1 15); do
+            response=$(curl -s -o /tmp/body -w "%{http_code}" \
+              --max-time 70 \
+              -X POST \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              -H "Content-Type: application/json" \
+              -d '{"limit": 4}' \
+              "https://www.democracyunlocked.com/api/sync-summaries")
+            echo "Iteration $i — HTTP $response"
+            cat /tmp/body 2>/dev/null; echo
+            [ "$response" = "200" ] || exit 1
+            processed=$(python3 -c "import json,sys; print(json.load(open('/tmp/body')).get('processed',0))" 2>/dev/null || echo 0)
+            total=$((total + processed))
+            # Stop once a batch finds nothing left to analyze.
+            [ "$processed" = "0" ] && break
+          done
+          echo "Pre-warmed $total summaries this run."
