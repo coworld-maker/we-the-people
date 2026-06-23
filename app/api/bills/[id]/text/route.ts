@@ -18,10 +18,10 @@ export async function GET(
     if (!text) {
       // Return the congress.gov URL so the frontend can link to it
       const { default: prisma } = await import('@/lib/prisma')
+      const { congressGovBillUrl } = await import('@/lib/congress-url')
       const bill = await prisma.bill.findUnique({ where: { id } })
-      const fallbackUrl = bill
-        ? `https://www.congress.gov/bill/${bill.congress}th-congress/${bill.originChamber === 'senate' ? 'senate' : 'house'}-bill/${bill.billNumber}/text`
-        : null
+      const base = bill ? congressGovBillUrl(bill) : null
+      const fallbackUrl = base ? `${base}/text` : null
 
       return NextResponse.json({ text: null, fallbackUrl, message: 'Text not available via API — use the direct link.' })
     }

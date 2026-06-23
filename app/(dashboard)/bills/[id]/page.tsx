@@ -18,6 +18,7 @@ import FollowButton from '@/components/bills/FollowButton'
 import BillStateSentiment from '@/components/bills/BillStateSentiment'
 import BillImpactMap from '@/components/bills/BillImpactMap'
 import BillTimeline from '@/components/bills/BillTimeline'
+import { congressGovBillUrl } from '@/lib/congress-url'
 import CitizenImpact from '@/components/bills/CitizenImpact'
 import TrustBar from '@/components/bills/TrustBar'
 import BillTypeBadge from '@/components/bills/BillTypeBadge'
@@ -79,7 +80,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
     introduced:     { label: 'Introduced',       cls: 'bg-gray-50 text-gray-600 border-gray-200' },
   }
   const st = statusLabels[bill.status] || statusLabels.introduced
-  const congressGovUrl = `https://www.congress.gov/bill/${bill.congress}th-congress/${bill.originChamber === 'senate' ? 'senate' : 'house'}-bill/${bill.billNumber}`
+  const congressGovUrl = congressGovBillUrl(bill) ?? 'https://www.congress.gov'
 
   return (
     <div>
