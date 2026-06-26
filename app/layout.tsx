@@ -1,9 +1,12 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Source_Serif_4 } from 'next/font/google'
 import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+// Sans for all UI/body; editorial serif exposed as --font-serif for opt-in
+// display use (hero/marketing) via the `.font-serif` utility — UI chrome stays sans.
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
+const sourceSerif = Source_Serif_4({ subsets: ['latin'], weight: ['400', '600'], variable: '--font-serif' })
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.democracyunlocked.com'),
@@ -60,7 +63,7 @@ export default function RootLayout({
       signUpFallbackRedirectUrl="/dashboard"
     >
       <html lang="en">
-        <body className={inter.className}>{children}</body>
+        <body className={`${inter.variable} ${sourceSerif.variable} ${inter.className}`}>{children}</body>
       </html>
     </ClerkProvider>
   )

@@ -49,6 +49,23 @@
     --accent-red-light:  rgba(185, 28, 28, 0.10);
     --accent-red-lighter:rgba(185, 28, 28, 0.05);
 
+    /* Gold — Broadsheet signature accent. Use sparingly (display accents,
+       premium highlights, primary CTA on dark surfaces). */
+    --gold:              #C79A3E;
+    --gold-hover:        #B0852E;
+    --gold-light:        rgba(199, 154, 62, 0.12);
+    --gold-text:         #9A751F;            /* gold, readable on light surfaces */
+
+    /* Editorial political-lean scale — calibrated NEUTRAL (muted, non-partisan).
+       Deliberately NOT the party blue/red below, so "lean" reads as an
+       even-handed editorial indicator rather than team colors. */
+    --lean-left:         #4F6D9E;            /* desaturated slate */
+    --lean-left-light:   rgba(79, 109, 158, 0.12);
+    --lean-center:       #8A8F98;            /* warm gray */
+    --lean-center-light: rgba(138, 143, 152, 0.12);
+    --lean-right:        #B06A4A;            /* terracotta, not fire-red */
+    --lean-right-light:  rgba(176, 106, 74, 0.12);
+
     /* ── Semantic Colors ──────────────────────────────────── */
     --success:          #16A34A;
     --success-light:    rgba(22, 163, 74, 0.10);
