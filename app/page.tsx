@@ -2,9 +2,10 @@ import Link from 'next/link'
 import { auth } from '@clerk/nextjs/server'
 import {
   Vote, BookOpen, BarChart3, Shield, Users, ArrowRight,
-  MessageSquare, FileText, TrendingUp, Zap,
+  MessageSquare, FileText, TrendingUp,
 } from 'lucide-react'
-import TypewriterHero from '@/components/landing/TypewriterHero'
+import CivicHero from '@/components/landing/CivicHero'
+import prisma from '@/lib/prisma'
 import Logo from '@/components/ui/Logo'
 import CookieConsent from '@/components/legal/CookieConsent'
 
@@ -22,42 +23,43 @@ const FEATURES = [
 
 export default async function LandingPage() {
   const { userId } = await auth()
+  const billCount = await prisma.bill.count().catch(() => 0)
 
   return (
     <main className="min-h-screen bg-[--bg] text-[--text] selection:bg-[--accent] selection:text-white">
 
       {/* ── HEADER ──────────────────────────────────────────────────────── */}
-      <header className="absolute top-0 left-0 right-0 z-50 px-6 py-4 border-b border-white/10 bg-transparent">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group hover:opacity-90 transition-opacity">
-            <Logo className="w-10 h-10 text-white" variant="mark" priority />
-            <span className="font-display text-lg font-bold text-white tracking-tight">
-              Democracy Unlocked<span className="align-super text-[9px] font-semibold ml-0.5">™</span>
+      <header className="sticky top-0 z-50 px-6 py-3.5 border-b border-[--border] bg-[--surface]/90 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5 group hover:opacity-90 transition-opacity">
+            <Logo className="w-9 h-9 text-[--accent]" variant="mark" priority />
+            <span className="font-serif text-lg text-[--accent] tracking-tight">
+              Democracy Unlocked<span className="align-super text-[9px] ml-0.5">™</span>
             </span>
             <span
-              className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/15 text-white border border-white/25 backdrop-blur-sm"
+              className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200"
               title="This site is in beta — expect rough edges and incomplete data while we keep building."
             >
               Beta
             </span>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {userId ? (
               <Link href="/dashboard"
-                className="inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-full bg-white text-[--accent] hover:bg-white/90 shadow-md transition-colors"
+                className="inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-[--radius] bg-[--accent] text-white hover:bg-[--accent-hover] transition-colors"
               >
                 Dashboard <ArrowRight className="w-4 h-4 ml-1.5" />
               </Link>
             ) : (
               <>
-                <Link href="/sign-in" className="hidden sm:block px-4 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors">
+                <Link href="/sign-in" className="hidden sm:block px-4 py-2 text-sm font-medium text-[--text-secondary] hover:text-[--accent] transition-colors">
                   Log in
                 </Link>
                 <Link href="/sign-up"
-                  className="inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-full bg-white text-[--accent] hover:bg-white/90 shadow-md transition-colors"
+                  className="inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-[--radius] bg-[--accent] text-white hover:bg-[--accent-hover] transition-colors"
                 >
-                  Join Free <ArrowRight className="w-4 h-4 ml-1.5" />
+                  Get started <ArrowRight className="w-4 h-4 ml-1.5" />
                 </Link>
               </>
             )}
@@ -65,66 +67,7 @@ export default async function LandingPage() {
         </div>
       </header>
 
-      {/* ── HERO ───────────────────────────────────────────────────────────
-          Patriotic gradient (navy → wine red → crimson) — same .hero-gradient
-          used on /states/[code], /policy-areas/[area], etc. Keeps the landing
-          visually consistent with the rest of the app. */}
-      <section className="relative pt-32 pb-20 px-6 min-h-[88vh] flex flex-col items-center justify-center overflow-hidden hero-gradient">
-        {/* Subtle radial highlights to keep the gradient from looking flat */}
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-white/10 rounded-full blur-[150px] pointer-events-none" />
-        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[--accent-red]/20 rounded-full blur-[150px] pointer-events-none" />
-
-        {/* Subtle grid overlay */}
-        <div className="absolute inset-0 opacity-[0.08] pointer-events-none"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
-          }}
-        />
-
-        <div className="max-w-5xl mx-auto text-center relative z-10 flex flex-col items-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-full mb-8 backdrop-blur-md">
-            <Zap className="w-4 h-4 text-white" />
-            <span className="text-sm font-medium text-white/95">Free &amp; open source civic engagement</span>
-          </div>
-
-          <h1 className="font-display text-5xl sm:text-7xl lg:text-[5rem] font-extrabold text-white leading-[1.1] tracking-tight mb-8 drop-shadow-sm">
-            <TypewriterHero />
-          </h1>
-
-          <p className="text-xl sm:text-2xl text-white/80 max-w-3xl mx-auto mb-10 leading-relaxed font-light">
-            Read real legislation. Cast your vote. See how your views compare to Congress.
-            All powered by AI and official data from Congress.gov.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-            <Link
-              href={userId ? '/dashboard' : '/sign-up'}
-              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-full bg-white text-[--accent] hover:bg-white/90 shadow-xl hover:scale-105 transition-all duration-300"
-            >
-              Start voting now <ArrowRight className="w-5 h-5 ml-2" />
-            </Link>
-            <Link
-              href="/bills"
-              className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 text-lg font-medium rounded-full border border-white/30 text-white hover:bg-white/10 transition-all duration-300"
-            >
-              Browse bills
-            </Link>
-          </div>
-
-          {/* Value props */}
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-white/70">
-            {['Free forever', 'No ads', 'Nonpartisan', 'Privacy-first'].map(item => (
-              <span key={item} className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-white rounded-full" />
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
+      <CivicHero billCount={billCount} signedIn={!!userId} />
 
       {/* ── BENTO GRID ─────────────────────────────────────────────────── */}
       <section className="py-24 px-6 bg-[--bg]">
