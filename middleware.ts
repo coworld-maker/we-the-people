@@ -15,6 +15,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/sync-news',             // per-bill news sync (protected by CRON_SECRET)
   '/api/sync-summaries',        // AI summary pre-warm (protected by CRON_SECRET)
   '/api/cron/digest',           // weekly email digest (Vercel cron; protected by CRON_SECRET / cron header)
+  '/api/landing/reps-by-zip',   // public zip->reps lookup for the landing hero
   '/api/alignment',             // alignment API
   '/api/scorecard/(.*)',        // scorecard API
   '/api/track',                 // anonymous analytics — signed-out share-link visitors included
