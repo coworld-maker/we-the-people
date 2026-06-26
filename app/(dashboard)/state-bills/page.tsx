@@ -35,7 +35,7 @@ export default async function StateBillsPage() {
       </div>
 
       {/* Why state legislation matters */}
-      <div className="grid sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
           { emoji: '🏠', label: 'Housing & Zoning', desc: 'Rent control, zoning, tenant protections' },
           { emoji: '🎓', label: 'Education', desc: 'School funding, curriculum, higher ed tuition' },

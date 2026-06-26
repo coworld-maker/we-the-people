@@ -37,7 +37,7 @@ export default async function LearnPage() {
       </div>
 
       {/* Guide grid */}
-      <div className="grid sm:grid-cols-2 gap-4 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
         {CIVIC_GUIDES.map(guide => (
           <Link key={guide.id} href={`/learn/${guide.id}`}
             className="card-interactive p-5 group"

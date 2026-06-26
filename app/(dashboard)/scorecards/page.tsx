@@ -111,7 +111,7 @@ export default async function ScorecardsPage() {
         <p className="text-sm text-[--text-secondary] mb-6">
           Every scorecard is built from real congressional data — no estimates, no grades from interest groups.
         </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {FEATURES.map(card => (
             <div key={card.title} className="card p-5">
               <div className="flex items-center justify-between mb-3">
@@ -142,7 +142,7 @@ export default async function ScorecardsPage() {
           Your alignment score is calculated automatically as you vote on bills.
         </p>
         <div className="card p-6">
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
                 step: '01',
@@ -186,7 +186,7 @@ export default async function ScorecardsPage() {
         <p className="text-sm text-[--text-secondary] mb-6">
           Primary sources we use to build scorecards — go deeper with these.
         </p>
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[
             { title: 'Congress.gov',  desc: 'Official source for bill text, votes, and member info.',          url: 'https://www.congress.gov' },
             { title: 'GovTrack.us',   desc: 'Detailed voting records and bill tracking for Congress.',          url: 'https://www.govtrack.us' },

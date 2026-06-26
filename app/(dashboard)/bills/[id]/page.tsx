@@ -137,7 +137,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
 
       <SectionNav sections={SECTIONS} />
 
-      <div className="grid lg:grid-cols-3 gap-6 lg:items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:items-start">
         <div className="lg:col-span-2 space-y-6 min-w-0 order-2 lg:order-1 lg:row-span-2">
           <div id="timeline" className="scroll-mt-20">
             <BillTimeline
@@ -156,7 +156,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
             <ProsConsPanel prosCons={bill.prosCons as any} />
             <ImpactPanel impacts={bill.impacts as any} />
           </div>
-          <div id="sentiment" className="scroll-mt-20 grid md:grid-cols-2 gap-6">
+          <div id="sentiment" className="scroll-mt-20 grid grid-cols-1 md:grid-cols-2 gap-6">
             <BillStateSentiment billId={bill.id} />
             <BillImpactMap billId={bill.id} />
           </div>
@@ -165,7 +165,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
           {Array.isArray(bill.sponsors) && bill.sponsors.length > 0 && (
             <div className="card overflow-hidden">
               <div className="px-6 py-4 border-b border-[--border]"><h2 className="font-display text-sm font-bold text-[--text]">Sponsors</h2></div>
-              <div className="p-5 grid sm:grid-cols-2 gap-3">
+              <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {(bill.sponsors as any[]).map((s: any, i: number) => {
                   const inner = (
                     <>

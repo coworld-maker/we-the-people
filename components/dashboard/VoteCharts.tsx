@@ -80,7 +80,7 @@ function PolicyBars({ data }: { data: Array<{ policy: string; count: number }> }
 
 export default function VoteCharts({ stats, votesByPolicy }: Props) {
   return (
-    <div className="grid md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="card p-6">
         <h3 className="font-display text-sm font-bold text-[--text] mb-5">Vote distribution</h3>
         <DonutChart yes={stats.yesVotes} no={stats.noVotes} abstain={stats.abstainVotes} total={stats.totalVotes} />

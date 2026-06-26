@@ -187,7 +187,7 @@ export default async function ElectionsPage() {
           <MapPin className="w-4 h-4 text-purple-500" />
           <h2 className="font-display text-lg font-bold text-[--text]">Key Governor Races — 2026</h2>
         </div>
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {KEY_GOV_RACES_2026.map(race => (
             <a
               key={race.state}
@@ -260,7 +260,7 @@ export default async function ElectionsPage() {
       {/* Resources */}
       <section className="mb-8">
         <h2 className="font-display text-lg font-bold text-[--text] mb-4">Election Resources</h2>
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {ELECTION_RESOURCES.map(res => (
             <a
               key={res.label}

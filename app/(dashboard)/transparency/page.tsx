@@ -86,7 +86,7 @@ export default async function TransparencyPage() {
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Vote breakdown */}
         <div className="card overflow-hidden">
           <div className="px-6 py-4 border-b border-[--border]">
@@ -146,7 +146,7 @@ export default async function TransparencyPage() {
       </div>
 
       {/* Engagement metrics */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
           { label: 'Avg. votes per bill', value: avgVotesPerBill, icon: TrendingUp },
           { label: 'AI analysis coverage', value: `${aiCoverage}%`, icon: BarChart3 },

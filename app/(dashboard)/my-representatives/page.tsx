@@ -43,7 +43,7 @@ export default async function MyRepresentativesPage() {
       {/* How it works */}
       <section id="how-it-works" className="card p-6 mt-8 scroll-mt-20">
         <h2 className="font-display text-sm font-bold text-[--text] mb-5">How it works</h2>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { step: '01', title: 'Tap your state', desc: 'We look up your current senators and representatives from our database.' },
             { step: '02', title: 'We find overlapping bills', desc: 'Any bill you voted on that also had a recorded congressional roll call vote.' },

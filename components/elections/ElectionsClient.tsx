@@ -73,7 +73,7 @@ export default function ElectionsClient({ upcoming, recent, configured }: Props)
               <RefreshCw className="w-3 h-3" /> Google Civic API
             </span>
           </div>
-          <div className="grid sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {upcoming.map(election => {
               const days = daysUntil(election.electionDay)
               const stateCode = extractStateFromOcd(election.ocdDivisionId)

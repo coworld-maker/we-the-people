@@ -22,7 +22,7 @@ export default function ProsConsPanel({ prosCons }: { prosCons: ProCon[] }) {
       </button>
 
       {expanded && (
-        <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[--border]">
+        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[--border]">
           <div className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <ThumbsUp className="w-4 h-4 text-emerald-600" />

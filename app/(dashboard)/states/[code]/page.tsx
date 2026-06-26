@@ -120,7 +120,7 @@ export default async function StatePage({ params }: { params: Promise<{ code: st
       {/* AI-generated digest + policy-area pie chart — shown only when there's
           enough activity to summarize */}
       {stats.totalVotes > 0 && (
-        <div className="grid lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
           <div className="lg:col-span-3">
             <StateAIDigest stateCode={code} stateName={stateName} />
           </div>
@@ -148,7 +148,7 @@ export default async function StatePage({ params }: { params: Promise<{ code: st
         </div>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main column */}
         <div className="lg:col-span-2 space-y-6">
           {/* Top Bills */}

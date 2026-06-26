@@ -33,7 +33,7 @@ export default async function ActionCenterPage() {
       </div>
 
       {/* Quick actions grid */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
         {[
           {
             icon: ClipboardCheck,
@@ -123,7 +123,7 @@ export default async function ActionCenterPage() {
           Ready-to-use resources for reaching your elected officials about the issues you care about.
         </p>
 
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[
             {
               title: 'Call the U.S. Capitol Switchboard',

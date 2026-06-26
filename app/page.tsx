@@ -167,7 +167,7 @@ export default async function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { icon: BookOpen,  step: '01', title: 'Read',    desc: 'AI breaks down complex legislation into clear, plain-language summaries with balanced pros and cons.' },
               { icon: Vote,      step: '02', title: 'Vote',    desc: 'Cast your position on real Congressional bills. Track your history and see how your views evolve.' },

@@ -29,7 +29,7 @@ export function DashboardSkeleton() {
           </div>
         </div>
       </div>
-      <div className="grid sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="card p-6">
           <Shimmer className="h-4 w-28 mb-4" />
           <Shimmer className="h-[120px] w-[120px] rounded-full mx-auto" />
@@ -95,7 +95,7 @@ export function BillDetailSkeleton() {
         <Shimmer className="h-8 w-3/4 bg-white/10 mb-2" />
         <Shimmer className="h-4 w-1/2 bg-white/5" />
       </div>
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <div className="card p-6">
             <Shimmer className="h-4 w-24 mb-4" />

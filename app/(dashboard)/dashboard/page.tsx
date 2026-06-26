@@ -218,7 +218,7 @@ export default async function DashboardPage() {
               <h3 className="font-display text-sm font-bold text-[--text]">Start here — 3 steps to civic impact</h3>
               <p className="text-xs text-[--text-muted] mt-0.5">Complete each step to unlock your full dashboard</p>
             </div>
-            <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[--border]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[--border]">
               {([
                 { step: 1, done: profile.stats.totalVotes > 0, title: 'Cast your first vote', desc: 'We picked an active bill — read the summary, vote yes or no', href: firstVoteHref, cta: 'Vote on a bill' },
                 { step: 2, done: !!user.state, title: 'Set your state', desc: 'See how your reps vote vs. how you do', href: '/my-representatives', cta: 'Find my reps' },
@@ -250,7 +250,7 @@ export default async function DashboardPage() {
         <>
           {/* Row 2: Impact donut + Tracked Bills */}
           <FadeIn delay={0.18}>
-            <div className="grid lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-1">
                 <YourImpact stats={impactStats} />
               </div>
@@ -269,7 +269,7 @@ export default async function DashboardPage() {
 
           {/* Row 4: Score ring + Vote charts */}
           <FadeIn>
-            <div className="grid lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <CivicScoreRing
                 score={profile.score}
                 level={profile.level}
@@ -294,7 +294,7 @@ export default async function DashboardPage() {
 
       {/* Row 5: Bills for you + Activity */}
       <FadeIn>
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <BillsForYou bills={billsForYou} />
           <ActivityFeed items={activityFeed} />
         </div>

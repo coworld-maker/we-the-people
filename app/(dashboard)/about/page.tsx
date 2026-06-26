@@ -55,7 +55,7 @@ export default function AboutPage() {
         <p className="text-sm font-semibold text-[--accent] uppercase tracking-wider mb-3">How it works</p>
         <h2 className="font-display text-2xl font-extrabold text-[--text] mb-6">Three steps to informed civic participation</h2>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             {
               icon: BookOpen, step: '01', title: 'Read',
@@ -87,7 +87,7 @@ export default function AboutPage() {
         <p className="text-sm font-semibold text-[--accent] uppercase tracking-wider mb-3">Our principles</p>
         <h2 className="font-display text-2xl font-extrabold text-[--text] mb-6">What we stand for</h2>
 
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[
             {
               icon: Scale, title: 'Nonpartisan',

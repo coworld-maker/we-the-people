@@ -120,7 +120,7 @@ export default function ScorecardSearch() {
       {error && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-4">{error}</p>}
 
       {results && results.length > 0 && (
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {results.map((rep, i) => <RepCard key={i} rep={rep} />)}
         </div>
       )}

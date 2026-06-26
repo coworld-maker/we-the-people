@@ -112,7 +112,7 @@ export default async function PolicyAreasPage() {
           <p className="text-sm text-[--text-muted]">Bills will be categorized once synced.</p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {areas.map(area => {
             const cfg = AREA_CONFIG[area.name] || DEFAULT_CONFIG
             const enacted = area.statuses['enacted'] || 0
