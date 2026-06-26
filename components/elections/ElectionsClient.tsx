@@ -1,6 +1,7 @@
 'use client'
 
-import { Calendar, Clock, MapPin, ExternalLink, RefreshCw, Info } from 'lucide-react'
+import { Calendar, Clock, ExternalLink } from 'lucide-react'
+import { futureStaticElections } from '@/lib/data/upcoming-elections'
 
 interface CivicElection {
   id: string
@@ -36,45 +37,24 @@ function isRunoff(name: string): boolean {
   return /runoff/i.test(name)
 }
 
-export default function ElectionsClient({ upcoming, recent, configured }: Props) {
-  if (!configured) {
-    return (
-      <div className="card p-6 mb-8 flex items-start gap-3">
-        <Info className="w-5 h-5 text-[--text-muted] shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm font-semibold text-[--text] mb-1">Live election calendar not configured</p>
-          <p className="text-sm text-[--text-secondary]">
-            Add a <code className="px-1 py-0.5 bg-[--surface-secondary] rounded text-xs">GOOGLE_CIVIC_API_KEY</code> environment variable
-            to show upcoming elections from the Google Civic Information API. The race guides below are always available.
-          </p>
-        </div>
-      </div>
-    )
-  }
+export default function ElectionsClient({ upcoming, recent }: Props) {
+  // Prefer live data if available; otherwise fall back to the static, always-
+  // accurate nationwide calendar (the live Google Civic API was retired).
+  const upcomingToShow = upcoming.length > 0 ? upcoming : futureStaticElections()
 
-  if (upcoming.length === 0 && recent.length === 0) {
-    return (
-      <div className="card p-6 mb-8 text-center">
-        <RefreshCw className="w-6 h-6 text-[--text-muted] mx-auto mb-2 opacity-40" />
-        <p className="text-sm text-[--text-muted]">No upcoming elections returned by Google Civic API right now.</p>
-      </div>
-    )
-  }
+  if (upcomingToShow.length === 0 && recent.length === 0) return null
 
   return (
     <div className="mb-8 space-y-6">
       {/* Upcoming */}
-      {upcoming.length > 0 && (
+      {upcomingToShow.length > 0 && (
         <section>
           <div className="flex items-center gap-2 mb-4">
             <Calendar className="w-4 h-4 text-[--accent]" />
             <h2 className="font-display text-lg font-bold text-[--text]">Upcoming Elections</h2>
-            <span className="text-xs text-[--text-muted] ml-auto flex items-center gap-1">
-              <RefreshCw className="w-3 h-3" /> Google Civic API
-            </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {upcoming.map(election => {
+            {upcomingToShow.map(election => {
               const days = daysUntil(election.electionDay)
               const stateCode = extractStateFromOcd(election.ocdDivisionId)
               const today = days <= 0
@@ -126,16 +106,14 @@ export default function ElectionsClient({ upcoming, recent, configured }: Props)
                     }`}>
                       {today ? 'Today — Go Vote!' : `${days} day${days === 1 ? '' : 's'} away`}
                     </span>
-                    {stateCode && (
-                      <a
-                        href={`https://vote.gov/state/${stateCode.toLowerCase()}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-[--accent] font-medium hover:underline"
-                      >
-                        Voter info <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
+                    <a
+                      href={stateCode ? `https://vote.gov/state/${stateCode.toLowerCase()}` : 'https://vote.gov'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-[--accent] font-medium hover:underline"
+                    >
+                      Voter info <ExternalLink className="w-3 h-3" />
+                    </a>
                   </div>
                 </div>
               )
