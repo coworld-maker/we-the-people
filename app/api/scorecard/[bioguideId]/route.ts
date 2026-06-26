@@ -130,14 +130,15 @@ export async function GET(
   // ── 4. Community comparison ────────────────────────────────────────────────
   // Fetch all the aggregates in one query instead of one findUnique per vote
   // (was N round-trips per scorecard load).
-  const recentVotes = votingRecords.slice(0, 10).filter(v => v.bill)
+  const recentVotes = votingRecords.slice(0, 10)
   const aggRows = await prisma.billVoteAggregate.findMany({
-    where: { billId: { in: recentVotes.map(v => v.billId) } },
+    where: { billId: { in: recentVotes.filter(v => v.bill).map(v => v.billId) } },
   })
   const aggMap = new Map(aggRows.map(a => [a.billId, a]))
 
   const communityComparison: any[] = []
   for (const v of recentVotes) {
+    if (!v.bill) continue
     const agg = aggMap.get(v.billId)
     if (!agg || agg.totalVotes === 0) continue
     const communityYeaPct = Math.round((agg.yesCount / agg.totalVotes) * 100)
