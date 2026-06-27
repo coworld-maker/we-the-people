@@ -16,8 +16,8 @@ Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale mem
 
 ## ⛳ DO THESE FIRST (in order)
 1. **Decide on `landing-broadsheet`** — clean 1-commit branch w/ live preview (ZIP→your-reps hero). Merge to `main` or iterate.
-2. **Clerk key rotation (overdue security)** — `sk_live_…` was exposed in chat. Clerk → API Keys → roll; update `CLERK_SECRET_KEY` in Vercel; redeploy; verify sign-in. (Dashboard action — not codeable.) _Carried for several sessions — please just do it._
-   _(The prior "PUSH trademark commits" item is DONE — landed on `main` as `4626d5f`.)_
+2. ~~**Clerk key rotation**~~ ✅ **DONE 2026-06-27** — key rolled + `CLERK_SECRET_KEY` updated in Vercel. ⚠️ **Production must be redeployed** to pick up the new env var (a running deploy holds the old key in memory); verify sign-in on prod after the redeploy.
+   _(The prior "PUSH trademark commits" item is also DONE — landed on `main` as `4626d5f`.)_
 
 ## State of play (all live unless noted)
 - **News:** curated RSS (primary) + Newsdata (backup) → `/api/sync-news` → `BillNewsArticle` → `/news` (PressFeed, lean filter), dashboard teaser, bill cards. Daily cron job added. Verified: balanced L15/C10/R15.
@@ -26,8 +26,8 @@ Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale mem
 - **Hardening done:** lean-label methodology owned; feed-health logging; **first unit tests + CI (green)**; `/news` section divider.
 
 ## Council open list (next candidates)
-1. ~~Lean methodology~~ ✅ 2. **Clerk rotation** (above) 3. ~~Feed-health~~ ✅ 4. ~~Tests~~ ✅ 5. ~~/news identity~~ ✅
-→ Net remaining: **Clerk rotation**, then optional **Terms ToS trademark clause** (offered, not yet drafted).
+1. ~~Lean methodology~~ ✅ 2. ~~Clerk rotation~~ ✅ 3. ~~Feed-health~~ ✅ 4. ~~Tests~~ ✅ 5. ~~/news identity~~ ✅
+→ Net remaining: optional **Terms ToS trademark clause** (offered, not yet drafted).
 
 ## Operate the news feed
 - Manual: `/sync-admin` → enter `CRON_SECRET` (field clears on reload!) → "Sync Press Coverage".
