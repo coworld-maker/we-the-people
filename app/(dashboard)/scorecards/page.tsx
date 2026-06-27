@@ -55,8 +55,8 @@ const FEATURES = [
   {
     icon: Award,
     title: 'Attendance Records',
-    desc: 'Track how often officials show up for votes and committee hearings.',
-    live: false,
+    desc: 'How often your official showed up to vote — their attendance rate across every roll-call vote we track.',
+    live: true,
   },
 ]
 

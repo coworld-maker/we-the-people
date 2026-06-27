@@ -10,6 +10,8 @@ import { checkSyncAuth } from '@/lib/auth/syncAuth';
 const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY;
 const BASE_URL = 'https://api.congress.gov/v3';
 
+export const maxDuration = 300;
+
 // US state full name → 2-letter abbreviation (matches Senate.gov XML format)
 const STATE_ABBR: Record<string, string> = {
   'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR', 'California': 'CA',
@@ -197,7 +199,18 @@ export async function POST(req: NextRequest) {
 
       outerLoop:
       while (rollCallsProcessed < maxVotes) {
-        const data = await fetchHouseVoteList(congress, session, offset);
+        // The pagination fetch can hit a dropped upstream connection
+        // (undici "TypeError: terminated"). Treat that as a transient stop:
+        // committed upserts are already saved, so break cleanly and return
+        // 200 with partial progress instead of bubbling to a 500 that fails
+        // the GitHub Actions job and discards the run.
+        let data;
+        try {
+          data = await fetchHouseVoteList(congress, session, offset);
+        } catch (e) {
+          errors.push(`House list offset=${offset}: ${String(e)}`);
+          break;
+        }
 
         // Congress.gov response key is houseRollCallVotes
         const voteList: any[] = data.houseRollCallVotes ?? data.house_roll_call_votes ?? data.votes ?? [];
@@ -338,7 +351,15 @@ export async function POST(req: NextRequest) {
         alreadySyncedRows.map(r => r.rollNumber).filter((n): n is number => n != null)
       );
 
-      const { entries: senateVotesAll, sampleRawDates: rawDateSamples } = await fetchSenateVoteList(congress, session);
+      // Same transient-stop guard as the House list fetch: a dropped
+      // connection to senate.gov should yield partial 200, not a 500.
+      let senateVotesAll: any[] = [];
+      let rawDateSamples: string[] = [];
+      try {
+        ({ entries: senateVotesAll, sampleRawDates: rawDateSamples } = await fetchSenateVoteList(congress, session));
+      } catch (e) {
+        errors.push(`Senate list: ${String(e)}`);
+      }
       // Apply offset to skip already-processed recent votes
       const senateVotes = senateVotesAll.slice(senateOffset);
       sampleRawDates = rawDateSamples;

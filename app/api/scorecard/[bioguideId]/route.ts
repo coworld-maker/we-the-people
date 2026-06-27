@@ -200,6 +200,22 @@ export async function GET(
     ? Math.round((partyLineMatched / partyLineTotal) * 100)
     : null
 
+  // ── Attendance (full record, not just the recent-votes window) ─────────────
+  // Attendance = showed up to vote at all (yea / nay / present); absent =
+  // not_voting. Computed over the member's ENTIRE CongressVote history via a
+  // single grouped count, so it reflects a genuine attendance record rather
+  // than the most-recent-100 slice the rest of the scorecard is built from.
+  const attendanceRows = await prisma.congressVote.groupBy({
+    by: ['position'],
+    where: { bioguideId },
+    _count: { position: true },
+  })
+  const votesEligible = attendanceRows.reduce((sum, r) => sum + r._count.position, 0)
+  const votesMissed = attendanceRows.find(r => r.position === 'not_voting')?._count.position ?? 0
+  const attendanceRate = votesEligible > 0
+    ? Math.round(((votesEligible - votesMissed) / votesEligible) * 100)
+    : null
+
   // ── Stats summary ──────────────────────────────────────────────────────────
   const yeaCount = votingRecords.filter(v => v.position === 'yea').length
   const nayCount = votingRecords.filter(v => v.position === 'nay').length
@@ -224,6 +240,9 @@ export async function GET(
       totalVotesTracked,
       yeaCount, nayCount, notVotingCount,
       participationRate,
+      attendanceRate,
+      votesEligible,
+      votesMissed,
       partyLinePct,
       partyLineTotal,
     },
