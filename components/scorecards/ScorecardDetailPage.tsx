@@ -40,6 +40,9 @@ interface ScorecardData {
     nayCount: number
     notVotingCount: number
     participationRate: number | null
+    attendanceRate: number | null
+    votesEligible: number
+    votesMissed: number
     partyLinePct: number | null
     partyLineTotal: number
   }
@@ -264,11 +267,18 @@ export default function ScorecardDetailPage() {
                   </div>
                   <div className="text-[10px] text-[--text-muted] mt-0.5 uppercase tracking-wide">Nay</div>
                 </div>
-                <div className="text-center p-2 rounded-lg bg-[--surface-secondary]">
+                <div
+                  className="text-center p-2 rounded-lg bg-[--surface-secondary]"
+                  title={
+                    data.stats.votesEligible > 0
+                      ? `Showed up for ${data.stats.votesEligible - data.stats.votesMissed} of ${data.stats.votesEligible} roll-call votes we track · missed ${data.stats.votesMissed}`
+                      : undefined
+                  }
+                >
                   <div className="text-lg font-display font-extrabold text-[--accent]">
-                    {data.stats.participationRate ?? '—'}%
+                    {data.stats.attendanceRate ?? '—'}%
                   </div>
-                  <div className="text-[10px] text-[--text-muted] mt-0.5 uppercase tracking-wide">Participation</div>
+                  <div className="text-[10px] text-[--text-muted] mt-0.5 uppercase tracking-wide">Attendance</div>
                 </div>
                 <div className="text-center p-2 rounded-lg bg-[--surface-secondary]">
                   <div className={`text-lg font-display font-extrabold ${
