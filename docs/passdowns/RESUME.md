@@ -1,8 +1,9 @@
 # ▶ RESUME HERE — fast bootstrap for the next session
 
-_Last updated: 2026-06-27. This is the "start here" file. Latest detail:
-[2026-06-27-roster-audit-codereview.md](./2026-06-27-roster-audit-codereview.md)
-(prior: [2026-06-19-mobile-rep-data-fixes.md](./2026-06-19-mobile-rep-data-fixes.md))._
+_Last updated: 2026-07-05. This is the "start here" file. Latest detail:
+[2026-06-29-summaries-crons-links-launchprep.md](./2026-06-29-summaries-crons-links-launchprep.md)
+(prior: [2026-06-27-roster-audit-codereview.md](./2026-06-27-roster-audit-codereview.md),
+[2026-06-19-mobile-rep-data-fixes.md](./2026-06-19-mobile-rep-data-fixes.md))._
 
 ## 30-second context
 Democracy Unlocked™ — civic app, Next.js 15 on Vercel, public repo (AGPL), Supabase/Prisma, Clerk auth.
@@ -14,10 +15,15 @@ Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale mem
 **In-flight:** `landing-broadsheet` branch (1 commit, live preview) — ZIP→your-reps product hero, **not yet merged**, decide first.
 **Known silent-empty risks (not fixed):** `/elections` (static fallback now exists, but live data still needs retired Google Civic API), lobbying firm-count badge (sync-lobbying unscheduled), `OPEN_FEC_API_KEY` unset in Vercel. See latest passdown §3.
 
-## ⛳ DO THESE FIRST (in order)
-1. **Decide on `landing-broadsheet`** — clean 1-commit branch w/ live preview (ZIP→your-reps hero). Merge to `main` or iterate.
-2. ~~**Clerk key rotation**~~ ✅ **DONE 2026-06-27** — key rolled + `CLERK_SECRET_KEY` updated in Vercel. ⚠️ **Production must be redeployed** to pick up the new env var (a running deploy holds the old key in memory); verify sign-in on prod after the redeploy.
-   _(The prior "PUSH trademark commits" item is also DONE — landed on `main` as `4626d5f`.)_
+## ⛳ Status (2026-07-05): no blocking actions
+All prior "do first" items are DONE: pushes ✅, **Clerk key rotated + verified live** ✅,
+FEC + Resend keys set (donor figures verified rendering) ✅, failing daily Vercel crons removed ✅,
+`/elections` static fallback ✅, AI summary refresh bug fixed + nightly pre-warm running
+(782/3145 analyzed, prominent bills first) ✅, PR #13 (roster/auth fixes) + PR #14
+(attendance records) merged ✅.
+**UI redesign work is CANCELLED by the user** — the Broadsheet *tokens* landed (additive,
+`docs/design-system.md`) but no page redesigns; the `landing-broadsheet` branch is PARKED,
+do NOT merge or resume UI work unprompted. Next candidate: soft launch to real users.
 
 ## State of play (all live unless noted)
 - **News:** curated RSS (primary) + Newsdata (backup) → `/api/sync-news` → `BillNewsArticle` → `/news` (PressFeed, lean filter), dashboard teaser, bill cards. Daily cron job added. Verified: balanced L15/C10/R15.

@@ -222,7 +222,9 @@ jobs:
               "https://www.democracyunlocked.com/api/sync-summaries")
             echo "Iteration $i — HTTP $response"
             cat /tmp/body 2>/dev/null; echo
-            [ "$response" = "200" ] || exit 1
+            # Pre-warm is best-effort: a slow Claude call can 504 one iteration.
+            # Stop this run and let tomorrow's cron continue — don't fail the job.
+            [ "$response" = "200" ] || { echo "Non-200 — stopping early (pre-warmed $total so far)"; break; }
             processed=$(python3 -c "import json,sys; print(json.load(open('/tmp/body')).get('processed',0))" 2>/dev/null || echo 0)
             total=$((total + processed))
             # Stop once a batch finds nothing left to analyze.

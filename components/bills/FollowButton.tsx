@@ -12,7 +12,7 @@ export default function FollowButton({ billId, className }: Props) {
   const [following, setFollowing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [toggling, setToggling] = useState(false)
-  const [flash, setFlash] = useState<'followed' | 'unfollowed' | null>(null)
+  const [flash, setFlash] = useState<'followed' | 'unfollowed' | 'error' | null>(null)
 
   useEffect(() => {
     fetch(`/api/bills/follow?billId=${billId}`)
@@ -35,9 +35,13 @@ export default function FollowButton({ billId, className }: Props) {
         const d = await res.json()
         setFollowing(d.following)
         setFlash(d.following ? 'followed' : 'unfollowed')
-        setTimeout(() => setFlash(null), 2500)
+      } else {
+        setFlash('error')
       }
-    } catch {}
+    } catch {
+      setFlash('error')
+    }
+    setTimeout(() => setFlash(null), 2500)
     setToggling(false)
   }
 
@@ -71,7 +75,9 @@ export default function FollowButton({ billId, className }: Props) {
       {flash && (
         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap shadow-md z-10 pointer-events-none
           bg-[--surface] border border-[--border] text-[--text]">
-          {flash === 'followed' ? '🔔 You\'ll be notified of updates' : '🔕 Unfollowed'}
+          {flash === 'followed' ? '🔔 You\'ll be notified of updates'
+            : flash === 'unfollowed' ? '🔕 Unfollowed'
+            : 'Couldn\'t update — try again'}
         </div>
       )}
     </div>

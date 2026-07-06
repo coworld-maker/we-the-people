@@ -31,12 +31,13 @@ function ReportControl({ discussionId }: { discussionId: string }) {
   async function report(reason: string) {
     setBusy(true)
     try {
-      await fetch('/api/reports', {
+      const res = await fetch('/api/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ discussionId, reason }),
       })
-      setDone(true); setOpen(false)
+      // fetch resolves on 4xx/5xx — only confirm "Reported" when it actually saved
+      if (res.ok) { setDone(true); setOpen(false) }
     } catch {} finally { setBusy(false) }
   }
 
