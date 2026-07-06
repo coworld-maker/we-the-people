@@ -35,7 +35,7 @@ export default function ProsConsPanel({ prosCons }: { prosCons: ProCon[] }) {
                     <h4 className="text-sm font-semibold text-[--text]">{p.title}</h4>
                     <span className="badge bg-[--surface] text-[--text-secondary] border border-[--border] text-[10px]">{p.category}</span>
                   </div>
-                  <p className="text-sm text-[--text-secondary] leading-relaxed">{p.description}</p>
+                  <p className="text-[15px] text-[--text-secondary] leading-relaxed">{p.description}</p>
                 </div>
               ))}
               {pros.length === 0 && <p className="text-sm text-[--text-muted] italic">None generated yet.</p>}
@@ -54,7 +54,7 @@ export default function ProsConsPanel({ prosCons }: { prosCons: ProCon[] }) {
                     <h4 className="text-sm font-semibold text-[--text]">{c.title}</h4>
                     <span className="badge bg-[--surface] text-[--text-secondary] border border-[--border] text-[10px]">{c.category}</span>
                   </div>
-                  <p className="text-sm text-[--text-secondary] leading-relaxed">{c.description}</p>
+                  <p className="text-[15px] text-[--text-secondary] leading-relaxed">{c.description}</p>
                 </div>
               ))}
               {cons.length === 0 && <p className="text-sm text-[--text-muted] italic">None generated yet.</p>}

@@ -179,7 +179,11 @@ html {
   background-color: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
-  font-size: var(--text-base);
+  /* 100% = the browser/user default (16px), NOT a shrunken root. The old
+     `var(--text-base)` (0.9375rem) globally scaled every rem-based size down
+     6.25% — text-sm body copy rendered at ~13px ("the font is small" user
+     feedback). 100% also respects user font-size accessibility settings. */
+  font-size: 100%;
   line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

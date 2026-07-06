@@ -50,7 +50,7 @@ export default function ImpactPanel({ impacts }: { impacts: Impact[] }) {
                 </button>
                 {isOpen && (
                   <div className="px-4 pb-4 pt-2 bg-[--surface] border-t border-[--border]">
-                    <p className="text-sm text-[--text-secondary] leading-relaxed mb-3">{imp.detailedAnalysis}</p>
+                    <p className="text-[15px] text-[--text-secondary] leading-relaxed mb-3">{imp.detailedAnalysis}</p>
                     {imp.affectedGroups?.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {imp.affectedGroups.map((g, i) => (

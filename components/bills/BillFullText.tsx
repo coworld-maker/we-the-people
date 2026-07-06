@@ -56,7 +56,7 @@ export default function BillFullText({ billId, initialText, congressGovUrl }: Pr
             </a>
           </div>
           <div className="px-6 py-6 max-h-[600px] overflow-y-auto">
-            <pre className="whitespace-pre-wrap font-serif text-[14px] leading-relaxed text-[--text-secondary]">{text}</pre>
+            <pre className="whitespace-pre-wrap font-serif text-[15px] leading-relaxed text-[--text-secondary]">{text}</pre>
           </div>
         </div>
       )}
