@@ -24,6 +24,12 @@ const ANALYSIS_STALENESS_DAYS = 30
 
 interface AIAnalysis {
   summary: string
+  // Structured summary fields (composed into `summary` for storage).
+  // Optional so older responses / partial outputs still parse.
+  tldr?: string
+  problem?: string
+  proposal?: string
+  impact?: string
   pros: Array<{ title: string; description: string; category: string }>
   cons: Array<{ title: string; description: string; category: string }>
   impacts: Array<{
@@ -123,26 +129,20 @@ export class AIService {
       truncatedText ? `\nFull Bill Text:\n${truncatedText}` : '',
     ].filter(Boolean).join('\n')
 
-    // If CRS already provides a meaningful summary, skip the AI summary pass.
-    // Saves ~30% of output tokens per analysis with no quality loss — the CRS
-    // summary is the authoritative one anyway.
-    const hasCrsSummary = !!(bill.summary && bill.summary.length > 200)
-
     const systemPrompt = `You are a nonpartisan civic education analyst helping Americans understand legislation. Be balanced, factual, fair. Never take sides. Respond ONLY with valid JSON — no markdown, no backticks, no text outside the JSON.`
 
-    const summaryField = hasCrsSummary ? '' : '"summary":"2-3 paragraph plain-English summary a high schooler could understand",'
-    const summaryInstruction = hasCrsSummary
-      ? 'Skip the summary field entirely — the bill already has an official summary.'
-      : 'Include a 2-3 paragraph plain-English summary.'
-
+    // Structured, scannable summary (user-tested: walls of prose lose readers;
+    // TL;DR + Problem/Proposal/Impact with hard word caps keeps it consumable).
+    // Always generated — the official CRS summary stays available separately in
+    // the UI, so we no longer substitute its dense prose for the AI summary.
     const prompt = `Analyze this bill. Return ONLY valid JSON:
 
 ${billContext}
 
 JSON structure:
-{${summaryField}"pros":[{"title":"Short title","description":"2-3 sentences","category":"Economy|Environment|Healthcare|Education|Security|Rights|Infrastructure|Other"}],"cons":[{"title":"Short title","description":"2-3 sentences","category":"Economy|Environment|Healthcare|Education|Security|Rights|Infrastructure|Other"}],"impacts":[{"category":"Economic|Social|Environmental|Healthcare|Education|Security|Infrastructure","demographic":"e.g. Small Business Owners","impactType":"positive|negative|neutral","shortDescription":"One sentence","detailedAnalysis":"2-3 sentences","affectedGroups":["Group1"],"confidence":75}]}
+{"tldr":"What this bill does in ONE sentence, max 20 words","problem":"The problem or situation the bill responds to, max 40 words","proposal":"What the bill actually does/changes, max 40 words","impact":"Who is affected and how, max 40 words","pros":[{"title":"Short title","description":"2-3 sentences","category":"Economy|Environment|Healthcare|Education|Security|Rights|Infrastructure|Other"}],"cons":[{"title":"Short title","description":"2-3 sentences","category":"Economy|Environment|Healthcare|Education|Security|Rights|Infrastructure|Other"}],"impacts":[{"category":"Economic|Social|Environmental|Healthcare|Education|Security|Infrastructure","demographic":"e.g. Small Business Owners","impactType":"positive|negative|neutral","shortDescription":"One sentence","detailedAnalysis":"2-3 sentences","affectedGroups":["Group1"],"confidence":75}]}
 
-${summaryInstruction} Provide 3-4 pros, 3-4 cons, 4-5 impacts. Be balanced.`
+Write tldr/problem/proposal/impact in plain 8th-grade English — short sentences, no jargon, respect the word caps strictly. Provide 3-4 pros, 3-4 cons, 4-5 impacts. Be balanced.`
 
     const raw = await callClaude(prompt, systemPrompt)
 
@@ -161,8 +161,18 @@ ${summaryInstruction} Provide 3-4 pros, 3-4 cons, 4-5 impacts. Be balanced.`
     if (!Array.isArray(analysis.pros) || !Array.isArray(analysis.cons)) {
       throw new Error('AI response missing required fields')
     }
-    // If we instructed the model to skip the summary, fall back to the CRS one
-    if (!analysis.summary) {
+
+    // Compose the structured fields into the stored summary string. The labeled
+    // format is what AISummary.tsx parses into scannable sections; a legacy
+    // prose summary (or CRS fallback) renders as plain paragraphs.
+    if (analysis.tldr && analysis.problem && analysis.proposal && analysis.impact) {
+      analysis.summary = [
+        `TL;DR: ${analysis.tldr.trim()}`,
+        `Problem: ${analysis.problem.trim()}`,
+        `Proposal: ${analysis.proposal.trim()}`,
+        `Impact: ${analysis.impact.trim()}`,
+      ].join('\n\n')
+    } else if (!analysis.summary) {
       analysis.summary = bill.summary || ''
     }
 
