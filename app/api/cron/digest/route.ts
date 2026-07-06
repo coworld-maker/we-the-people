@@ -7,7 +7,8 @@
  *   3. Skip the send if there's nothing interesting to say.
  *   4. Send via Resend (no npm package — plain fetch to the REST API).
  *
- * Auth: Vercel cron header OR Authorization: Bearer <CRON_SECRET>
+ * Auth: Authorization: Bearer <CRON_SECRET> (Vercel cron sends this
+ * automatically when the CRON_SECRET env var is set)
  *
  * To trigger manually:
  *   curl -H "Authorization: Bearer <CRON_SECRET>" https://www.democracyunlocked.com/api/cron/digest
@@ -34,7 +35,7 @@ function decryptEmail(user: { emailEncrypted: string; emailIv: string; emailTag:
 }
 
 export async function GET(req: NextRequest) {
-  if (!checkSyncAuth(req, { allowVercelCron: true })) {
+  if (!checkSyncAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

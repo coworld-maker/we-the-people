@@ -9,15 +9,14 @@ const CRON_SECRET = process.env.CRON_SECRET
  * produce an "undefined === undefined" / "Bearer undefined" bypass that
  * would leave a sync endpoint publicly callable.
  *
- * Accepts either `Authorization: Bearer <CRON_SECRET>` (Vercel cron + the
- * orchestrator) or `x-sync-secret: <CRON_SECRET>` (external scripts + the
- * GitHub Actions workflow). When `allowVercelCron` is set, the platform's
- * unforgeable `x-vercel-cron` header is also accepted.
+ * Accepts either `Authorization: Bearer <CRON_SECRET>` (Vercel cron sends
+ * this automatically when CRON_SECRET is set; the orchestrator sends it too)
+ * or `x-sync-secret: <CRON_SECRET>` (external scripts + the GitHub Actions
+ * workflow). Deliberately does NOT trust the `x-vercel-cron` header: it is
+ * client-suppliable on external requests, so accepting it would re-open the
+ * public access this helper exists to block.
  */
-export function checkSyncAuth(
-  req: NextRequest,
-  opts: { allowVercelCron?: boolean } = {}
-): boolean {
+export function checkSyncAuth(req: NextRequest): boolean {
   if (!CRON_SECRET) return false
 
   const authHeader = req.headers.get('authorization')
@@ -25,8 +24,6 @@ export function checkSyncAuth(
 
   const secretHeader = req.headers.get('x-sync-secret')
   if (secretHeader === CRON_SECRET) return true
-
-  if (opts.allowVercelCron && req.headers.get('x-vercel-cron') === '1') return true
 
   return false
 }

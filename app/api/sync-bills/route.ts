@@ -7,6 +7,10 @@ import { checkSyncAuth } from '@/lib/auth/syncAuth'
 const CONGRESS_API_BASE = 'https://api.congress.gov/v3'
 const API_KEY = process.env.CONGRESS_API_KEY
 
+// Was the only sync route without this: the per-bill loop (detail fetch + two
+// DB writes + 150ms rate-limit sleep, x50 bills) cannot fit Vercel's 10s default.
+export const maxDuration = 300
+
 async function fetchBills(congress: number, limit: number, offset: number, policyArea?: string) {
   let url = `${CONGRESS_API_BASE}/bill/${congress}?limit=${limit}&offset=${offset}&sort=updateDate+desc&api_key=${API_KEY}&format=json`
   if (policyArea) url += `&policyArea=${encodeURIComponent(policyArea)}`

@@ -34,22 +34,19 @@ interface AIAnalysis {
 }
 
 /**
- * Call Claude. When `cacheSystemPrompt` is true (default for our stable
- * system prompts) we send the system block with `cache_control` so that
- * repeated calls within the 5-minute cache window are charged at 10% of
- * the system-prompt input tokens. Big win when the same prompt analyzes
- * many bills in a row.
+ * Call Claude. Note: no prompt caching here on purpose — our system prompts
+ * are far below the model's minimum cacheable prefix (4096 tokens for Haiku),
+ * so a `cache_control` block would never activate. Redundant-work avoidance
+ * happens upstream via the aiAnalyzedAt DB check instead.
  */
-async function callClaude(prompt: string, systemPrompt: string, cacheSystemPrompt = true): Promise<string> {
+async function callClaude(prompt: string, systemPrompt: string): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY environment variable is not set')
 
   const body: any = {
     model: CLAUDE_MODEL,
     max_tokens: 3000,
-    system: cacheSystemPrompt
-      ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }]
-      : systemPrompt,
+    system: systemPrompt,
     messages: [{ role: 'user', content: prompt }],
   }
 
