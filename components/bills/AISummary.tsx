@@ -90,7 +90,7 @@ export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyz
       <div className="p-6">
         {summary ? (
           <>
-            <p className="text-[15px] text-[--text-secondary] leading-relaxed whitespace-pre-line">{summary}</p>
+            <StructuredSummary text={summary} />
             {officialSummary && (
               <div className="mt-4 pt-4 border-t border-[--border]">
                 <button onClick={() => setShowOfficial(!showOfficial)}
@@ -141,6 +141,58 @@ export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyz
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ── Structured summary renderer ────────────────────────────────────────────
+// New-format summaries are labeled sections ("TL;DR: …\n\nProblem: …\n\n
+// Proposal: …\n\nImpact: …") composed by aiService. Render them as scannable
+// chunks — a highlighted TL;DR + small-capped section headers — instead of a
+// wall of prose. Legacy prose summaries (pre-format or CRS fallback) don't
+// match and render as plain paragraphs like before.
+const SECTION_LABELS: Array<{ key: string; heading: string }> = [
+  { key: 'Problem', heading: 'The problem' },
+  { key: 'Proposal', heading: 'The proposal' },
+  { key: 'Impact', heading: 'The impact' },
+]
+
+function parseStructured(text: string) {
+  const blocks = text.split(/\n{2,}/).map(b => b.trim()).filter(Boolean)
+  let tldr: string | null = null
+  const sections: Array<{ heading: string; body: string }> = []
+  for (const block of blocks) {
+    const m = block.match(/^(TL;DR|Problem|Proposal|Impact):\s*([\s\S]+)$/i)
+    if (!m) return null // any unlabeled block → treat the whole thing as legacy prose
+    const label = m[1].toLowerCase()
+    if (label === 'tl;dr') tldr = m[2].trim()
+    else {
+      const def = SECTION_LABELS.find(s => s.key.toLowerCase() === label)
+      if (def) sections.push({ heading: def.heading, body: m[2].trim() })
+    }
+  }
+  if (!tldr || sections.length < 2) return null
+  return { tldr, sections }
+}
+
+function StructuredSummary({ text }: { text: string }) {
+  const parsed = parseStructured(text)
+
+  if (!parsed) {
+    return <p className="text-[15px] text-[--text-secondary] leading-relaxed whitespace-pre-line">{text}</p>
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-base font-semibold text-[--text] leading-snug bg-[--accent]/[0.06] border-l-2 border-[--accent] rounded-r-lg px-4 py-3">
+        {parsed.tldr}
+      </p>
+      {parsed.sections.map(s => (
+        <div key={s.heading}>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[--text-muted] mb-1">{s.heading}</p>
+          <p className="text-base text-[--text-secondary] leading-relaxed">{s.body}</p>
+        </div>
+      ))}
     </div>
   )
 }
