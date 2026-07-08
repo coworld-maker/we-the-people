@@ -35,26 +35,45 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({} as Record<string, unknown>))
   const limit = Math.min(Math.max(Number(body.limit) || 4, 1), 10)
 
-  // Most prominent bills still missing an analysis. lobbyingFirmCount surfaces
-  // the bills journalists/lobbyists (and therefore citizens) care about; recency
-  // breaks ties. Bills already analyzed are skipped here and re-checked for
-  // staleness inside analyzeAndSaveBill.
-  const candidates = await prisma.bill.findMany({
-    where: {
-      aiAnalyzedAt: null,
-      billType: { notIn: CEREMONIAL },
-    },
-    orderBy: [
-      { lobbyingFirmCount: { sort: 'desc', nulls: 'last' } },
-      { latestActionDate: { sort: 'desc', nulls: 'last' } },
-    ],
-    take: limit,
-    select: { id: true },
-  })
+  const prominenceOrder = [
+    { lobbyingFirmCount: { sort: 'desc' as const, nulls: 'last' as const } },
+    { latestActionDate: { sort: 'desc' as const, nulls: 'last' as const } },
+  ]
 
-  const remainingBacklog = await prisma.bill.count({
-    where: { aiAnalyzedAt: null, billType: { notIn: CEREMONIAL } },
+  // Two backlogs, in priority order:
+  // 1. LEGACY-FORMAT summaries — bills analyzed before the structured
+  //    TL;DR/Problem/Proposal/Impact format. These are the MOST prominent
+  //    bills (earlier pre-warm did prominence-first), i.e. the pages users
+  //    actually see, so reformatting them beats analyzing the long tail.
+  //    They need force:true to bypass the freshness skip.
+  // 2. Never-analyzed bills. (New bills are also covered on-demand by the
+  //    on-view auto-fire, so deprioritizing them here loses nothing.)
+  const legacyWhere = {
+    aiAnalyzedAt: { not: null },
+    NOT: { aiSummary: { startsWith: 'TL;DR:' } },
+    billType: { notIn: CEREMONIAL },
+  }
+  const unanalyzedWhere = { aiAnalyzedAt: null, billType: { notIn: CEREMONIAL } }
+
+  const legacy = await prisma.bill.findMany({
+    where: legacyWhere, orderBy: prominenceOrder, take: limit, select: { id: true },
   })
+  const fresh = legacy.length < limit
+    ? await prisma.bill.findMany({
+        where: unanalyzedWhere, orderBy: prominenceOrder,
+        take: limit - legacy.length, select: { id: true },
+      })
+    : []
+
+  const candidates = [
+    ...legacy.map(b => ({ id: b.id, force: true })),
+    ...fresh.map(b => ({ id: b.id, force: false })),
+  ]
+
+  const [legacyBacklog, unanalyzedBacklog] = await Promise.all([
+    prisma.bill.count({ where: legacyWhere }),
+    prisma.bill.count({ where: unanalyzedWhere }),
+  ])
 
   const { AIService } = await import('@/lib/services/aiService')
   let processed = 0
@@ -63,7 +82,7 @@ export async function POST(req: NextRequest) {
   for (const bill of candidates) {
     if (Date.now() - started > TIME_BUDGET_MS) break
     try {
-      await AIService.analyzeAndSaveBill(bill.id)
+      await AIService.analyzeAndSaveBill(bill.id, { force: bill.force })
       processed++
     } catch (e) {
       failed++
@@ -76,8 +95,9 @@ export async function POST(req: NextRequest) {
     considered: candidates.length,
     processed,
     failed,
-    // backlog measured before this run; subtract what we just did for a hint
-    remaining: Math.max(remainingBacklog - processed, 0),
+    // backlogs measured before this run
+    legacyBacklog: Math.max(legacyBacklog - processed, 0),
+    remaining: unanalyzedBacklog,
     elapsedMs: Date.now() - started,
   })
 }
