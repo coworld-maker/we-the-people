@@ -56,8 +56,7 @@ export default function PressFeed({ articles }: { articles: Article[] }) {
           <h2 className="font-display text-base font-bold text-[--text]">In the news</h2>
         </div>
         <p className="text-xs text-[--text-muted]">
-          Congressional coverage across the spectrum. Lean reflects each outlet’s general editorial tilt
-          (our assessment, applied at the source level) — not the article. We attach and label; we don’t curate or endorse.
+          Coverage from across the spectrum. Lean is our source-level label for each outlet’s overall tilt — not the article. Judge each piece yourself.
         </p>
         {/* Balance summary + filter */}
         <div className="flex items-center gap-1.5 mt-3 flex-wrap">

@@ -66,9 +66,8 @@ export default function DashboardLayout({
       <footer className="border-t border-[--border] bg-[--surface] mt-12">
         <div className="max-w-6xl mx-auto px-5 py-6 flex flex-col gap-3 text-xs text-[--text-muted]">
           <p className="text-center sm:text-left bg-amber-50 border border-amber-200 text-amber-800 rounded px-3 py-2">
-            <strong className="font-semibold">Beta:</strong> Democracy Unlocked is under active development.
-            Some data may be incomplete or out of date, and AI-generated summaries should be cross-checked against the original bill text before action.
-            Found a bug or a wrong number? <Link href="/account/privacy" className="underline">Tell us</Link>.
+            <strong className="font-semibold">Beta:</strong> Data may be incomplete, and AI summaries can err — check the bill text before acting.
+            Spot something wrong? <Link href="/account/privacy" className="underline">Tell us</Link>.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <p>

@@ -182,7 +182,7 @@ export default async function LobbyingPanel({ bill }: { bill: any }) {
             </div>
             <div className="px-5 py-3 border-t border-[--border] space-y-1.5">
               <p className="text-[10px] text-[--text-muted]">
-                Firms whose quarterly LDA filings listed this bill. One filing often covers many bills, so this reflects disclosed interest — not necessarily active or paid lobbying on this bill alone.
+                Firms whose LDA filings mention this bill. One filing covers many bills — read as disclosed interest, not confirmed lobbying on this bill alone.
               </p>
               <a href={ldaVerifyUrl(billType, billNumber)}
                 target="_blank" rel="noopener noreferrer"

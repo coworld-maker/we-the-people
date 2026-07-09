@@ -113,8 +113,7 @@ export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyz
             <Loader2 className="w-8 h-8 text-[--accent] mx-auto mb-3 animate-spin" />
             <h3 className="font-display text-base font-bold text-[--text] mb-1">Analyzing this bill…</h3>
             <p className="text-sm text-[--text-muted] max-w-sm mx-auto">
-              Pulling the official text, balancing pros and cons, and identifying who's affected.
-              This usually takes 10–20 seconds.
+              Reading the bill and weighing both sides — usually 10–20 seconds.
             </p>
           </div>
         ) : error ? (

@@ -266,7 +266,7 @@ export default function VotingPanel({ billId, billTitle, currentVote, communityS
                 <div className="mt-4 p-3.5 rounded-xl bg-[--accent-light] border border-[--accent]/15">
                   <p className="text-xs font-bold text-[--text] mb-0.5">Share your vote</p>
                   <p className="text-[11px] text-[--text-muted] mb-2.5">
-                    Bring someone else into the conversation — every share grows the community.
+                    Bring someone into the conversation.
                   </p>
                   <SocialShare url={pageUrl} text={shareText} context="vote" />
                 </div>
