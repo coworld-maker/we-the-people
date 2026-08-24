@@ -1,7 +1,8 @@
 # ▶ RESUME HERE — fast bootstrap for the next session
 
-_Last updated: 2026-07-05. This is the "start here" file. Latest detail:
-[2026-06-29-summaries-crons-links-launchprep.md](./2026-06-29-summaries-crons-links-launchprep.md)
+_Last updated: 2026-08-24. This is the "start here" file. Latest detail:
+[2026-08-24-data-correctness-sweep.md](./2026-08-24-data-correctness-sweep.md)
+(prior: [2026-06-29-summaries-crons-links-launchprep.md](./2026-06-29-summaries-crons-links-launchprep.md))
 (prior: [2026-06-27-roster-audit-codereview.md](./2026-06-27-roster-audit-codereview.md),
 [2026-06-19-mobile-rep-data-fixes.md](./2026-06-19-mobile-rep-data-fixes.md))._
 
@@ -15,7 +16,12 @@ Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale mem
 **In-flight:** `landing-broadsheet` branch (1 commit, live preview) — ZIP→your-reps product hero, **not yet merged**, decide first.
 **Known silent-empty risks (not fixed):** `/elections` (static fallback now exists, but live data still needs retired Google Civic API), lobbying firm-count badge (sync-lobbying unscheduled), `OPEN_FEC_API_KEY` unset in Vercel. See latest passdown §3.
 
-## ⛳ Status (2026-07-05): no blocking actions
+## ⛳ Status (2026-08-24)
+**🔴 AI analysis is DOWN — Anthropic credit balance exhausted since Aug 5.** Not a code bug: top up at console.anthropic.com → Plans & Billing (enable auto-reload). Everything else below is healthy.
+
+A data-correctness sweep on 2026-08-24 fixed six silent wrong-data bugs (cross-Congress lobbying attribution, senators labeled "Rep.", inverted chamber logic, dead news linking, a sync that could never finish, and a sync that overwrote verified counts with zeros). See the latest passdown — especially §5 Learnings, which generalizes the pattern.
+
+### Previously (2026-07-05): no blocking actions
 All prior "do first" items are DONE: pushes ✅, **Clerk key rotated + verified live** ✅,
 FEC + Resend keys set (donor figures verified rendering) ✅, failing daily Vercel crons removed ✅,
 `/elections` static fallback ✅, AI summary refresh bug fixed + nightly pre-warm running
