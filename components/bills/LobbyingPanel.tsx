@@ -13,10 +13,13 @@ export default async function LobbyingPanel({ bill }: { bill: any }) {
   const sponsors: any[] = Array.isArray(bill.sponsors) ? bill.sponsors : []
   const billType: string = bill.billType || ''
   const billNumber: string = String(bill.billNumber || '')
+  // Required: bill numbers repeat each Congress, so filings must be year-scoped
+  // or we attribute a previous Congress's lobbying to this bill.
+  const congress: string = String(bill.congress || '')
 
   // --- Section B: LDA lobbying filings (always attempt) ---
   const ldaFilings = billType && billNumber
-    ? await getLobbyingForBill(billType, billNumber).catch(() => [])
+    ? await getLobbyingForBill(billType, billNumber, congress).catch(() => [])
     : []
 
   // --- Section A: FEC donor data for sponsors ---
@@ -184,7 +187,7 @@ export default async function LobbyingPanel({ bill }: { bill: any }) {
               <p className="text-[10px] text-[--text-muted]">
                 Firms whose LDA filings mention this bill. One filing covers many bills — read as disclosed interest, not confirmed lobbying on this bill alone.
               </p>
-              <a href={ldaVerifyUrl(billType, billNumber)}
+              <a href={ldaVerifyUrl(billType, billNumber, congress)}
                 target="_blank" rel="noopener noreferrer"
                 className="text-[10px] text-[--accent] hover:text-[--accent-hover] transition-colors flex items-center gap-1">
                 Verify these filings on the Senate LDA database <ExternalLink className="w-3 h-3" />
@@ -197,7 +200,7 @@ export default async function LobbyingPanel({ bill }: { bill: any }) {
               <AlertCircle className="w-4 h-4 text-[--text-muted] shrink-0" />
               <p className="text-xs text-[--text-muted]">No lobbying disclosures matched this bill.</p>
             </div>
-            <a href={ldaVerifyUrl(billType, billNumber)}
+            <a href={ldaVerifyUrl(billType, billNumber, congress)}
               target="_blank" rel="noopener noreferrer"
               className="text-[10px] text-[--accent] hover:text-[--accent-hover] transition-colors flex items-center gap-1 ml-6">
               Search the Senate LDA database yourself <ExternalLink className="w-3 h-3" />

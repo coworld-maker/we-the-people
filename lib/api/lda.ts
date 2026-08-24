@@ -33,9 +33,27 @@ function searchTerm(billType: string, billNumber: string): string {
   return `${SEARCH_PREFIX[t] ?? t} ${billNumber}`
 }
 
+// Bill numbers RESTART every Congress, so "H.R. 6644" matches filings about a
+// completely different bill from a previous Congress. Without this window, the
+// 2025 housing bill H.R. 6644 showed 18 "lobbying firms" that were really
+// filings about the Global Partnerships Act of 2012 and a 2020 health-insurance
+// bill. Constrain every query to the Congress's own two years.
+// Congress 119 → 2025-2026; 118 → 2023-2024; etc.
+export function congressYears(congress: number | string): [number, number] {
+  const n = Number(congress)
+  const start = 2 * n + 1787
+  return [start, start + 1]
+}
+
 /** Public LDA URL to verify the underlying filings for a bill. */
-export function ldaVerifyUrl(billType: string, billNumber: string): string {
-  return `${LDA_BASE}/filings/?filing_specific_lobbying_issues=${encodeURIComponent(searchTerm(billType, billNumber))}&ordering=-filing_year`
+export function ldaVerifyUrl(billType: string, billNumber: string, congress?: number | string): string {
+  const params = new URLSearchParams({
+    filing_specific_lobbying_issues: searchTerm(billType, billNumber),
+    ordering: '-filing_year',
+  })
+  // Link users to the same year-scoped view the panel counts from.
+  if (congress) params.set('filing_year', String(congressYears(congress)[1]))
+  return `${LDA_BASE}/filings/?${params.toString()}`
 }
 
 function exactRegex(billType: string, billNumber: string): RegExp {
@@ -60,28 +78,50 @@ async function fetchExactFilings(
   billType: string,
   billNumber: string,
   pageSize: number,
+  congress?: number | string,
 ): Promise<LDAFiling[] | null> {
   if (!billType || !billNumber) return null
   const re = exactRegex(billType, billNumber)
 
-  const url = new URL(`${LDA_BASE}/filings/`)
-  url.searchParams.set('filing_specific_lobbying_issues', searchTerm(billType, billNumber))
-  url.searchParams.set('ordering', '-filing_year') // bias toward the current Congress
-  url.searchParams.set('page_size', String(pageSize))
-
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (LDA_API_KEY) headers['Authorization'] = `Token ${LDA_API_KEY}`
 
+  // Query each year of the bill's Congress separately — the API's filing_year
+  // filter is exact-match, and scoping server-side means page_size applies to
+  // in-window filings only (not swamped by decades of same-number filings).
+  const years = congress ? congressYears(congress) : []
+
+  const fetchYear = async (year?: number): Promise<LDARawFiling[] | null> => {
+    const url = new URL(`${LDA_BASE}/filings/`)
+    url.searchParams.set('filing_specific_lobbying_issues', searchTerm(billType, billNumber))
+    url.searchParams.set('ordering', '-filing_year')
+    url.searchParams.set('page_size', String(pageSize))
+    if (year) url.searchParams.set('filing_year', String(year))
+    try {
+      const res = await fetch(url.toString(), { headers, next: { revalidate: 86400 } })
+      if (!res.ok) return null
+      const data: { results?: LDARawFiling[] } = await res.json()
+      return data.results ?? []
+    } catch {
+      return null
+    }
+  }
+
   try {
-    const res = await fetch(url.toString(), { headers, next: { revalidate: 86400 } })
-    if (!res.ok) return null
-    const data: { results?: LDARawFiling[] } = await res.json()
-    if (!data.results?.length) return []
+    const pages = years.length
+      ? await Promise.all(years.map(y => fetchYear(y)))
+      : [await fetchYear()]
+
+    // All requests failed → signal failure (null); partial failure still returns
+    // what we have rather than silently under-reporting to zero.
+    if (pages.every(p => p === null)) return null
+    const results = pages.flatMap(p => p ?? [])
+    if (!results.length) return []
 
     const seen = new Set<string>()
     const filings: LDAFiling[] = []
 
-    for (const r of data.results) {
+    for (const r of results) {
       const acts = r.lobbying_activities ?? []
       const match = acts.find(a => a.description && re.test(a.description))
       if (!match) continue // substring-only collision (e.g. H.R. 1 vs H.R. 1000) — skip
@@ -115,13 +155,21 @@ async function fetchExactFilings(
   }
 }
 
-/** Distinct lobbying firm+client pairs that filed activity on this exact bill. */
-export async function getLobbyingFirmCount(billType: string, billNumber: string): Promise<number> {
-  const filings = await fetchExactFilings(billType, billNumber, 100)
+/**
+ * Distinct lobbying firm+client pairs that filed activity on this exact bill.
+ * Pass `congress` — without it, filings from earlier Congresses that reused the
+ * same bill number are counted too.
+ */
+export async function getLobbyingFirmCount(
+  billType: string, billNumber: string, congress?: number | string,
+): Promise<number> {
+  const filings = await fetchExactFilings(billType, billNumber, 100, congress)
   return filings?.length ?? 0
 }
 
-export async function getLobbyingForBill(billType: string, billNumber: string): Promise<LDAFiling[]> {
-  const filings = await fetchExactFilings(billType, billNumber, 100)
+export async function getLobbyingForBill(
+  billType: string, billNumber: string, congress?: number | string,
+): Promise<LDAFiling[]> {
+  const filings = await fetchExactFilings(billType, billNumber, 100, congress)
   return (filings ?? []).slice(0, 10)
 }
