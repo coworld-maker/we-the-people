@@ -10,7 +10,7 @@ const LDA_API_KEY = process.env.LDA_API_KEY
 // Without a key: 15 req/min → ~4s between calls. With key: 120 req/min → ~0.5s.
 // NB: each bill now costs TWO API calls (one per year of its Congress), so the
 // effective request rate is double the per-bill rate.
-const DELAY_MS = LDA_API_KEY ? 550 : 4100
+const DELAY_MS = LDA_API_KEY ? 1100 : 8200
 
 export const maxDuration = 300
 
@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
     let updated = 0
     let errors = 0
     let processed = 0
+    let skipped = 0
 
     for (let i = 0; i < bills.length; i++) {
       if (Date.now() - started > TIME_BUDGET_MS) break
@@ -69,11 +70,17 @@ export async function POST(req: NextRequest) {
       if (i > 0) await delay(DELAY_MS)
       try {
         const count = await getLobbyingFirmCount(bill.billType, bill.billNumber, bill.congress)
-        await prisma.bill.update({
-          where: { id: bill.id },
-          data: { lobbyingFirmCount: count },
-        })
-        updated++
+        if (count === null) {
+          // Lookup failed (usually rate-limited) — leave the stored value alone.
+          // Writing 0 here previously erased verified counts.
+          skipped++
+        } else {
+          await prisma.bill.update({
+            where: { id: bill.id },
+            data: { lobbyingFirmCount: count },
+          })
+          updated++
+        }
       } catch {
         errors++
       }
@@ -87,6 +94,7 @@ export async function POST(req: NextRequest) {
       offset,
       processed,
       updated,
+      skipped,
       errors,
       total,
       nextOffset: nextOffset < total ? nextOffset : null,

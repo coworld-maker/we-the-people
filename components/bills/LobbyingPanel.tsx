@@ -18,9 +18,13 @@ export default async function LobbyingPanel({ bill }: { bill: any }) {
   const congress: string = String(bill.congress || '')
 
   // --- Section B: LDA lobbying filings (always attempt) ---
+  // null = lookup failed (rate-limited/unreachable), [] = checked, none found.
+  // These must render differently — see the panel body below.
   const ldaFilings = billType && billNumber
-    ? await getLobbyingForBill(billType, billNumber, congress).catch(() => [])
+    ? await getLobbyingForBill(billType, billNumber, congress).catch(() => null)
     : []
+  const ldaUnavailable = ldaFilings === null
+  const filings = ldaFilings ?? []
 
   // --- Section A: FEC donor data for sponsors ---
   const bioguideIds = sponsors.map((s: any) => s.bioguideId).filter(Boolean)
@@ -79,7 +83,7 @@ export default async function LobbyingPanel({ bill }: { bill: any }) {
   )
 
   const hasFECData = fecResults.some(r => r !== null)
-  const hasAnything = entries.length > 0 || ldaFilings.length > 0
+  const hasAnything = entries.length > 0 || filings.length > 0 || ldaUnavailable
   if (!hasAnything) return null
 
   const hasFecKey = !!process.env.OPEN_FEC_API_KEY
@@ -162,10 +166,10 @@ export default async function LobbyingPanel({ bill }: { bill: any }) {
           </div>
         </div>
 
-        {ldaFilings.length > 0 ? (
+        {filings.length > 0 ? (
           <>
             <div className="divide-y divide-[--border]">
-              {ldaFilings.map((filing, i) => (
+              {filings.map((filing, i) => (
                 <div key={i} className="px-5 py-3.5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -199,7 +203,11 @@ export default async function LobbyingPanel({ bill }: { bill: any }) {
           <div className="px-5 py-4">
             <div className="flex items-center gap-2 mb-2">
               <AlertCircle className="w-4 h-4 text-[--text-muted] shrink-0" />
-              <p className="text-xs text-[--text-muted]">No lobbying disclosures matched this bill.</p>
+              <p className="text-xs text-[--text-muted]">
+                {ldaUnavailable
+                  ? "Couldn't load lobbying disclosures right now."
+                  : "No lobbying disclosures matched this bill."}
+              </p>
             </div>
             <a href={ldaVerifyUrl(billType, billNumber, congress)}
               target="_blank" rel="noopener noreferrer"

@@ -108,13 +108,17 @@ async function fetchExactFilings(
   }
 
   try {
+    // Parallel is correct here: throughput is governed by the caller's pacing
+    // (sync-lobbying's DELAY_MS), not by ordering within a single bill, and
+    // serializing these would add latency to every cold bill-page render.
     const pages = years.length
       ? await Promise.all(years.map(y => fetchYear(y)))
       : [await fetchYear()]
 
-    // All requests failed → signal failure (null); partial failure still returns
-    // what we have rather than silently under-reporting to zero.
-    if (pages.every(p => p === null)) return null
+    // If ANY year failed we cannot know the true total, so report "unknown"
+    // (null) rather than a partial count. A partial is indistinguishable from a
+    // real drop once stored, and this number is shown to users as fact.
+    if (pages.some(p => p === null)) return null
     const results = pages.flatMap(p => p ?? [])
     if (!results.length) return []
 
@@ -162,14 +166,21 @@ async function fetchExactFilings(
  */
 export async function getLobbyingFirmCount(
   billType: string, billNumber: string, congress?: number | string,
-): Promise<number> {
+): Promise<number | null> {
   const filings = await fetchExactFilings(billType, billNumber, 100, congress)
-  return filings?.length ?? 0
+  // null = could not determine (fetch failed / rate-limited). Callers MUST NOT
+  // persist this as 0 — doing so overwrote verified counts with zeros.
+  return filings === null ? null : filings.length
 }
 
+/**
+ * Filings for the bill, or null when the lookup failed. Callers must show
+ * "couldn't load" for null rather than "no lobbying found" — collapsing the two
+ * states tells users a bill has no lobbyists when we simply couldn't check.
+ */
 export async function getLobbyingForBill(
   billType: string, billNumber: string, congress?: number | string,
-): Promise<LDAFiling[]> {
+): Promise<LDAFiling[] | null> {
   const filings = await fetchExactFilings(billType, billNumber, 100, congress)
-  return (filings ?? []).slice(0, 10)
+  return filings === null ? null : filings.slice(0, 10)
 }
