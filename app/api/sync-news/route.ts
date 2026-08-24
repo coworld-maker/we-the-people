@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   // 2. Build lookup maps for linking (cheap: ~3k rows)
   const bills = await prisma.bill.findMany({
-    select: { id: true, billType: true, billNumber: true, congress: true, shortTitle: true },
+    select: { id: true, billType: true, billNumber: true, congress: true, shortTitle: true, title: true },
     // Ascending congress so the newest Congress overwrites older entries below:
     // bill numbers restart each Congress, so "H.R. 1234" is ambiguous and the
     // current Congress is what a news article almost certainly means.
