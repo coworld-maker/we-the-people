@@ -33,13 +33,18 @@ function deriveStatus(details: any): string {
   return details.status || 'introduced'
 }
 
+// Must return the SAME capitalization sync-bills writes ("House"/"Senate").
+// This previously returned lowercase, so two writers filled one column with two
+// conventions — and consumers comparing `=== 'House'` silently took the wrong
+// branch (a lowercase 'house' bill was told the Senate Majority Leader
+// schedules its floor vote).
 function normalizeOriginChamber(details: any, billType: string): string {
   if (details.originChamber) {
-    const chamber = details.originChamber.toLowerCase()
-    if (chamber === 'senate' || chamber === 'house') return chamber
+    const chamber = String(details.originChamber).toLowerCase()
+    if (chamber === 'senate') return 'Senate'
+    if (chamber === 'house') return 'House'
   }
-  if (billType.toUpperCase().startsWith('S')) return 'senate'
-  return 'house'
+  return billType.toUpperCase().startsWith('S') ? 'Senate' : 'House'
 }
 
 function delay(ms: number): Promise<void> {

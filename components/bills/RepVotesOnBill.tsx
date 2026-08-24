@@ -72,7 +72,9 @@ export default async function RepVotesOnBill({
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-[--text] leading-tight truncate">{rep.fullName}</p>
                 <p className="text-[10px] text-[--text-muted]">
-                  {rep.chamber === 'senate' ? 'Senator' : 'Rep.'} ({rep.party})
+                  {/* Representative.chamber is stored capitalized ("Senate"); compare
+                      case-insensitively or every senator is mislabeled "Rep." */}
+                  {rep.chamber?.toLowerCase() === 'senate' ? 'Senator' : 'Rep.'} ({rep.party})
                 </p>
               </div>
               <div className="text-right shrink-0">

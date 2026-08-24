@@ -46,21 +46,45 @@ export async function POST(req: NextRequest) {
     console.error(`[sync-news] LOW YIELD: ${articles.length} articles (rss=${rss.length}, newsdata=${newsdata.length}) — feeds may be failing`)
   }
 
-  // 2. Build a bill-code → id map for linking (cheap: ~2.5k rows)
+  // 2. Build lookup maps for linking (cheap: ~3k rows)
   const bills = await prisma.bill.findMany({
-    select: { id: true, billType: true, billNumber: true },
+    select: { id: true, billType: true, billNumber: true, congress: true, shortTitle: true },
+    // Ascending congress so the newest Congress overwrites older entries below:
+    // bill numbers restart each Congress, so "H.R. 1234" is ambiguous and the
+    // current Congress is what a news article almost certainly means.
+    orderBy: { congress: 'asc' },
   })
   const byCode = new Map<string, string>()
-  for (const b of bills) byCode.set(`${b.billType.toUpperCase()}${b.billNumber}`, b.id)
+  const byTitle: Array<{ title: string; id: string }> = []
+  for (const b of bills) {
+    byCode.set(`${b.billType.toUpperCase()}${b.billNumber}`, b.id)
+    // Most coverage names a bill ("the Epstein Files Transparency Act"), never
+    // its number — only 3 of 1,479 stored articles contained a bill code, so
+    // code-matching alone left the per-bill news card empty on every page.
+    // NB: shortTitle is currently null for every row, so `title` is what
+    // actually carries the popular name; prefer shortTitle if it's ever synced.
+    // The length floor keeps short/generic names ("DLARA") from false-matching,
+    // and a full-phrase containment match is strong evidence of relevance.
+    const t = (b.shortTitle ?? b.title)?.trim()
+    if (t && t.length >= 18) byTitle.push({ title: t.toLowerCase(), id: b.id })
+  }
+  // Longest first so "American Music Fairness Act" wins over "Fairness Act".
+  byTitle.sort((a, b) => b.title.length - a.title.length)
 
   let stored = 0
   let linked = 0
   let errors = 0
 
   for (const a of articles) {
-    // Link to the first cited bill we recognize, else store as general (null)
-    const codes = billCodeKeys(`${a.title} ${a.description ?? ''}`)
-    const billId = codes.map(c => byCode.get(c)).find(Boolean) ?? null
+    // Link to the first cited bill we recognize, else store as general (null).
+    // Bill code is the stronger signal, so try it before the title match.
+    const haystack = `${a.title} ${a.description ?? ''}`
+    const codes = billCodeKeys(haystack)
+    let billId = codes.map(c => byCode.get(c)).find(Boolean) ?? null
+    if (!billId) {
+      const lower = haystack.toLowerCase()
+      billId = byTitle.find(t => lower.includes(t.title))?.id ?? null
+    }
     if (billId) linked++
 
     try {

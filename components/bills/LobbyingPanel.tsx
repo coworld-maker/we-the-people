@@ -109,7 +109,8 @@ export default async function LobbyingPanel({ bill }: { bill: any }) {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-[--text] truncate">{entry.name}</p>
                       <p className="text-[10px] text-[--text-muted]">
-                        {entry.chamber === 'senate' ? 'Senator' : entry.chamber === 'house' ? 'Rep.' : ''}
+                        {/* stored capitalized ("Senate"/"House") — lowercase compare rendered blank */}
+                        {entry.chamber?.toLowerCase() === 'senate' ? 'Senator' : entry.chamber?.toLowerCase() === 'house' ? 'Rep.' : ''}
                         {entry.state ? ` · ${entry.state}` : ''}
                       </p>
                     </div>
