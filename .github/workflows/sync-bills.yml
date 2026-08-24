@@ -6,6 +6,11 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch:
     # Allows manual trigger from GitHub Actions tab
+    inputs:
+      lobbying_offset:
+        description: 'Resume the lobbying backlog from this offset (0 = start over)'
+        required: false
+        default: '0'
 
 # Cancel any in-progress run when a new one is triggered. Prevents
 # back-to-back manual catch-up clicks from piling up identical work.
@@ -199,6 +204,37 @@ jobs:
           cat /tmp/body 2>/dev/null
           echo
           [ "$response" = "200" ] || exit 1
+
+  # Refresh LDA lobbying firm counts. Runs on the server so it uses LDA_API_KEY
+  # (120 req/min) instead of the ~15 req/min anonymous limit, and pages through
+  # the backlog with the route's offset cursor. Bounded per run — the full set
+  # is thousands of bills at two API calls each, so this walks it over nights.
+  sync-lobbying:
+    name: Sync lobbying firm counts
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Loop POST /api/sync-lobbying with cursor
+        run: |
+          offset=${{ github.event.inputs.lobbying_offset || 0 }}
+          for i in $(seq 1 5); do
+            response=$(curl -s -o /tmp/body -w "%{http_code}" \
+              --max-time 300 --retry 2 --retry-delay 10 --retry-all-errors \
+              -X POST \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"offset\": $offset, \"limit\": 60}" \
+              "https://www.democracyunlocked.com/api/sync-lobbying")
+            echo "Iteration $i (offset $offset) — HTTP $response"
+            cat /tmp/body 2>/dev/null; echo
+            # Best-effort: a slow LDA run can time out an iteration; stop rather
+            # than fail the nightly workflow.
+            [ "$response" = "200" ] || { echo "Non-200 — stopping early"; break; }
+            next=$(python3 -c "import json;d=json.load(open('/tmp/body'));print(d.get('nextOffset') or '')" 2>/dev/null || echo "")
+            [ -z "$next" ] && { echo "Backlog complete."; break; }
+            offset=$next
+          done
+          echo "Next offset to resume from: $offset"
 
   # Pre-warm AI analysis for the most prominent un-analyzed bills so visitors
   # land on a ready summary instead of waiting for the on-view auto-fire. Each
