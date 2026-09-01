@@ -5,6 +5,8 @@ import {
   MessageSquare, FileText, TrendingUp,
 } from 'lucide-react'
 import CivicHero from '@/components/landing/CivicHero'
+import MoneyStrip, { type MoneyStripData } from '@/components/landing/MoneyStrip'
+import { getLobbyingForBill } from '@/lib/api/lda'
 import prisma from '@/lib/prisma'
 import Logo from '@/components/ui/Logo'
 import CookieConsent from '@/components/legal/CookieConsent'
@@ -21,9 +23,62 @@ const FEATURES = [
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+const BILL_TYPE_LABEL: Record<string, string> = {
+  HR: 'H.R.', S: 'S.', HRES: 'H.Res.', SRES: 'S.Res.',
+  HJRES: 'H.J.Res.', SJRES: 'S.J.Res.', HCONRES: 'H.Con.Res.', SCONRES: 'S.Con.Res.',
+}
+
+/**
+ * Pick the most-lobbied bill we have a verified count for and, when possible,
+ * name the organizations behind it. Counts come from sync-lobbying (LDA filings
+ * exact-matched to the bill AND its Congress); the client names are fetched
+ * live but cached 24h by lib/api/lda. Every failure path degrades to something
+ * still true: names omitted, or the whole strip hidden.
+ */
+async function getMoneyStrip(): Promise<MoneyStripData | null> {
+  try {
+    const bill = await prisma.bill.findFirst({
+      where: { lobbyingFirmCount: { gt: 0 } },
+      orderBy: [{ lobbyingFirmCount: 'desc' }, { latestActionDate: 'desc' }],
+      select: {
+        id: true, billType: true, billNumber: true, congress: true,
+        title: true, shortTitle: true, lobbyingFirmCount: true,
+      },
+    })
+    if (!bill?.lobbyingFirmCount) return null
+
+    const filings = await getLobbyingForBill(bill.billType, bill.billNumber, bill.congress)
+      .catch(() => null)
+
+    // Names are used EXACTLY as filed. Title-casing them mangles real ones
+    // (NAACP -> "Naacp", "City OF Santa Clara", "Tricon Residential INC."),
+    // and this is a factual citation — style it, don't rewrite it. Prefer
+    // shorter names so one 60-character registrant doesn't swamp the line.
+    const clients = Array.from(
+      new Set((filings ?? []).map(f => f.client?.trim()).filter((c): c is string => !!c))
+    )
+      .sort((a, b) => a.length - b.length)
+      .filter(c => c.length <= 42)
+      .slice(0, 3)
+
+    return {
+      billId: bill.id,
+      code: `${BILL_TYPE_LABEL[bill.billType] ?? bill.billType} ${bill.billNumber}`,
+      title: bill.shortTitle || bill.title,
+      firmCount: bill.lobbyingFirmCount,
+      clients,
+    }
+  } catch {
+    return null
+  }
+}
+
 export default async function LandingPage() {
   const { userId } = await auth()
-  const billCount = await prisma.bill.count().catch(() => 0)
+  const [billCount, moneyStrip] = await Promise.all([
+    prisma.bill.count().catch(() => 0),
+    getMoneyStrip(),
+  ])
 
   return (
     <main className="min-h-screen bg-[--bg] text-[--text] selection:bg-[--accent] selection:text-white">
@@ -68,6 +123,10 @@ export default async function LandingPage() {
       </header>
 
       <CivicHero billCount={billCount} signedIn={!!userId} />
+
+      {/* The differentiator, immediately after the hero: a real bill, real
+          filings, named. Renders nothing if we have no verified count. */}
+      <MoneyStrip data={moneyStrip} />
 
       {/* ── BENTO GRID ─────────────────────────────────────────────────── */}
       <section className="py-24 px-6 bg-[--bg]">
