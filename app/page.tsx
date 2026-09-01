@@ -1,8 +1,7 @@
 import Link from 'next/link'
 import { auth } from '@clerk/nextjs/server'
 import {
-  Vote, BookOpen, BarChart3, Shield, Users, ArrowRight,
-  MessageSquare, FileText, TrendingUp,
+  Vote, BarChart3, ArrowRight, FileText, DollarSign, BookOpen,
 } from 'lucide-react'
 import CivicHero from '@/components/landing/CivicHero'
 import MoneyStrip, { type MoneyStripData } from '@/components/landing/MoneyStrip'
@@ -12,13 +11,34 @@ import Logo from '@/components/ui/Logo'
 import CookieConsent from '@/components/legal/CookieConsent'
 
 // ── STATIC DATA ──────────────────────────────────────────────────────────────
+// Three questions a citizen actually asks, in the order they ask them — rather
+// than six capabilities of equal visual weight, where nothing is emphasised.
+// The middle one is the differentiator and is deliberately in the middle,
+// where the eye lands. "Civic Score / earn badges" is gone: gamification read
+// as a different product next to a nonpartisan accountability tool, and the
+// substantive thing underneath it (your record vs. your reps) is question 3.
 const FEATURES = [
-  { icon: FileText,       title: 'AI-Powered Summaries', desc: 'Complex legislation translated into plain English in seconds.', accent: 'text-[--accent]',     bg: 'bg-[--accent-light]' },
-  { icon: Shield,         title: 'Unbiased Analysis',    desc: 'Impact assessments across demographics with no partisan spin.', accent: 'text-emerald-700',     bg: 'bg-emerald-50' },
-  { icon: MessageSquare,  title: 'Verified Discourse',   desc: 'Debate the merits of bills with real, verified citizens.',      accent: 'text-purple-700',      bg: 'bg-purple-50' },
-  { icon: TrendingUp,     title: 'Civic Score',          desc: 'Earn badges and level up your civic engagement profile.',       accent: 'text-amber-700',       bg: 'bg-amber-50' },
-  { icon: BookOpen,       title: 'Direct Sources',       desc: 'Full legislative text pulled straight from Congress.gov.',      accent: 'text-[--accent-red]',   bg: 'bg-[--accent-red-light]' },
-  { icon: Users,          title: 'National Sentiment',   desc: 'See how citizens across the country are voting on legislation.', accent: 'text-blue-700',        bg: 'bg-blue-50' },
+  {
+    icon: FileText,
+    title: 'What does this bill actually do?',
+    desc: 'Every bill in plain English — the problem, the proposal, and who it affects. Official text from Congress.gov, always one click away.',
+    accent: 'text-[--accent]',
+    bg: 'bg-[--accent-light]',
+  },
+  {
+    icon: DollarSign,
+    title: 'Who’s paying for it?',
+    desc: 'The organizations lobbying each bill, from Senate disclosures — plus the donor employers behind its sponsors, from FEC filings.',
+    accent: 'text-[--gold-text]',
+    bg: 'bg-[--gold-light]',
+  },
+  {
+    icon: BarChart3,
+    title: 'How did my representative vote?',
+    desc: 'Real roll-call records for all 537 members. Cast your own position and see where you and your reps actually agree.',
+    accent: 'text-emerald-700',
+    bg: 'bg-emerald-50',
+  },
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -134,7 +154,7 @@ export default async function LandingPage() {
       <MoneyStrip data={moneyStrip} />
 
       {/* ── BENTO GRID ─────────────────────────────────────────────────── */}
-      <section className="py-24 px-6 bg-[--bg]">
+      <section className="py-24 px-6 bg-[--bg] bg-engraved">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="font-display text-4xl sm:text-5xl font-extrabold text-[--text] tracking-tight mb-4">
@@ -145,11 +165,11 @@ export default async function LandingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FEATURES.map(feat => (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {FEATURES.map((feat, i) => (
               <div
                 key={feat.title}
-                className="card p-8 hover:border-[--accent] hover:shadow-md transition-all duration-200 group"
+                className={`card p-8 hover:border-[--accent] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group rise-in rise-in-${i + 1}`}
               >
                 <div className={`w-12 h-12 ${feat.bg} rounded-xl flex items-center justify-center mb-5 group-hover:scale-105 transition-transform`}>
                   <feat.icon className={`w-6 h-6 ${feat.accent}`} />

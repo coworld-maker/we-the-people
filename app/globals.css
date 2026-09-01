@@ -165,6 +165,54 @@
     --container-2xl: 1440px;
 
     --nav-height: 60px;
+
+    /* Hairline used by .bg-engraved — see below. */
+    --engrave: rgba(10, 36, 99, 0.05);
+  }
+}
+
+/* ── Engraved backdrop ────────────────────────────────────────
+   Fine diagonal hairlines, the way banknotes and official documents are
+   printed — thematically apt for a site about money and legislation, and it
+   gives flat sections some depth without a photograph. Pure CSS: no image
+   asset, no extra request. Sits behind content and fades out toward the
+   bottom so it reads as texture rather than pattern. */
+.bg-engraved { position: relative; isolation: isolate; }
+.bg-engraved > * { position: relative; z-index: 1; }
+.bg-engraved::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--engrave) 0px,
+    var(--engrave) 1px,
+    transparent 1px,
+    transparent 9px
+  );
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, #000 0%, transparent 70%);
+          mask-image: radial-gradient(120% 90% at 50% 0%, #000 0%, transparent 70%);
+}
+
+/* Staggered entrance for a small set of cards. Deliberately subtle and
+   one-shot — no looping motion on a page people read. */
+.rise-in { animation: fadeInUp 0.5s var(--ease-out) both; }
+.rise-in-1 { animation-delay: 0.05s; }
+.rise-in-2 { animation-delay: 0.13s; }
+.rise-in-3 { animation-delay: 0.21s; }
+
+/* ── Respect reduced-motion ───────────────────────────────────
+   Nothing here animated conditionally before; users who ask their OS for less
+   motion were still getting every transition and keyframe. Sensitivity to
+   motion overlaps the readers who told us the app was hard to focus on. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

@@ -39,7 +39,7 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
   const reps: RepLite[] = result ? [...result.senators, ...(result.house ? [result.house] : [])] : []
 
   return (
-    <section className="bg-[--bg] border-b border-[--border]">
+    <section className="bg-[--bg] border-b border-[--border] bg-engraved">
       <div className="max-w-6xl mx-auto px-5 pt-16 pb-14 md:pt-24 md:pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
 
