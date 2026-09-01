@@ -149,6 +149,17 @@ export default async function BillsPage({
   const fetchLimit  = groupByPolicy ? 500 : limit
   const fetchOffset = groupByPolicy ? 0    : offset
 
+  // Don't hardcode the Congress number — it was stuck at "118th" while 4,513 of
+  // 4,576 bills are from the 119th. Derive it from the most common value so it
+  // stays correct across the session boundary.
+  const congressRows = await prisma.bill.groupBy({
+    by: ['congress'],
+    _count: { congress: true },
+    orderBy: { _count: { congress: 'desc' } },
+    take: 1,
+  }).catch(() => [])
+  const currentCongress = congressRows[0]?.congress ?? '119'
+
   const [{ bills, total }, policyAreas] = await Promise.all([
     BillService.getBills({
       search: params.search, status: params.status, stage: params.stage, year: params.year,
@@ -226,7 +237,7 @@ export default async function BillsPage({
         <div>
           <h1 className="font-display text-2xl font-extrabold text-[--text]">Bills</h1>
           <p className="text-sm text-[--text-secondary] mt-1">
-            {total} bill{total !== 1 ? 's' : ''} from the 118th Congress
+            {total} bill{total !== 1 ? 's' : ''} from the {currentCongress}th Congress
             {groupByPolicy && grouped && <> · {grouped.length} polic{grouped.length === 1 ? 'y area' : 'y areas'}</>}
           </p>
         </div>
