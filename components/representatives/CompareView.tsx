@@ -82,9 +82,15 @@ function RepCard({ rep }: { rep: Rep }) {
       <div className="p-5">
         {/* Rep header */}
         <div className="flex items-start gap-4">
-          <RepAvatar bioguideId={rep.bioguideId} fullName={rep.name} party={rep.party} size="lg" />
+          <Link href={`/scorecards/${rep.bioguideId}`} className="shrink-0">
+            <RepAvatar bioguideId={rep.bioguideId} fullName={rep.name} party={rep.party} size="lg" />
+          </Link>
           <div className="flex-1 min-w-0">
-            <h3 className="font-display text-base font-bold text-[--text] leading-tight">{rep.name}</h3>
+            <Link href={`/scorecards/${rep.bioguideId}`} className="group/name">
+              <h3 className="font-display text-base font-bold text-[--text] leading-tight group-hover/name:text-[--accent] transition-colors">
+                {rep.name}
+              </h3>
+            </Link>
             <p className="text-xs text-[--text-secondary] mt-0.5">{office}</p>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               <span className={`badge border text-[10px] ${partyBadge}`}>
@@ -138,9 +144,18 @@ function RepCard({ rep }: { rep: Rep }) {
             the reader at all. */}
         {rep.recentVotes.length > 0 && (
           <div className="mt-4 pt-4 border-t border-[--border]">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-[--text-muted] mb-2">
-              Recent votes
-            </p>
+            <div className="flex items-baseline justify-between gap-3 mb-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[--text-muted]">
+                Recent votes
+              </p>
+              {/* The card shows 5; the scorecard holds the member's full record. */}
+              <Link
+                href={`/scorecards/${rep.bioguideId}`}
+                className="text-[11px] font-semibold text-[--accent] hover:text-[--accent-hover] transition-colors shrink-0"
+              >
+                Full record →
+              </Link>
+            </div>
             <div className="space-y-1.5">
               {rep.recentVotes.map(v => {
                 const yes = v.position === 'Yea'
