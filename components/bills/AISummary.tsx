@@ -27,7 +27,9 @@ export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyz
     try {
       const res = await fetch(`/api/bills/${billId}/analyze`, { method: 'POST' })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.details || data.error || 'Analysis failed')
+      // Deliberately ignore any server-supplied detail — this string is rendered
+      // to the visitor, and upstream provider messages don't belong on the page.
+      if (!res.ok) throw new Error('AI_UNAVAILABLE')
       // Render the summary immediately from the response. Relying on router.refresh()
       // alone left the section stuck on "Analyzing…" because this component's
       // summary state is seeded once from props at mount and ignores later prop
@@ -120,8 +122,11 @@ export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyz
           /* Error after auto-fire — surface a manual retry */
           <div className="text-center py-6">
             <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-3" />
-            <h3 className="font-display text-base font-bold text-[--text] mb-1">Couldn't analyze this bill</h3>
-            <p className="text-sm text-[--text-muted] mb-4 max-w-sm mx-auto">{error}</p>
+            <h3 className="font-display text-base font-bold text-[--text] mb-1">AI summary unavailable</h3>
+            <p className="text-sm text-[--text-muted] mb-4 max-w-sm mx-auto">
+              We couldn't generate a summary right now.
+              {officialSummary ? ' The official summary is below.' : ' Try again in a moment.'}
+            </p>
             <button onClick={analyze} className="btn-primary text-xs px-4 py-2">
               <Sparkles className="w-3.5 h-3.5" /> Try again
             </button>

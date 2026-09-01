@@ -33,10 +33,14 @@ export async function POST(
       analyzedAt: bill?.aiAnalyzedAt ?? null,
     })
   } catch (error: any) {
+    // Log the real cause server-side, but NEVER return it to the browser: the
+    // client renders `details` verbatim, so upstream provider errors leaked to
+    // visitors — an exhausted API balance showed them a literal
+    // "Your credit balance is too low… go to Plans & Billing" on the bill page.
     console.error('AI analysis error:', error?.message || error)
     return NextResponse.json(
-      { error: 'Analysis failed', details: error?.message || String(error) },
-      { status: 500 }
+      { error: 'Analysis unavailable' },
+      { status: 503 }
     )
   }
 }
