@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import zipDistricts from '@/lib/data/zip-districts.json'
+import { abbrToName } from '@/lib/utils/state-codes'
 
 interface RepLite {
   fullName: string
@@ -29,8 +30,13 @@ export async function GET(req: Request) {
   // "GA-5"; at-large states use district "0".
   const [state, district] = entry.split('-')
 
+  // The ZIP dataset yields an ABBREVIATION ("GA") but Representative.state
+  // stores the full name ("Georgia") — querying by the abbreviation silently
+  // matched zero rows, so the hero's ZIP lookup returned no representatives.
+  const stateName = abbrToName(state) ?? state
+
   const reps = (await prisma.representative.findMany({
-    where: { state, currentTerm: true },
+    where: { state: stateName, currentTerm: true },
     select: { fullName: true, party: true, bioguideId: true, district: true, chamber: true },
   })) as RepLite[]
 
