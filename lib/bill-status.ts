@@ -81,6 +81,15 @@ export const BILL_STATUS_LABELS: Record<BillStatus, { label: string; cls: string
 }
 
 /**
+ * Safe accessor: `Bill.status` is a plain string at the call site, so indexing
+ * the typed record directly doesn't compile. Unknown values fall back to
+ * "Introduced" rather than rendering a blank badge.
+ */
+export function billStatusLabel(status: string | null | undefined): { label: string; cls: string } {
+  return isCanonicalStatus(status) ? BILL_STATUS_LABELS[status] : BILL_STATUS_LABELS.introduced
+}
+
+/**
  * Coarse grouping for the bills page: has this bill actually advanced, or is it
  * still one of the many thousands that were merely introduced? Most bills never
  * leave committee, so lumping "introduced" together with "passed the House" hides

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   BILL_STATUSES,
+  billStatusLabel,
   BILL_STATUS_LABELS,
   STAGE_GROUPS,
   isCanonicalStatus,
@@ -85,6 +86,14 @@ describe('status labels', () => {
 
   it('has no label for a status that does not exist', () => {
     expect(Object.keys(BILL_STATUS_LABELS).sort()).toEqual([...BILL_STATUSES].sort())
+  })
+
+  it('billStatusLabel falls back to Introduced for unknown or raw values', () => {
+    // The polluted rows were raw action text; a bad value must never render blank.
+    expect(billStatusLabel('Became Public Law No: 119-50.').label).toBe('Introduced')
+    expect(billStatusLabel(null).label).toBe('Introduced')
+    expect(billStatusLabel('enacted').label).toBe('Enacted')
+    expect(billStatusLabel('resolving_differences').label).toBe('In Conference')
   })
 
   it('does not claim a chamber it cannot know', () => {

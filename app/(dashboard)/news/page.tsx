@@ -9,7 +9,7 @@ import {
 import { CongressAPI } from '@/lib/api/congress'
 import { getRecentNews } from '@/lib/api/news'
 import PressFeed from '@/components/news/PressFeed'
-import { BILL_STATUS_LABELS } from '@/lib/bill-status'
+import { billStatusLabel } from '@/lib/bill-status'
 
 export const metadata = {
   title: 'News & Activity | Democracy Unlocked',
@@ -148,7 +148,7 @@ export default async function NewsPage() {
               </div>
               <div className="divide-y divide-[--border]">
                 {stateImpactBills.map(bill => {
-                  const st = BILL_STATUS_LABELS[bill.status] || BILL_STATUS_LABELS.introduced
+                  const st = billStatusLabel(bill.status)
                   return (
                     <Link key={bill.id} href={`/bills/${bill.id}`}
                       className="group flex items-center gap-4 px-6 py-4 hover:bg-[--surface-secondary] transition-colors"
@@ -184,7 +184,7 @@ export default async function NewsPage() {
             </div>
             <div className="divide-y divide-[--border]">
               {latestActions.map(bill => {
-                const st = BILL_STATUS_LABELS[bill.status] || BILL_STATUS_LABELS.introduced
+                const st = billStatusLabel(bill.status)
                 return (
                   <Link key={bill.id} href={`/bills/${bill.id}`}
                     className="group flex items-start gap-4 px-6 py-4 hover:bg-[--surface-secondary] transition-colors"
@@ -268,7 +268,7 @@ export default async function NewsPage() {
               </div>
               <div className="divide-y divide-[--border]">
                 {mostViewedBills.map((bill, i) => {
-                  const st = BILL_STATUS_LABELS[bill.status] || BILL_STATUS_LABELS.introduced
+                  const st = billStatusLabel(bill.status)
                   return (
                     <Link key={bill.id} href={`/bills/${bill.id}`}
                       className="group flex items-start gap-3 px-6 py-4 hover:bg-[--surface-secondary] transition-colors"

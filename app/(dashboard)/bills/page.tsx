@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { ChevronRight, FileText, Calendar, Vote as VoteIcon, MapPin, Users } from 'lucide-react'
 import BillFilters from '@/components/bills/BillFilters'
 import BillTypeBadge from '@/components/bills/BillTypeBadge'
-import { BILL_STATUS_LABELS } from '@/lib/bill-status'
+import { billStatusLabel } from '@/lib/bill-status'
 
 // Per-policy-area accent palette — used for section headers in the grouped view
 // 6 semantic color groups instead of 18 one-offs — reduces badge noise on list pages
@@ -49,7 +49,7 @@ function BillCard({ bill, userState, showPolicyBadge = true }: {
   userState: string | null
   showPolicyBadge?: boolean
 }) {
-  const st = BILL_STATUS_LABELS[bill.status] || BILL_STATUS_LABELS.introduced
+  const st = billStatusLabel(bill.status)
   const stateImpactScore =
     userState && bill.stateImpacts && typeof bill.stateImpacts === 'object'
       ? (bill.stateImpacts as Record<string, { score: number }>)[userState]?.score
