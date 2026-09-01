@@ -38,7 +38,12 @@ const BILL_TYPE_LABEL: Record<string, string> = {
 async function getMoneyStrip(): Promise<MoneyStripData | null> {
   try {
     const bill = await prisma.bill.findFirst({
-      where: { lobbyingFirmCount: { gt: 0 } },
+      // Live bills only. A bill that already became law is a history lesson —
+      // the strip is meant to prompt "I could still weigh in on this."
+      where: {
+        lobbyingFirmCount: { gt: 0 },
+        status: { notIn: ['enacted', 'failed', 'vetoed'] },
+      },
       orderBy: [{ lobbyingFirmCount: 'desc' }, { latestActionDate: 'desc' }],
       select: {
         id: true, billType: true, billNumber: true, congress: true,
@@ -136,7 +141,7 @@ export default async function LandingPage() {
               A dashboard for democracy.
             </h2>
             <p className="text-xl text-[--text-secondary] max-w-2xl mx-auto">
-              Everything you need to bypass the media spin and go straight to the source.
+              Official sources, plain English, and the money behind every bill.
             </p>
           </div>
 
