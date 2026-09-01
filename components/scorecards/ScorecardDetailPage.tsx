@@ -10,6 +10,7 @@ import {
   CalendarDays, Activity,
 } from 'lucide-react'
 import StateAlignmentCard from './StateAlignmentCard'
+import RepAvatar from '@/components/ui/RepAvatar'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -183,13 +184,6 @@ export default function ScorecardDetailPage() {
     : 'bg-gray-50 text-gray-600 border-gray-200'
   const partyLabel = repParty === 'R' ? 'Republican' : repParty === 'D' ? 'Democrat' : 'Independent'
 
-  const initials = repName
-    .split(/[\s,]+/)
-    .filter(Boolean)
-    .map((n: string) => n[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
 
   const tabs = [
     { id: 'voting',     label: 'Voting',    icon: BarChart3,  count: data?.stats.totalVotesTracked },
@@ -219,9 +213,16 @@ export default function ScorecardDetailPage() {
             {/* Top row: avatar + name + actions */}
             <div className="flex flex-col sm:flex-row sm:items-start gap-4">
               <div className="flex items-center gap-4 sm:contents">
-                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-white font-bold text-base sm:text-lg shrink-0 ${partyColor}`}>
-                  {initials || '?'}
-                </div>
+                {/* Official portrait — this is the one page where a member's
+                    photo is most expected, and it was the last surface still
+                    showing initials. RepAvatar falls back to initials itself. */}
+                <RepAvatar
+                  bioguideId={bioguideId}
+                  fullName={repName}
+                  party={repParty}
+                  size="xl"
+                  className="w-14 h-14 sm:w-20 sm:h-20"
+                />
                 <div className="flex-1 sm:hidden">
                   <h1 className="font-display text-lg font-extrabold text-[--text] leading-tight">{repName}</h1>
                   <p className="text-xs text-[--text-secondary] mt-0.5">{repOffice}</p>
