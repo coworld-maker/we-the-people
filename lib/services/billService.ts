@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma'
 import { CongressAPI } from '@/lib/api/congress'
+import { normalizeBillStatus } from '@/lib/bill-status'
 
 function parseSubjects(subjects: any): string[] {
   if (!subjects) return []
@@ -22,16 +23,6 @@ function parseSponsorList(data: any): any[] {
   return []
 }
 
-function deriveStatus(details: any): string {
-  const actionText = (details.latestAction?.text || '').toLowerCase()
-  if (actionText.includes('became public law') || actionText.includes('signed by president')) return 'enacted'
-  if (actionText.includes('passed senate') && actionText.includes('passed house')) return 'passed_both'
-  if (actionText.includes('resolving differences') || actionText.includes('conference')) return 'resolving_differences'
-  if (actionText.includes('passed senate') || actionText.includes('passed house') || actionText.includes('held at the desk')) return 'passed_chamber'
-  if (actionText.includes('placed on senate legislative calendar') || actionText.includes('placed on the union calendar') || actionText.includes('reported by')) return 'reported'
-  if (actionText.includes('committee') || actionText.includes('hearing') || actionText.includes('subcommittee')) return 'in_committee'
-  return details.status || 'introduced'
-}
 
 // Must return the SAME capitalization sync-bills writes ("House"/"Senate").
 // This previously returned lowercase, so two writers filled one column with two
@@ -85,7 +76,7 @@ export class BillService {
               summary: details.summary?.text || null,
               introducedDate, latestActionDate,
               latestActionText: details.latestAction?.text || null,
-              status: deriveStatus(details),
+              status: normalizeBillStatus(details.latestAction?.text, details.laws),
               originChamber: normalizeOriginChamber(details, billType),
               policyArea: details.policyArea?.name || null,
               subjects: parseSubjects(details.subjects),
@@ -96,7 +87,7 @@ export class BillService {
               title, shortTitle: details.shortTitle || null,
               summary: details.summary?.text || null,
               latestActionDate, latestActionText: details.latestAction?.text || null,
-              status: deriveStatus(details), policyArea: details.policyArea?.name || null,
+              status: normalizeBillStatus(details.latestAction?.text, details.laws), policyArea: details.policyArea?.name || null,
               subjects: parseSubjects(details.subjects),
               sponsors: parseSponsorList(details.sponsors),
               cosponsors: parseSponsorList(details.cosponsors),

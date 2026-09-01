@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { checkSyncAuth } from '@/lib/auth/syncAuth'
+import { normalizeBillStatus } from '@/lib/bill-status'
 
 const CONGRESS_API_BASE = 'https://api.congress.gov/v3'
 const API_KEY = process.env.CONGRESS_API_KEY
@@ -28,16 +29,6 @@ async function fetchBillDetails(congress: number, billType: string, billNumber: 
   }
 }
 
-function normalizeStatus(latestActionText: string, laws: any[]): string {
-  const text = latestActionText?.toLowerCase() ?? ''
-  if (laws?.length > 0) return 'enacted'
-  if (text.includes('became public law') || text.includes('signed by president')) return 'enacted'
-  if (text.includes('passed senate') && text.includes('passed house')) return 'passed_both'
-  if (text.includes('passed senate') || text.includes('passed house')) return 'passed_chamber'
-  if (text.includes('reported')) return 'reported'
-  if (text.includes('referred to')) return 'in_committee'
-  return 'introduced'
-}
 
 export async function POST(req: NextRequest) {
   if (!checkSyncAuth(req)) {
@@ -95,7 +86,7 @@ export async function POST(req: NextRequest) {
           ? new Date(src.latestAction.actionDate)
           : null,
         latestActionText: src.latestAction?.text ?? null,
-        status: normalizeStatus(src.latestAction?.text ?? '', src.laws ?? []),
+        status: normalizeBillStatus(src.latestAction?.text, src.laws),
         originChamber: src.originChamber ?? bill.originChamber ?? 'House',
         policyArea: src.policyArea?.name ?? bill.policyArea?.name ?? null,
         subjects: [],

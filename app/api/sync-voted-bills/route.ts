@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkSyncAuth } from '@/lib/auth/syncAuth';
+import { normalizeBillStatus } from '@/lib/bill-status'
 
 const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY;
 const BASE_URL = 'https://api.congress.gov/v3';
@@ -79,7 +80,9 @@ export async function POST(req: NextRequest) {
         const latestActionText = latestAction?.text ?? null;
         const sponsors = bill.sponsors ?? [];
         const originChamber = bill.originChamber ?? (legType.startsWith('H') ? 'House' : 'Senate');
-        const status = latestActionText ?? 'Introduced';
+        // Must be normalized: writing the raw action text here polluted 76 rows
+        // with values like "Became Public Law No: 119-50." that no filter could match.
+        const status = normalizeBillStatus(latestActionText);
         const policyArea = bill.policyArea?.name ?? null;
         const subjects = bill.subjects?.legislativeSubjects?.map((s: any) => s.name) ?? [];
 
