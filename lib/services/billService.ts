@@ -72,7 +72,7 @@ export class BillService {
             where: { congress_billType_billNumber: { congress: congressStr, billType, billNumber } },
             create: {
               congress: congressStr, billType, billNumber, title,
-              shortTitle: details.shortTitle || null,
+              shortTitle: null, // see sync-bills: Congress.gov has no shortTitle field
               summary: details.summary?.text || null,
               introducedDate, latestActionDate,
               latestActionText: details.latestAction?.text || null,
@@ -84,7 +84,7 @@ export class BillService {
               cosponsors: parseSponsorList(details.cosponsors),
             },
             update: {
-              title, shortTitle: details.shortTitle || null,
+              title, shortTitle: null, // see sync-bills: Congress.gov has no shortTitle field
               summary: details.summary?.text || null,
               latestActionDate, latestActionText: details.latestAction?.text || null,
               status: normalizeBillStatus(details.latestAction?.text, details.laws), policyArea: details.policyArea?.name || null,
