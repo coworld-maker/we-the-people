@@ -18,6 +18,15 @@ interface Comparison {
   votedAt: string | null
 }
 
+interface RecentVote {
+  billId: string
+  billType: string
+  billNumber: string
+  billTitle: string
+  position: string
+  votedAt: string | null
+}
+
 interface Rep {
   bioguideId: string
   name: string
@@ -27,6 +36,7 @@ interface Rep {
   alignment: number | null
   overlappingVotes: number
   comparisons: Comparison[]
+  recentVotes: RecentVote[]
 }
 
 function AlignmentRing({ pct }: { pct: number }) {
@@ -103,7 +113,7 @@ function RepCard({ rep }: { rep: Rep }) {
         <div className="mt-4 pt-4 border-t border-[--border] flex items-center justify-between">
           <div className="text-xs text-[--text-secondary]">
             {rep.overlappingVotes === 0 ? (
-              <span className="text-[--text-muted] italic">No overlapping votes yet</span>
+              <span className="text-[--text-muted]">Vote on a bill to compare</span>
             ) : (
               <>
                 <span className="font-semibold text-[--text]">{rep.overlappingVotes}</span> bill
@@ -121,6 +131,45 @@ function RepCard({ rep }: { rep: Rep }) {
             </button>
           )}
         </div>
+
+
+        {/* Their actual record — shown whether or not the user has voted. This is
+            the answer to "what has my rep voted for?", which needs no input from
+            the reader at all. */}
+        {rep.recentVotes.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-[--border]">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[--text-muted] mb-2">
+              Recent votes
+            </p>
+            <div className="space-y-1.5">
+              {rep.recentVotes.map(v => {
+                const yes = v.position === 'Yea'
+                const no  = v.position === 'Nay'
+                return (
+                  <Link
+                    key={v.billId}
+                    href={`/bills/${v.billId}`}
+                    className="flex items-start gap-2.5 group/vote"
+                  >
+                    <span className={`mt-0.5 shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      yes ? 'bg-emerald-50 text-emerald-700'
+                      : no ? 'bg-red-50 text-red-700'
+                      : 'bg-[--surface-tertiary] text-[--text-muted]'
+                    }`}>
+                      {yes ? 'YES' : no ? 'NO' : v.position.toUpperCase()}
+                    </span>
+                    <span className="flex-1 min-w-0 text-xs text-[--text-secondary] leading-snug line-clamp-2 group-hover/vote:text-[--accent] transition-colors">
+                      <span className="font-semibold text-[--text-muted]">
+                        {v.billType} {v.billNumber}
+                      </span>{' '}
+                      {v.billTitle}
+                    </span>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Comparison table */}
         {open && rep.comparisons.length > 0 && (
@@ -206,18 +255,21 @@ export default function CompareView({ selectedState }: CompareViewProps) {
         <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-4">{error}</p>
       )}
 
-      {data && data.userVoteCount === 0 && (
-        <div className="card p-10 text-center">
-          <Users className="w-8 h-8 text-[--text-muted] mx-auto mb-3 opacity-40" />
-          <p className="text-sm font-semibold text-[--text] mb-1">No votes on record yet</p>
-          <p className="text-xs text-[--text-muted] mb-4">
-            Vote on bills to see how your positions compare to your representatives'.
+      {/* Previously this replaced the entire list, so a reader with no votes saw
+          nothing about their representatives at all. Their voting record doesn't
+          depend on the reader having one — show it, and invite the comparison. */}
+      {data && data.userVoteCount === 0 && data.reps.length > 0 && (
+        <div className="card p-4 mb-4 flex items-center gap-3 flex-wrap">
+          <Users className="w-4 h-4 text-[--text-muted] shrink-0" />
+          <p className="text-xs text-[--text-secondary] flex-1 min-w-0">
+            Below is how your representatives have voted. Cast your own vote on a bill
+            to see where you agree.
           </p>
-          <Link href="/bills" className="btn-primary text-xs px-4 py-2">Browse Bills</Link>
+          <Link href="/bills" className="btn-primary text-xs px-3 py-1.5 shrink-0">Browse bills</Link>
         </div>
       )}
 
-      {data && data.userVoteCount > 0 && data.reps.length === 0 && (
+      {data && data.reps.length === 0 && (
         <div className="card p-8 text-center">
           <p className="text-sm text-[--text-muted]">
             No representatives found in our database for this state yet.
@@ -227,10 +279,12 @@ export default function CompareView({ selectedState }: CompareViewProps) {
 
       {data && data.reps.length > 0 && (
         <>
-          <p className="text-xs text-[--text-muted] mb-4">
-            Based on your <span className="font-semibold text-[--text]">{data.userVoteCount}</span> votes
-            — showing bills where your representatives also cast a recorded vote.
-          </p>
+          {data.userVoteCount > 0 && (
+            <p className="text-xs text-[--text-muted] mb-4">
+              Based on your <span className="font-semibold text-[--text]">{data.userVoteCount}</span> votes
+              — showing bills where your representatives also cast a recorded vote.
+            </p>
+          )}
           <div className="space-y-4">
             {data.reps.map(rep => <RepCard key={rep.bioguideId} rep={rep} />)}
           </div>

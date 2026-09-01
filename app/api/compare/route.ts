@@ -41,9 +41,9 @@ export async function GET(request: NextRequest) {
     },
   })
 
-  if (userVotes.length === 0) {
-    return NextResponse.json({ reps: [], userVoteCount: 0 })
-  }
+  // NOTE: deliberately no early return when the user hasn't voted. The rep's
+  // own voting record doesn't depend on the user having one, and bailing here
+  // left the page showing nothing at all.
 
   const votedBillIds = userVotes.map(v => v.billId)
   const userVoteMap = new Map(userVotes.map(v => [v.billId, v]))
@@ -67,6 +67,25 @@ export async function GET(request: NextRequest) {
       billId: { in: votedBillIds },
     },
   })
+
+  // Each rep's most recent roll calls, independent of what the user voted on.
+  // The comparison above only covers bills the user has voted on, so without
+  // this the card reads "No overlapping votes yet" and shows nothing — even
+  // though we hold the member's full recorded history.
+  const recentVotes = await prisma.congressVote.findMany({
+    where: { bioguideId: { in: repBioguideIds }, votedAt: { not: null } },
+    orderBy: { votedAt: 'desc' },
+    take: repBioguideIds.length * 12,
+    include: {
+      bill: { select: { id: true, title: true, shortTitle: true, billType: true, billNumber: true } },
+    },
+  })
+  const recentByRep = new Map<string, typeof recentVotes>()
+  for (const rv of recentVotes) {
+    const list = recentByRep.get(rv.bioguideId) ?? []
+    if (list.length < 5) list.push(rv)
+    recentByRep.set(rv.bioguideId, list)
+  }
 
   // Group congress votes by bioguideId
   const cvByRep = new Map<string, typeof congressVotes>()
@@ -107,6 +126,14 @@ export async function GET(request: NextRequest) {
       alignment,
       overlappingVotes,
       comparisons: comparisons.sort((a, b) => (b.votedAt ?? '').localeCompare(a.votedAt ?? '')),
+      recentVotes: (recentByRep.get(rep.bioguideId) ?? []).map(rv => ({
+        billId: rv.billId,
+        billType: rv.bill.billType,
+        billNumber: rv.bill.billNumber,
+        billTitle: rv.bill.shortTitle || rv.bill.title,
+        position: rv.position,
+        votedAt: rv.votedAt?.toISOString() ?? null,
+      })),
     }
   })
 
