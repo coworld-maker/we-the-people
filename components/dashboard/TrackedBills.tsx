@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import CollapsibleCard from '@/components/ui/CollapsibleCard'
+import { BILL_STATUS_LABELS } from '@/lib/bill-status'
 
 interface TrackedBill {
   id: string
@@ -21,14 +22,12 @@ const STATUS_COLORS: Record<string, string> = {
   introduced: 'bg-amber-500',
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  enacted: 'Enacted',
-  passed_both: 'Passed Both',
-  passed_chamber: 'Passed House',
-  reported: 'Reported',
-  in_committee: 'In Committee',
-  introduced: 'Introduced',
-}
+
+// Labels come from lib/bill-status so they can't drift (this file used to say
+// 'Passed House' for passed_chamber, mislabelling Senate bills).
+const STATUS_TEXT: Record<string, string> = Object.fromEntries(
+  Object.entries(BILL_STATUS_LABELS).map(([k, v]) => [k, v.label])
+)
 
 const VOTE_DISPLAY: Record<string, { label: string; cls: string }> = {
   yes: { label: 'YES', cls: 'text-emerald-600 font-bold' },
@@ -67,7 +66,7 @@ export default function TrackedBills({ bills }: { bills: TrackedBill[] }) {
           <div className="divide-y divide-[--border]">
             {bills.map(bill => {
               const borderColor = STATUS_COLORS[bill.status] || 'bg-gray-400'
-              const statusLabel = STATUS_LABELS[bill.status] || bill.status
+              const statusLabel = STATUS_TEXT[bill.status] || bill.status
               const vote = VOTE_DISPLAY[bill.position] || VOTE_DISPLAY.abstain
 
               return (

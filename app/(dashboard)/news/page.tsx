@@ -9,20 +9,13 @@ import {
 import { CongressAPI } from '@/lib/api/congress'
 import { getRecentNews } from '@/lib/api/news'
 import PressFeed from '@/components/news/PressFeed'
+import { BILL_STATUS_LABELS } from '@/lib/bill-status'
 
 export const metadata = {
   title: 'News & Activity | Democracy Unlocked',
   description: 'Latest congressional activity and platform engagement.',
 }
 
-const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-  enacted:        { label: 'Enacted',         cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  passed_both:    { label: 'Passed Both',      cls: 'bg-green-50 text-green-700 border-green-200' },
-  passed_chamber: { label: 'Passed Chamber',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  reported:       { label: 'Reported',         cls: 'bg-blue-50 text-blue-700 border-blue-200' },
-  in_committee:   { label: 'In Committee',     cls: 'bg-orange-50 text-orange-700 border-orange-200' },
-  introduced:     { label: 'Introduced',       cls: 'bg-gray-50 text-gray-600 border-gray-200' },
-}
 
 function timeAgo(d: Date | string) {
   const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000)
@@ -155,7 +148,7 @@ export default async function NewsPage() {
               </div>
               <div className="divide-y divide-[--border]">
                 {stateImpactBills.map(bill => {
-                  const st = STATUS_LABELS[bill.status] || STATUS_LABELS.introduced
+                  const st = BILL_STATUS_LABELS[bill.status] || BILL_STATUS_LABELS.introduced
                   return (
                     <Link key={bill.id} href={`/bills/${bill.id}`}
                       className="group flex items-center gap-4 px-6 py-4 hover:bg-[--surface-secondary] transition-colors"
@@ -191,7 +184,7 @@ export default async function NewsPage() {
             </div>
             <div className="divide-y divide-[--border]">
               {latestActions.map(bill => {
-                const st = STATUS_LABELS[bill.status] || STATUS_LABELS.introduced
+                const st = BILL_STATUS_LABELS[bill.status] || BILL_STATUS_LABELS.introduced
                 return (
                   <Link key={bill.id} href={`/bills/${bill.id}`}
                     className="group flex items-start gap-4 px-6 py-4 hover:bg-[--surface-secondary] transition-colors"
@@ -275,7 +268,7 @@ export default async function NewsPage() {
               </div>
               <div className="divide-y divide-[--border]">
                 {mostViewedBills.map((bill, i) => {
-                  const st = STATUS_LABELS[bill.status] || STATUS_LABELS.introduced
+                  const st = BILL_STATUS_LABELS[bill.status] || BILL_STATUS_LABELS.introduced
                   return (
                     <Link key={bill.id} href={`/bills/${bill.id}`}
                       className="group flex items-start gap-3 px-6 py-4 hover:bg-[--surface-secondary] transition-colors"

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ChevronRight, FileText, Calendar, Vote as VoteIcon, MapPin, Users } from 'lucide-react'
 import BillFilters from '@/components/bills/BillFilters'
 import BillTypeBadge from '@/components/bills/BillTypeBadge'
+import { BILL_STATUS_LABELS } from '@/lib/bill-status'
 
 // Per-policy-area accent palette — used for section headers in the grouped view
 // 6 semantic color groups instead of 18 one-offs — reduces badge noise on list pages
@@ -40,14 +41,6 @@ const AREA_COLORS: Record<string, { color: string; bg: string; border: string }>
 }
 const DEFAULT_AREA_COLOR = { color: 'text-gray-700', bg: 'bg-gray-50', border: 'border-gray-200' }
 
-const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-  enacted:        { label: 'Enacted',         cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  passed_both:    { label: 'Passed Both',     cls: 'bg-green-50 text-green-700 border-green-200' },
-  passed_chamber: { label: 'Passed Chamber',  cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  reported:       { label: 'Reported',        cls: 'bg-blue-50 text-blue-700 border-blue-200' },
-  in_committee:   { label: 'In Committee',    cls: 'bg-orange-50 text-orange-700 border-orange-200' },
-  introduced:     { label: 'Introduced',      cls: 'bg-gray-50 text-gray-600 border-gray-200' },
-}
 
 // ── Bill card (shared by flat + grouped views) ───────────────────────────────
 
@@ -56,7 +49,7 @@ function BillCard({ bill, userState, showPolicyBadge = true }: {
   userState: string | null
   showPolicyBadge?: boolean
 }) {
-  const st = STATUS_LABELS[bill.status] || STATUS_LABELS.introduced
+  const st = BILL_STATUS_LABELS[bill.status] || BILL_STATUS_LABELS.introduced
   const stateImpactScore =
     userState && bill.stateImpacts && typeof bill.stateImpacts === 'object'
       ? (bill.stateImpacts as Record<string, { score: number }>)[userState]?.score
