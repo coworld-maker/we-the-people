@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import { CheckCircle2, XCircle, MinusCircle } from 'lucide-react'
+import RepAvatar from '@/components/ui/RepAvatar'
 
 const POSITION_MAP: Record<string, { label: string; cls: string }> = {
   'Yea':        { label: 'Voted YES',  cls: 'text-emerald-600' },
@@ -53,10 +54,6 @@ export default async function RepVotesOnBill({
         {rows.map(({ rep, cv }) => {
           const pos     = cv!.position
           const posInfo = POSITION_MAP[pos] ?? { label: pos, cls: 'text-[--text-muted]' }
-          const avatarBg = rep.party === 'R'
-            ? 'bg-red-100 text-red-700'
-            : rep.party === 'D' ? 'bg-blue-100 text-blue-700'
-            : 'bg-gray-100 text-gray-600'
 
           const repYes = pos === 'Yea'
           const repNo  = pos === 'Nay'
@@ -66,9 +63,7 @@ export default async function RepVotesOnBill({
 
           return (
             <div key={rep.bioguideId} className="px-5 py-3 flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-full ${avatarBg} flex items-center justify-center text-xs font-bold shrink-0`}>
-                {rep.firstName[0]}{rep.lastName[0]}
-              </div>
+              <RepAvatar bioguideId={rep.bioguideId} fullName={rep.fullName} party={rep.party} size="md" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-[--text] leading-tight truncate">{rep.fullName}</p>
                 <p className="text-[10px] text-[--text-muted]">

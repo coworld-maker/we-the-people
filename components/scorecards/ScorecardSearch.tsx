@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Search, ExternalLink, TrendingUp, User, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import RepAvatar from '@/components/ui/RepAvatar'
 
 interface Representative {
   name: string; office: string; party: string; state: string
@@ -28,9 +29,7 @@ function RepCard({ rep }: { rep: Representative }) {
       <div className={`h-1 ${partyColor}`} />
       <div className="p-5">
         <div className="flex items-start gap-3 mb-4">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 ${partyColor}`}>
-            {rep.name.split(',')[0]?.split(' ').map(n => n[0]).join('').slice(0, 2) || '?'}
-          </div>
+          <RepAvatar bioguideId={rep.bioguideId} fullName={rep.name} party={rep.party} size="lg" />
           <div className="flex-1 min-w-0">
             <h3 className="font-display text-base font-bold text-[--text]">{rep.name}</h3>
             <p className="text-xs text-[--text-secondary]">{rep.office}</p>

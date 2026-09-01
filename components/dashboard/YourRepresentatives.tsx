@@ -5,6 +5,7 @@ import { MapPin, Edit3, Search, X, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import USStateMap from '@/components/ui/USStateMap'
 import CollapsibleCard from '@/components/ui/CollapsibleCard'
+import RepAvatar from '@/components/ui/RepAvatar'
 
 interface Representative {
   name: string; office: string; party: string; state: string; district?: string | null
@@ -51,15 +52,10 @@ function RepCard({ rep }: { rep: Representative }) {
     } catch {} finally { setLoading(false) }
   }
 
-  const initials = rep.name.split(',')[0]?.split(' ').map(n => n[0]).join('').slice(0, 2) || '?'
-  const avatarBg = rep.party === 'R' ? 'bg-red-100 text-red-600' : rep.party === 'D' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
-
   const body = (
     <>
       {/* Avatar */}
-      <div className={`w-12 h-12 rounded-full ${avatarBg} flex items-center justify-center text-sm font-bold shrink-0`}>
-        {initials}
-      </div>
+      <RepAvatar bioguideId={rep.bioguideId} fullName={rep.name} party={rep.party} size="lg" />
 
       {/* Info */}
       <div className="flex-1 min-w-0">

@@ -65,13 +65,8 @@ export default function DelegationCard({ rep }: Props) {
 
         {/* Body */}
         <div className="flex items-center gap-3 py-2.5 pr-2.5 flex-1 min-w-0">
-          {/* Initials in party-colored circle */}
-          <div
-            className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0 ${partyBg(rep.party)}`}
-            aria-hidden="true"
-          >
-            {rep.firstName[0]}{rep.lastName[0]}
-          </div>
+          {/* Official portrait, falling back to initials */}
+          <RepAvatar bioguideId={rep.bioguideId} fullName={rep.fullName} party={rep.party} size="md" />
 
           {/* Name + role + committees (buried info, surfaced inline) */}
           <div className="flex-1 min-w-0">

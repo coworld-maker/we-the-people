@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import RepAvatar from '@/components/ui/RepAvatar'
 import { ArrowRight, Search, Loader2, Building2, Scale } from 'lucide-react'
 
 interface RepLite { fullName: string; party: string; bioguideId: string; district?: string }
@@ -104,7 +105,7 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
                     <Link key={rep.bioguideId}
                       href={signedIn ? `/scorecards/${rep.bioguideId}` : `/sign-up?redirect_url=/scorecards/${rep.bioguideId}`}
                       className="flex items-center gap-3 p-3 rounded-[--radius] bg-[--surface-secondary] hover:bg-[--surface-tertiary] transition-colors group">
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: partyColor(rep.party) }} />
+                      <RepAvatar bioguideId={rep.bioguideId} fullName={rep.fullName} party={rep.party} size="md" />
                       <span className="flex-1 min-w-0 text-sm font-medium text-[--text] truncate">{rep.fullName}</span>
                       <span className="text-xs text-[--accent] font-semibold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
                         See votes <ArrowRight className="w-3 h-3" />

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { CheckCircle2, XCircle, MinusCircle, ChevronDown, ChevronUp, Users } from 'lucide-react'
 import Link from 'next/link'
+import RepAvatar from '@/components/ui/RepAvatar'
 
 const STORAGE_KEY = 'my-reps-state'
 
@@ -61,7 +62,6 @@ function RepCard({ rep }: { rep: Rep }) {
     : rep.party === 'D'
     ? 'bg-blue-50 text-blue-700 border-blue-200'
     : 'bg-gray-50 text-gray-600 border-gray-200'
-  const initials = rep.name.split(',')[0]?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '?'
   const office = rep.chamber === 'Senate'
     ? 'U.S. Senator'
     : `U.S. Representative${rep.district ? ` — District ${rep.district}` : ''}`
@@ -72,9 +72,7 @@ function RepCard({ rep }: { rep: Rep }) {
       <div className="p-5">
         {/* Rep header */}
         <div className="flex items-start gap-4">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 ${partyColor}`}>
-            {initials}
-          </div>
+          <RepAvatar bioguideId={rep.bioguideId} fullName={rep.name} party={rep.party} size="lg" />
           <div className="flex-1 min-w-0">
             <h3 className="font-display text-base font-bold text-[--text] leading-tight">{rep.name}</h3>
             <p className="text-xs text-[--text-secondary] mt-0.5">{office}</p>
