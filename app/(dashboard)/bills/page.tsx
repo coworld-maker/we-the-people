@@ -117,7 +117,7 @@ export default async function BillsPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    page?: string; search?: string; status?: string; year?: string;
+    page?: string; search?: string; status?: string; stage?: string; year?: string;
     policyArea?: string; affectsState?: string; votedInState?: string; voted?: string;
     groupBy?: string; sort?: string; recent?: string;
   }>
@@ -151,7 +151,7 @@ export default async function BillsPage({
 
   const [{ bills, total }, policyAreas] = await Promise.all([
     BillService.getBills({
-      search: params.search, status: params.status, year: params.year,
+      search: params.search, status: params.status, stage: params.stage, year: params.year,
       policyArea: params.policyArea,
       affectsState, votedInState, votedByUserId, notVotedByUserId,
       sort: sortParam, recentAction,
@@ -167,6 +167,7 @@ export default async function BillsPage({
     q.set('page', String(p))
     if (params.search)       q.set('search', params.search)
     if (params.status)       q.set('status', params.status)
+    if (params.stage)        q.set('stage', params.stage)
     if (params.year)         q.set('year', params.year)
     if (params.policyArea)   q.set('policyArea', params.policyArea)
     if (params.affectsState) q.set('affectsState', params.affectsState)
@@ -184,6 +185,7 @@ export default async function BillsPage({
     const q = new URLSearchParams()
     if (params.search)       q.set('search', params.search)
     if (params.status)       q.set('status', params.status)
+    if (params.stage)        q.set('stage', params.stage)
     if (params.year)         q.set('year', params.year)
     if (params.policyArea)   q.set('policyArea', params.policyArea)
     if (filter === 'affects_state') q.set('affectsState', '1')
@@ -195,7 +197,7 @@ export default async function BillsPage({
   }
 
   const hasAnyFilter = Boolean(
-    params.search || params.status || params.year || params.policyArea ||
+    params.search || params.status || params.stage || params.year || params.policyArea ||
     params.affectsState || params.votedInState || params.voted
   )
 
@@ -232,13 +234,13 @@ export default async function BillsPage({
         {/* View-mode segmented control */}
         <div className="inline-flex rounded-lg border border-[--border] bg-[--surface] overflow-hidden text-xs font-semibold">
           <Link
-            href={`/bills?${(() => { const q = new URLSearchParams(); ['search','status','year','policyArea','affectsState','votedInState','voted'].forEach(k => { if ((params as any)[k]) q.set(k, (params as any)[k]) }); return q.toString() })()}`}
+            href={`/bills?${(() => { const q = new URLSearchParams(); ['search','status','stage','year','policyArea','affectsState','votedInState','voted'].forEach(k => { if ((params as any)[k]) q.set(k, (params as any)[k]) }); return q.toString() })()}`}
             className={`px-3 py-1.5 transition-colors ${!groupByPolicy ? 'bg-[--accent] text-white' : 'text-[--text-secondary] hover:bg-[--surface-secondary]'}`}
           >
             List
           </Link>
           <Link
-            href={`/bills?${(() => { const q = new URLSearchParams(); ['search','status','year','policyArea','affectsState','votedInState','voted'].forEach(k => { if ((params as any)[k]) q.set(k, (params as any)[k]) }); q.set('groupBy', 'policy'); return q.toString() })()}`}
+            href={`/bills?${(() => { const q = new URLSearchParams(); ['search','status','stage','year','policyArea','affectsState','votedInState','voted'].forEach(k => { if ((params as any)[k]) q.set(k, (params as any)[k]) }); q.set('groupBy', 'policy'); return q.toString() })()}`}
             className={`px-3 py-1.5 transition-colors border-l border-[--border] ${groupByPolicy ? 'bg-[--accent] text-white' : 'text-[--text-secondary] hover:bg-[--surface-secondary]'}`}
           >
             By policy area
@@ -247,6 +249,39 @@ export default async function BillsPage({
       </div>
 
       <BillFilters policyAreas={policyAreas} userState={userState} />
+
+      {/* Legislative stage — the split that matters most to a reader. Most bills
+          never leave committee, so "introduced" and "passed the House" sitting
+          in one undifferentiated list hides the real signal. */}
+      <div className="flex gap-2 flex-wrap mt-4" role="group" aria-label="Filter by legislative stage">
+        {([
+          { id: '',        label: 'All stages' },
+          { id: 'pending', label: 'Not yet passed' },
+          { id: 'passed',  label: 'Passed a chamber' },
+          { id: 'law',     label: 'Signed into law' },
+        ]).map(t => {
+          const q = new URLSearchParams()
+          ;['search','status','year','policyArea','affectsState','votedInState','voted','groupBy','sort','recent'].forEach(k => {
+            if ((params as any)[k]) q.set(k, (params as any)[k])
+          })
+          if (t.id) q.set('stage', t.id)
+          const active = (params.stage || '') === t.id
+          return (
+            <Link
+              key={t.id || 'all'}
+              href={`/bills?${q.toString()}`}
+              aria-current={active ? 'true' : undefined}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                active
+                  ? 'bg-[--accent] text-white border-[--accent]'
+                  : 'bg-[--surface] text-[--text-secondary] border-[--border] hover:border-[--accent] hover:text-[--accent]'
+              }`}
+            >
+              {t.label}
+            </Link>
+          )
+        })}
+      </div>
 
       {/* Quick-filter pill tabs */}
       <div className="flex gap-2 flex-wrap mb-4 mt-4">

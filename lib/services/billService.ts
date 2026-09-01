@@ -1,6 +1,6 @@
 import prisma from '@/lib/prisma'
 import { CongressAPI } from '@/lib/api/congress'
-import { normalizeBillStatus } from '@/lib/bill-status'
+import { normalizeBillStatus, statusesForStage } from '@/lib/bill-status'
 
 function parseSubjects(subjects: any): string[] {
   if (!subjects) return []
@@ -125,6 +125,7 @@ export class BillService {
   static async getBills(filters?: {
     policyArea?: string
     status?: string
+    stage?: string        // coarse grouping: pending | passed | law
     search?: string
     year?: string
     limit?: number
@@ -141,6 +142,11 @@ export class BillService {
 
     if (filters?.policyArea) where.policyArea = filters.policyArea
     if (filters?.status) where.status = filters.status
+
+    // Coarse legislative stage. An explicit status filter is more specific, so
+    // it wins if both are present.
+    const stageStatuses = statusesForStage(filters?.stage)
+    if (stageStatuses && !filters?.status) where.status = { in: stageStatuses }
 
     // Year filter
     if (filters?.year) {
