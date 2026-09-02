@@ -2,8 +2,22 @@ const FEC_BASE = 'https://api.open.fec.gov/v1'
 const FEC_API_KEY = process.env.OPEN_FEC_API_KEY || 'DEMO_KEY'
 
 export interface FECDonor {
+  /**
+   * The employer string an individual contributor self-reported to the FEC.
+   * This is a GROUPING KEY, not a donor. The organization itself gave nothing:
+   * corporations and unions may not contribute to federal candidates from their
+   * treasuries at all.
+   */
   employer: string
+  /**
+   * Sum of ITEMIZED CONTRIBUTIONS FROM INDIVIDUALS who named `employer`, to one
+   * of the candidate's committees, over a whole election cycle. It is NOT money
+   * given by that organization, and it has no connection to any particular bill.
+   * Any UI showing this must say whose money it is — see
+   * components/bills/LobbyingPanel Section A.
+   */
   total: number
+  /** Number of itemized contributions summed into `total`. */
   count: number
 }
 
@@ -68,8 +82,16 @@ function isMeaningfulEmployer(employer: string | null | undefined): boolean {
   return !NON_EMPLOYER_BUCKETS.has(employer.trim().toUpperCase())
 }
 
-export async function getTopDonorsByEmployer(committeeId: string, cycle = currentFECCycle()): Promise<FECDonor[]> {
-  // Try current cycle first, fall back to previous cycle
+export async function getTopDonorsByEmployer(
+  committeeId: string,
+  cycle = currentFECCycle()
+): Promise<{ donors: FECDonor[]; cycle: string }> {
+  // Try current cycle first, fall back to previous cycle.
+  //
+  // Returns the cycle the rows ACTUALLY came from, not the one requested. This
+  // used to return the donor array alone, so a caller that fell back to the
+  // previous cycle still labelled the figures with the current one — two-year-old
+  // contributions captioned as this cycle's.
   for (const c of [cycle, String(Number(cycle) - 2)]) {
     const data = await fecFetch<{
       results: Array<{ employer: string; total: number; count: number }>
@@ -84,14 +106,17 @@ export async function getTopDonorsByEmployer(committeeId: string, cycle = curren
 
     const results = data?.results?.filter(r => isMeaningfulEmployer(r.employer)) ?? []
     if (results.length > 0) {
-      return results.slice(0, 8).map(r => ({
-        employer: r.employer,
-        total: r.total,
-        count: r.count,
-      }))
+      return {
+        donors: results.slice(0, 8).map(r => ({
+          employer: r.employer,
+          total: r.total,
+          count: r.count,
+        })),
+        cycle: c,
+      }
     }
   }
-  return []
+  return { donors: [], cycle }
 }
 
 export async function getTopDonorsForCandidate(
@@ -112,9 +137,15 @@ export async function getTopDonorsForCandidate(
 
   if (resolvedCommitteeIds.length === 0) return null
 
-  const cycle = currentFECCycle()
-  const donors = await getTopDonorsByEmployer(resolvedCommitteeIds[0], cycle)
+  // Note: only the first principal committee is queried, so these are the top
+  // employers behind one of the candidate's committees, not all of them.
+  const { donors, cycle } = await getTopDonorsByEmployer(
+    resolvedCommitteeIds[0],
+    currentFECCycle()
+  )
   if (donors.length === 0) return null
 
+  // `cycle` is the cycle the rows came from, which may be the fallback rather
+  // than the current one. Pass it through unchanged — the UI labels with it.
   return { donors, cycle }
 }
