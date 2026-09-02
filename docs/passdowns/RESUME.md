@@ -20,8 +20,23 @@ Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale mem
 **Known silent-empty risks (not fixed):** `/elections` (static fallback now exists, but live data still needs retired Google Civic API), lobbying firm-count badge (sync-lobbying unscheduled), `OPEN_FEC_API_KEY` unset in Vercel. See latest passdown §3.
 
 ## ⛳ Status (2026-09-02)
-**🟠 UNCOMMITTED WORK ON `main`** — `lib/api/lda.ts` + `components/bills/LobbyingPanel.tsx`. The bill-page lobbying panel showed a bold per-filing dollar figure that readers took as "spent lobbying this bill"; it is actually the filer's whole-quarter total across all issues. Now captioned (`Q2 2025 total / all issues`) and de-emphasized, with the footer spelling out that no public data breaks lobbying spend out by bill. Typecheck + tests pass; **not yet verified on a live page** (no local env). Commit, push, confirm on H.R. 3633.
-**Open follow-up:** the panel lists 10 filings while TrustBar says "32 lobbying firms" — `getLobbyingForBill` slices to 10 and nothing labels the truncation. See latest passdown §6.3.
+**✅ SHIPPED AND VERIFIED IN PRODUCTION** — `main` @ `19bd223`, confirmed on the live H.R. 3633 page.
+Three money figures on the bill page each stated something untrue while being accurately transcribed:
+LDA dollars read as per-bill spend; FEC donor figures read as *companies* donating (legally impossible —
+they are contributions from individuals who list that employer); and 10 filings sat under a "32 lobbying
+firms" badge with nothing labelling the cap. All three now carry the qualifier the API already provided.
+Also fixed: the FEC cycle label could be two years stale. Also shipped: `package-lock.json` +
+`engines: node 24.x` — **note this switched Vercel to `npm ci`**, which fails the build if the lockfile and
+`package.json` disagree; commit them together. Full detail: latest passdown §3, §5.1.
+
+**🔴 OPEN — the worst finding, from the closing sweep:** the dashboard's "Your Impact" card shows a big
+"Voting Alignment" donut whose value is `totalVotes / (totalVotes + 5)` — a curve over the user's own vote
+count, with **no second party in the formula**. It is not alignment with anyone. Same card: "Bills you've
+influenced" is just the vote count, and "Representative contacts" is a hardcoded `0`. A real alignment
+calc already exists in `lib/services/alignmentService.ts` and renders honestly two cards away. See passdown §6.6.
+
+**🟠 OPEN:** `"78% confidence"` on bill impacts is the LLM rating itself, and `impact.confidence || 70`
+turns a missing value into a plausible one. Passdown §6.7.
 
 ## ⛳ Status (2026-08-24)
 **🔴 AI analysis is DOWN — Anthropic credit balance exhausted since Aug 5.** Not a code bug: top up at console.anthropic.com → Plans & Billing (enable auto-reload). Everything else below is healthy.
