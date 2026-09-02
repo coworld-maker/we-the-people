@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ChevronRight, FileText, Calendar, Vote as VoteIcon, MapPin, Users } from 'lucide-react'
 import BillFilters from '@/components/bills/BillFilters'
 import BillTypeBadge from '@/components/bills/BillTypeBadge'
+import { getStateImpact } from '@/lib/data/state-impact-weights'
 import { billStatusLabel } from '@/lib/bill-status'
 
 // Per-policy-area accent palette — used for section headers in the grouped view
@@ -50,11 +51,7 @@ function BillCard({ bill, userState, showPolicyBadge = true }: {
   showPolicyBadge?: boolean
 }) {
   const st = billStatusLabel(bill.status)
-  const stateImpactScore =
-    userState && bill.stateImpacts && typeof bill.stateImpacts === 'object'
-      ? (bill.stateImpacts as Record<string, { score: number }>)[userState]?.score
-      : undefined
-  const affectsYourState = typeof stateImpactScore === 'number' && stateImpactScore >= 0.6
+  const stateImpact = getStateImpact(bill.stateImpacts, userState)
 
   return (
     <Link href={`/bills/${bill.id}`} className="group card-interactive flex items-center gap-4 p-5">
@@ -65,9 +62,18 @@ function BillCard({ bill, userState, showPolicyBadge = true }: {
           {showPolicyBadge && bill.policyArea && (
             <span className="badge bg-[--accent-light] text-[--accent]">{bill.policyArea}</span>
           )}
-          {affectsYourState && (
-            <span className="badge bg-orange-50 text-orange-700 border border-orange-200 flex items-center gap-1">
-              <MapPin className="w-2.5 h-2.5" /> Affects {userState}
+          {/* "Affects GA" asserted a determination. The score behind it is an
+              estimate either way: the deterministic path is keyed only on
+              policyArea, so every bill in an area shares its state scores and
+              this one was never read; the AI path's own prompt says "Estimate".
+              The stored `reason` was generated and never shown — surfacing it
+              costs nothing and lets a reader judge the claim. */}
+          {stateImpact?.notable && (
+            <span
+              title={stateImpact.reason || undefined}
+              className="badge bg-orange-50 text-orange-700 border border-orange-200 flex items-center gap-1"
+            >
+              <MapPin className="w-2.5 h-2.5" /> Likely affects {userState}
             </span>
           )}
         </div>

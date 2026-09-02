@@ -182,5 +182,39 @@ export function getStateImpactsForPolicyArea(
   return out
 }
 
+/**
+ * Score at or above which a state is treated as notably exposed — the start of
+ * the "high exposure" band defined at the top of this file.
+ *
+ * Single source of truth. This was previously the bare literal `0.6` written in
+ * three places (both badge call sites and the `affectsState` filter in
+ * billService), while `aiService.analyzeStateImpact` documented a *different*
+ * set of bands (0.7+ high, 0.4–0.7 moderate) for the same 0–1 scale. The badge
+ * therefore fired inside what one file called "moderate" — the same drift that
+ * once had BILL_STATUS_LABELS defined in three files with different labels.
+ */
+export const STATE_IMPACT_HIGH = 0.6
+
+/**
+ * Read one state's impact entry out of a `Bill.stateImpacts` JSON column.
+ *
+ * Returns null when there is no score for that state, which callers must render
+ * as "no badge" rather than as "not affected" — an ungenerated stateImpacts map
+ * means we never looked, not that the bill misses the state.
+ */
+export function getStateImpact(
+  stateImpacts: unknown,
+  stateCode: string | null | undefined,
+): { score: number; reason: string; notable: boolean } | null {
+  if (!stateCode || !stateImpacts || typeof stateImpacts !== 'object') return null
+  const entry = (stateImpacts as Record<string, Partial<StateImpact> | undefined>)[stateCode]
+  if (!entry || typeof entry.score !== 'number') return null
+  return {
+    score: entry.score,
+    reason: typeof entry.reason === 'string' ? entry.reason : '',
+    notable: entry.score >= STATE_IMPACT_HIGH,
+  }
+}
+
 /** For introspection / docs — which policy areas have deterministic data. */
 export const COVERED_POLICY_AREAS = Object.keys(CONFIGS)

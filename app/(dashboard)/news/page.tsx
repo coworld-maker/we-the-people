@@ -10,6 +10,7 @@ import { CongressAPI } from '@/lib/api/congress'
 import { getRecentNews } from '@/lib/api/news'
 import PressFeed from '@/components/news/PressFeed'
 import { billStatusLabel } from '@/lib/bill-status'
+import { STATE_IMPACT_HIGH } from '@/lib/data/state-impact-weights'
 
 export const metadata = {
   title: 'News & Activity | Democracy Unlocked',
@@ -74,7 +75,7 @@ export default async function NewsPage() {
     CongressAPI.fetchMostViewedBills(),
     userState
       ? prisma.bill.findMany({
-          where: { stateImpacts: { path: [userState, 'score'], gte: 0.6 } },
+          where: { stateImpacts: { path: [userState, 'score'], gte: STATE_IMPACT_HIGH } },
           orderBy: { latestActionDate: 'desc' },
           take: 5,
           select: { id: true, title: true, shortTitle: true, billType: true, billNumber: true, status: true, policyArea: true },

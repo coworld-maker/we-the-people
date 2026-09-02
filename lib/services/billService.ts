@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma'
 import { CongressAPI } from '@/lib/api/congress'
 import { normalizeBillStatus, statusesForStage } from '@/lib/bill-status'
+import { STATE_IMPACT_HIGH } from '@/lib/data/state-impact-weights'
 
 function parseSubjects(subjects: any): string[] {
   if (!subjects) return []
@@ -131,7 +132,7 @@ export class BillService {
     limit?: number
     offset?: number
     // State / user-aware filters
-    affectsState?: string       // 2-letter code — only bills where stateImpacts[code].score >= 0.6
+    affectsState?: string       // 2-letter code — bills at/above STATE_IMPACT_HIGH for that state
     votedInState?: string       // 2-letter code — only bills with at least one citizen vote from this state
     votedByUserId?: string      // internal User.id — only bills this user has voted on
     notVotedByUserId?: string   // internal User.id — only bills this user has NOT voted on
@@ -166,11 +167,13 @@ export class BillService {
       ]
     }
 
-    // "Affects my state" — JSON-path filter on stateImpacts[<code>].score
+    // "Affects my state" — JSON-path filter on stateImpacts[<code>].score.
+    // Threshold is shared with the badge so the list and the badge can never
+    // disagree about which bills qualify.
     if (filters?.affectsState) {
       where.stateImpacts = {
         path: [filters.affectsState, 'score'],
-        gte: 0.6,
+        gte: STATE_IMPACT_HIGH,
       }
     }
 
