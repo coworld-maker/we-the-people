@@ -296,10 +296,21 @@ Respond with ONLY the exact label and nothing else — no quotes, no punctuation
   /**
    * Generate per-state impact scores for a bill. Returns a map of
    * 2-letter state code → { score: 0-1, reason: short string }.
-   * Score interpretation:
-   *   0.7+  high impact (state is heavily affected)
-   *   0.4–0.7 moderate impact
-   *   0.0–0.4 low/baseline impact
+   *
+   * Bands are defined once, in lib/data/state-impact-weights.ts, and the badge
+   * threshold is STATE_IMPACT_HIGH (0.6) from that file:
+   *   0.0–0.4   baseline / minimal direct exposure
+   *   0.4–0.6   moderate exposure
+   *   0.6–0.8   high exposure      ← badge and "affects my state" filter fire here
+   *   0.8–1.0   sector- or geography-defining
+   *
+   * This docstring previously declared a DIFFERENT set of bands (0.7+ high,
+   * 0.4–0.7 moderate) for the same scale, so the badge fired inside what this
+   * file called "moderate". Do not restate the bands anywhere else.
+   *
+   * Both paths below produce an ESTIMATE, and the UI must say so:
+   * the deterministic path is keyed only on `policyArea` — every bill sharing a
+   * policy area gets identical state scores, and the bill text is never read.
    */
   static async analyzeStateImpact(billId: string): Promise<Record<string, { score: number; reason: string }>> {
     const bill = await prisma.bill.findUnique({
