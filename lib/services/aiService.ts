@@ -232,7 +232,14 @@ Write tldr/problem/proposal/impact in plain 8th-grade English — short sentence
       billId, category: impact.category || 'Social', demographic: impact.demographic,
       impactType: impact.impactType || 'neutral', shortDescription: impact.shortDescription,
       detailedAnalysis: impact.detailedAnalysis, affectedGroups: impact.affectedGroups || [],
-      confidence: impact.confidence || 70,
+      // Store null when the model omits it. This was `|| 70`, which turned a
+      // missing value into a plausible-looking one indistinguishable from a
+      // reported one — the same defect as the LDA `?? 0` that overwrote
+      // verified counts with zeros (see lib/api/lda.ts null semantics).
+      // Impact.confidence is Float? precisely so the unknown can be stored.
+      // Note this is the MODEL rating its own output, not an evidentiary
+      // measure; the UI must say so (components/bills/ImpactPanel).
+      confidence: typeof impact.confidence === 'number' ? impact.confidence : null,
     }))
 
     await Promise.all([

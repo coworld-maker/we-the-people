@@ -218,4 +218,79 @@ export class AlignmentService {
       return null
     }
   }
+
+  /**
+   * Aggregate agreement between a user and their state's congressional
+   * delegation, computed entirely from local data (`CongressVote`) — no
+   * Congress.gov call, so it is cheap enough for a dashboard render.
+   *
+   * Returns `pct: null` when there is no overlap, and callers MUST render that
+   * as "not enough data" rather than 0%. A user who has never voted has
+   * UNDEFINED agreement, not zero agreement. This repo has already shipped that
+   * bug once, in lib/api/lda.ts, where a failed lookup stored as 0 was
+   * indistinguishable from a genuine "no lobbying found".
+   *
+   * Replaces a placeholder on the dashboard that was
+   * `totalVotes / (totalVotes + 5)` — a curve over the user's own vote count
+   * with no second party in it at all, captioned "Voting Alignment".
+   *
+   * Scope note: `User.state` is the only geography stored (no district), so
+   * this covers the whole state delegation — both senators and every House
+   * member from the state — not "your representative". Label it as such.
+   */
+  static async calculateDelegationAlignment(
+    userId: string,
+    state: string | null,
+  ): Promise<{ pct: number | null; matched: number; overlap: number; memberCount: number }> {
+    const empty = { pct: null, matched: 0, overlap: 0, memberCount: 0 }
+    if (!state) return empty
+
+    const [userVotes, members] = await Promise.all([
+      prisma.vote.findMany({
+        where: { userId, position: { in: ['yes', 'no'] } },
+        select: { billId: true, position: true },
+      }),
+      prisma.representative.findMany({
+        where: { state, currentTerm: true },
+        select: { bioguideId: true },
+      }),
+    ])
+    if (userVotes.length === 0 || members.length === 0) return empty
+
+    const memberVotes = await prisma.congressVote.findMany({
+      where: {
+        billId: { in: userVotes.map(v => v.billId) },
+        bioguideId: { in: members.map(m => m.bioguideId) },
+      },
+      select: { billId: true, position: true },
+    })
+    if (memberVotes.length === 0) return { ...empty, memberCount: members.length }
+
+    const userPositionByBill = new Map(userVotes.map(v => [v.billId, v.position]))
+
+    let matched = 0
+    let overlap = 0
+    for (const mv of memberVotes) {
+      const userPos = userPositionByBill.get(mv.billId)
+      if (!userPos) continue
+
+      // Same yes/no semantics as calculateAlignment above. Abstentions,
+      // "Present" and "Not Voting" are excluded from BOTH sides rather than
+      // counted as disagreement — a member who did not vote has not disagreed
+      // with anyone, and scoring it as a miss would understate agreement.
+      const memberYea = mv.position === 'Yea' || mv.position === 'Aye'
+      const memberNay = mv.position === 'Nay' || mv.position === 'No'
+      if (!memberYea && !memberNay) continue
+
+      overlap++
+      if ((userPos === 'yes' && memberYea) || (userPos === 'no' && memberNay)) matched++
+    }
+
+    return {
+      pct: overlap > 0 ? Math.round((matched / overlap) * 100) : null,
+      matched,
+      overlap,
+      memberCount: members.length,
+    }
+  }
 }
