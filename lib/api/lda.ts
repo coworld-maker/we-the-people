@@ -5,8 +5,13 @@ export interface LDAFiling {
   registrant: string
   client: string
   description: string
+  // income/expenses are the filer's TOTAL for `period` across every issue and
+  // bill in the filing — NOT money attributable to the bill being viewed. Any
+  // UI showing these must label them as such (see components/bills/LobbyingPanel).
   income?: number
   expenses?: number
+  /** Reporting period the income/expenses total covers, e.g. "Q2 2025". */
+  period?: string
 }
 
 // The LDA filings endpoint only offers a free-text filter on issue descriptions
@@ -67,9 +72,25 @@ interface LDARawFiling {
   registrant?: { name?: string }
   client?: { name?: string }
   filing_year?: number
+  filing_period?: string
   lobbying_activities?: Array<{ description?: string }>
   income?: string | null
   expenses?: string | null
+}
+
+const PERIOD_LABEL: Record<string, string> = {
+  first_quarter: 'Q1', second_quarter: 'Q2',
+  third_quarter: 'Q3', fourth_quarter: 'Q4',
+  mid_year: 'H1', year_end: 'H2',
+}
+
+// The reporting period is what makes the dollar figure honest: income/expenses
+// are a per-period total, so a UI that shows the money must be able to say which
+// period. Unknown period codes fall back to the year alone rather than guessing.
+function periodLabel(r: LDARawFiling): string | undefined {
+  if (!r.filing_year) return undefined
+  const q = r.filing_period ? PERIOD_LABEL[r.filing_period] : undefined
+  return q ? `${q} ${r.filing_year}` : String(r.filing_year)
 }
 
 // One fetch shared by both public functions. Exact-matches the bill in the
@@ -151,6 +172,7 @@ async function fetchExactFilings(
         description,
         income: r.income ? parseFloat(r.income) : undefined,
         expenses: r.expenses ? parseFloat(r.expenses) : undefined,
+        period: periodLabel(r),
       })
     }
     return filings
@@ -173,14 +195,26 @@ export async function getLobbyingFirmCount(
   return filings === null ? null : filings.length
 }
 
+/** How many filings a caller gets back. Display cap, not a data limit. */
+export const LOBBYING_ROW_LIMIT = 10
+
 /**
  * Filings for the bill, or null when the lookup failed. Callers must show
  * "couldn't load" for null rather than "no lobbying found" — collapsing the two
  * states tells users a bill has no lobbyists when we simply couldn't check.
+ *
+ * Returns `total` alongside the capped rows. This used to return the sliced
+ * array alone and throw the count away, so the bill page listed 10 filings under
+ * a TrustBar badge reading "32 lobbying firms" with nothing explaining the gap —
+ * leaving a reader to conclude one of the two numbers was wrong. `total` is the
+ * count of distinct firm+client pairs that matched BEFORE the cap (the same
+ * number getLobbyingFirmCount returns). Any caller rendering fewer rows than
+ * `total` must say so.
  */
 export async function getLobbyingForBill(
   billType: string, billNumber: string, congress?: number | string,
-): Promise<LDAFiling[] | null> {
+): Promise<{ filings: LDAFiling[]; total: number } | null> {
   const filings = await fetchExactFilings(billType, billNumber, 100, congress)
-  return filings === null ? null : filings.slice(0, 10)
+  if (filings === null) return null
+  return { filings: filings.slice(0, LOBBYING_ROW_LIMIT), total: filings.length }
 }

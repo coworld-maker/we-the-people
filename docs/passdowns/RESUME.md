@@ -1,20 +1,27 @@
 # ▶ RESUME HERE — fast bootstrap for the next session
 
-_Last updated: 2026-08-24. This is the "start here" file. Latest detail:
-[2026-08-24-data-correctness-sweep.md](./2026-08-24-data-correctness-sweep.md)
-(prior: [2026-06-29-summaries-crons-links-launchprep.md](./2026-06-29-summaries-crons-links-launchprep.md))
+_Last updated: 2026-09-02. This is the "start here" file. Latest detail:
+[2026-09-02-lobbying-dollar-attribution.md](./2026-09-02-lobbying-dollar-attribution.md)
+(prior: [2026-08-24-data-correctness-sweep.md](./2026-08-24-data-correctness-sweep.md),
+[2026-06-29-summaries-crons-links-launchprep.md](./2026-06-29-summaries-crons-links-launchprep.md))
 (prior: [2026-06-27-roster-audit-codereview.md](./2026-06-27-roster-audit-codereview.md),
 [2026-06-19-mobile-rep-data-fixes.md](./2026-06-19-mobile-rep-data-fixes.md))._
 
 ## 30-second context
 Democracy Unlocked™ — civic app, Next.js 15 on Vercel, public repo (AGPL), Supabase/Prisma, Clerk auth.
-No local Node → Vercel build = typechecker; GitHub Actions `test.yml` = unit tests.
+**Local `node_modules` IS installed as of 2026-09-02** — `./node_modules/.bin/tsc --noEmit` and `npm test` both run locally, no push needed. (Older passdowns say "no local Node"; that's stale.)
+But there are **no `.env` files**, so the app itself still cannot boot locally — anything needing Prisma or Clerk must be verified on a Vercel preview.
+GitHub Actions `test.yml` = unit tests.
 Strategic moat: **community + accountability** (citizen voting, discussions, money-in-politics), not AI summaries.
 
 ## Recently fixed (2026-06-27)
 Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale members retired (Apr-2026 deaths/resignations) · **`sync-representatives` now auto-retires departed members** (`notIn(seen)` + `MIN_EXPECTED_MEMBERS=400` guard — was append-only) · high-effort code review fixed 10 bugs incl. **a `CRON_SECRET`-unset auth bypass on every sync route** (now centralized in `lib/auth/syncAuth.ts`), LDA firm over-count, FEC `Math.max(...[])`→`-Infinity`, dashboard "mismatches this week" accuracy, `VotingPanel` double-count on re-vote. All merged via **PR #13 → `e5e8682`**.
 **In-flight:** `landing-broadsheet` branch (1 commit, live preview) — ZIP→your-reps product hero, **not yet merged**, decide first.
 **Known silent-empty risks (not fixed):** `/elections` (static fallback now exists, but live data still needs retired Google Civic API), lobbying firm-count badge (sync-lobbying unscheduled), `OPEN_FEC_API_KEY` unset in Vercel. See latest passdown §3.
+
+## ⛳ Status (2026-09-02)
+**🟠 UNCOMMITTED WORK ON `main`** — `lib/api/lda.ts` + `components/bills/LobbyingPanel.tsx`. The bill-page lobbying panel showed a bold per-filing dollar figure that readers took as "spent lobbying this bill"; it is actually the filer's whole-quarter total across all issues. Now captioned (`Q2 2025 total / all issues`) and de-emphasized, with the footer spelling out that no public data breaks lobbying spend out by bill. Typecheck + tests pass; **not yet verified on a live page** (no local env). Commit, push, confirm on H.R. 3633.
+**Open follow-up:** the panel lists 10 filings while TrustBar says "32 lobbying firms" — `getLobbyingForBill` slices to 10 and nothing labels the truncation. See latest passdown §6.3.
 
 ## ⛳ Status (2026-08-24)
 **🔴 AI analysis is DOWN — Anthropic credit balance exhausted since Aug 5.** Not a code bug: top up at console.anthropic.com → Plans & Billing (enable auto-reload). Everything else below is healthy.

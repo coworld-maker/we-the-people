@@ -72,8 +72,11 @@ async function getMoneyStrip(): Promise<MoneyStripData | null> {
     })
     if (!bill?.lobbyingFirmCount) return null
 
-    const filings = await getLobbyingForBill(bill.billType, bill.billNumber, bill.congress)
+    // Only the client names are used here; the strip's count comes from the
+    // stored lobbyingFirmCount above, so the capped row list is fine.
+    const lobbying = await getLobbyingForBill(bill.billType, bill.billNumber, bill.congress)
       .catch(() => null)
+    const filings = lobbying?.filings ?? null
 
     // Names are used EXACTLY as filed. Title-casing them mangles real ones
     // (NAACP -> "Naacp", "City OF Santa Clara", "Tricon Residential INC."),
