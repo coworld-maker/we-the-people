@@ -261,8 +261,30 @@ Worse, `aiService.ts:235`: `confidence: impact.confidence || 70`. A missing valu
 
 Not to be confused with `Vote.confidence`, a genuine user-supplied 1–5 self-report.
 
-### 6.8 🟢 The sweep is not finished
-Still unasked of: scorecards, vote stats, `stateImpacts` scores, and the transparency page percentages.
+### 6.8 ✅ Sweep finished — and most of the site already passes
+
+§6.6 and §6.7 are **fixed and live** (`ebdd321`). The remaining surfaces were swept with the same question. Result worth recording: **the two dashboard bugs were outliers, not the norm.**
+
+**Passed — and these are the reference patterns to copy:**
+
+| Surface | Why it passes |
+|---|---|
+| `StateSentimentMap` | Tooltip gives `yes–no–abstain (N votes)`; explicit warning under 5 votes; low-confidence states drawn at reduced opacity; a real empty state at `totalVotes === 0` rather than an all-grey map implying consensus. |
+| `StateAlignmentCard` | Renders **"Not enough data yet"** on null instead of 0%, and always shows the denominator: *"Voted with GA majority on 12 of 18 bills"*. This is the pattern §6.6 should have followed from the start. |
+| Transparency page | "Platform-wide vote breakdown" is scoped correctly (users, not Congress) and prints the raw count beside every percentage. |
+
+**Open — the one real finding (chip filed):**
+
+The **"Affects GA"** badge (`app/(dashboard)/bills/page.tsx:57,68`, duplicated in `PersonalizedBills.tsx:290,299`) is a flat declarative claim, but the score behind it is an *estimate*:
+
+- the fast path is `getStateImpactsForPolicyArea(bill.policyArea)` — a lookup keyed **only on policy area**, so every bill sharing an area gets identical state scores. The badge implies bill-specific analysis; that path never read the bill.
+- the slow path is an LLM prompt that says *"Estimate how much each U.S. state would be affected"*.
+
+And the gate contradicts the code's own docstring: it fires at `>= 0.6`, while `analyzeStateImpact` defines **0.4–0.7 as moderate** and 0.7+ as high. Bills the system itself calls moderately affected render an unqualified assertion.
+
+Cheapest fix follows learning #8: the `reason` string is already generated and stored for every state, and never displayed.
+
+**Minor, unfixed:** the transparency page labels `totalUsers` as **"Registered citizens"**. The platform cannot verify citizenship; they are registered users. Low severity, but it is the same species — a label claiming more than the data supports.
 
 ---
 
