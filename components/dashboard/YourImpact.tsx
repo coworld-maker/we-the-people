@@ -3,10 +3,13 @@
 import { useEffect, useState, useRef } from 'react'
 
 interface ImpactStats {
-  alignmentPct: number
-  billsInfluenced: number
+  /** null = not enough overlap to compute. Render an empty state, never 0%. */
+  alignmentPct: number | null
+  alignmentMatched: number
+  alignmentOverlap: number
+  userState: string | null
+  billsVotedOn: number
   communityDiscussions: number
-  representativeContacts: number
 }
 
 function AnimatedDonut({ percentage }: { percentage: number }) {
@@ -64,22 +67,45 @@ function AnimatedDonut({ percentage }: { percentage: number }) {
 }
 
 export default function YourImpact({ stats }: { stats: ImpactStats }) {
+  const hasAlignment = stats.alignmentPct !== null
+
   return (
     <div className="card overflow-hidden">
       <div className="px-6 py-4 border-b border-[--border]">
-        <h2 className="font-display text-base font-bold text-[--text]">Your Impact</h2>
+        <h2 className="font-display text-base font-bold text-[--text]">Your record</h2>
       </div>
       <div className="p-6">
-        {/* Donut */}
-        <AnimatedDonut percentage={stats.alignmentPct} />
-        <p className="text-center text-sm text-[--text-secondary] mt-2 mb-6">Voting Alignment</p>
+        {/* Agreement. Only rendered when there is real overlap to compute it
+            from — a user who has not voted has UNDEFINED agreement, not 0%,
+            and a 0% donut in red would be an accusation the data cannot make. */}
+        {hasAlignment ? (
+          <>
+            <AnimatedDonut percentage={stats.alignmentPct as number} />
+            <p className="text-center text-sm text-[--text-secondary] mt-2">
+              Agreement with your{stats.userState ? ` ${stats.userState}` : ''} delegation
+            </p>
+            <p className="text-center text-xs text-[--text-muted] mt-1 mb-6">
+              {stats.alignmentMatched} of {stats.alignmentOverlap} recorded votes match
+            </p>
+          </>
+        ) : (
+          <div className="text-center py-6 mb-4 border border-dashed border-[--border] rounded-[--radius]">
+            <p className="text-sm text-[--text-secondary]">Not enough overlap yet</p>
+            <p className="text-xs text-[--text-muted] mt-1.5 px-4 leading-relaxed">
+              Agreement needs bills where you voted <em>and</em> your delegation has a recorded
+              roll call. Vote on a few more and it will appear here.
+            </p>
+          </div>
+        )}
 
-        {/* Stats */}
+        {/* Counts of things the user actually did. "Bills you've influenced"
+            was this same vote count — casting an opinion vote here does not
+            influence a bill, and a "Representative contacts" row sat beside it
+            hardcoded to 0, styled identically to a measurement. */}
         <div className="space-y-0 divide-y divide-[--border]">
           {[
-            { label: 'Bills you\'ve influenced:', value: stats.billsInfluenced },
+            { label: 'Bills you\'ve voted on:', value: stats.billsVotedOn },
             { label: 'Community discussions:', value: stats.communityDiscussions },
-            { label: 'Representative contacts:', value: stats.representativeContacts },
           ].map(stat => (
             <div key={stat.label} className="flex items-center justify-between py-3.5">
               <span className="text-sm text-[--text-secondary]">{stat.label}</span>

@@ -14,6 +14,7 @@ import BillsForYou from '@/components/dashboard/BillsForYou'
 import ActivityFeed from '@/components/dashboard/ActivityFeed'
 import TrackedBills from '@/components/dashboard/TrackedBills'
 import YourRepresentatives from '@/components/dashboard/YourRepresentatives'
+import { AlignmentService } from '@/lib/services/alignmentService'
 import VotingPatterns from '@/components/dashboard/VotingPatterns'
 import YourImpact from '@/components/dashboard/YourImpact'
 import PersonalizedBills from '@/components/dashboard/PersonalizedBills'
@@ -119,11 +120,24 @@ export default async function DashboardPage() {
       repData: [] as Array<{ name: string; pct: number; party: string }>,
     }))
 
+  // Real agreement, from local roll-call data. This replaced
+  //   Math.min(Math.round((totalVotes / (totalVotes + 5)) * 100), 95)
+  // which was a curve over the user's OWN vote count — no representative, no
+  // comparison of positions, nothing measured — rendered as a colour-coded
+  // "Voting Alignment" donut. `pct` is null when there is no overlap and must
+  // render as an empty state, never 0%.
+  const delegationAlignment = await AlignmentService.calculateDelegationAlignment(
+    user.id,
+    user.state ?? null,
+  )
+
   const impactStats = {
-    alignmentPct: profile.stats.totalVotes > 0 ? Math.min(Math.round((profile.stats.totalVotes / (profile.stats.totalVotes + 5)) * 100), 95) : 0,
-    billsInfluenced: profile.stats.totalVotes,
+    alignmentPct: delegationAlignment.pct,
+    alignmentMatched: delegationAlignment.matched,
+    alignmentOverlap: delegationAlignment.overlap,
+    userState: user.state ?? null,
+    billsVotedOn: profile.stats.totalVotes,
     communityDiscussions: userDiscussionCount,
-    representativeContacts: 0,
   }
 
   const daysSinceJoin = profile.stats.joinedDaysAgo
