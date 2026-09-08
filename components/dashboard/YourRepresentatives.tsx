@@ -160,6 +160,18 @@ export default function YourRepresentatives({ userState }: { userState?: string 
         // Re-fetch reps filtered to this district
         fetchReps(data.state, data.district)
         setState(data.state)
+      } else if (data.ambiguous) {
+        // Don't say "couldn't find" — we found several. Saying the wrong thing
+        // here is what let the old lookup pick one district silently.
+        const list = (data.matches ?? [])
+          .map((m: { state: string; district: string }) =>
+            m.district === '0' ? `${m.state} at-large` : `${m.state}-${m.district}`)
+          .join(', ')
+        setZipError(
+          data.crossState
+            ? `That zip crosses a state line (${list}). Enter a zip inside one state, or set your district on your profile.`
+            : `That zip covers ${list}. Set your district on your profile to pick one.`
+        )
       } else {
         setZipError('Could not find your district — try a nearby zip')
       }
