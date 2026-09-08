@@ -6,7 +6,19 @@ import RepAvatar from '@/components/ui/RepAvatar'
 import { ArrowRight, Search, Loader2, Building2, Scale } from 'lucide-react'
 
 interface RepLite { fullName: string; party: string; bioguideId: string; district?: string }
-interface LookupResult { state: string; district: string; senators: RepLite[]; house: RepLite | null }
+interface ZipOption { state: string; district: string; senators: RepLite[]; house: RepLite | null }
+interface LookupResult {
+  zip: string
+  state: string | null
+  district: string | null
+  senators: RepLite[]
+  house: RepLite | null
+  /** A fifth of ZIPs span several districts — then no single delegation is right. */
+  ambiguous: boolean
+  /** 109 ZIPs cross a state line, so the senators differ too, not just the House member. */
+  crossState: boolean
+  options: ZipOption[]
+}
 
 function partyColor(party: string): string {
   const p = (party || '').toUpperCase()[0]
@@ -20,11 +32,13 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<LookupResult | null>(null)
+  // Which district the visitor picked when their ZIP spans several.
+  const [picked, setPicked] = useState<ZipOption | null>(null)
 
   async function lookup(e: React.FormEvent) {
     e.preventDefault()
     if (!/^\d{5}$/.test(zip)) { setError('Enter a 5-digit ZIP code.'); return }
-    setLoading(true); setError(''); setResult(null)
+    setLoading(true); setError(''); setResult(null); setPicked(null)
     try {
       const res = await fetch(`/api/landing/reps-by-zip?zip=${zip}`)
       const data = await res.json()
@@ -37,7 +51,15 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
     }
   }
 
-  const reps: RepLite[] = result ? [...result.senators, ...(result.house ? [result.house] : [])] : []
+  // An ambiguous ZIP has no correct delegation until the visitor picks a district.
+  // Never fall back to options[0] — silently choosing is the bug this replaced.
+  const shown: ZipOption | null =
+    picked ?? (result && !result.ambiguous
+      ? { state: result.state!, district: result.district!, senators: result.senators, house: result.house }
+      : null)
+  const reps: RepLite[] = shown ? [...shown.senators, ...(shown.house ? [shown.house] : [])] : []
+  const needsPick = !!result && result.ambiguous && !picked
+  const districtLabel = (o: ZipOption) => o.district === '0' ? `${o.state} at-large` : `${o.state}-${o.district}`
 
   return (
     <section className="bg-[--bg] border-b border-[--border] bg-engraved">
@@ -96,10 +118,42 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
               </form>
               {error && <p className="text-sm text-[--danger] mb-2">{error}</p>}
 
-              {reps.length > 0 && (
+              {/* This ZIP spans several districts, so there is no single right
+                  answer — ask instead of guessing. 21.6% of ZIPs land here, and
+                  109 of them cross a state line, which changes the senators too. */}
+              {needsPick && (
                 <div className="mt-4 space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-wider text-[--text-muted]">
-                    Your delegation · {result!.state}{result!.district !== '0' ? `-${result!.district}` : ''}
+                    ZIP {result!.zip ?? zip} covers {result!.options.length} districts
+                  </p>
+                  <p className="text-[11px] text-[--text-muted] -mt-1">
+                    {result!.crossState
+                      ? 'It also crosses a state line, so your senators depend on which one you live in.'
+                      : 'Pick yours and we’ll show that delegation.'}
+                  </p>
+                  {result!.options.map(o => (
+                    <button key={`${o.state}-${o.district}`} type="button" onClick={() => setPicked(o)}
+                      className="w-full flex items-center gap-3 p-3 rounded-[--radius] bg-[--surface-secondary] hover:bg-[--surface-tertiary] transition-colors text-left">
+                      <span className="text-sm font-semibold text-[--text]">{districtLabel(o)}</span>
+                      <span className="flex-1 min-w-0 text-xs text-[--text-muted] truncate">
+                        {o.house ? o.house.fullName : 'House seat unmatched'}
+                      </span>
+                      <ArrowRight className="w-3.5 h-3.5 text-[--accent] shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {reps.length > 0 && shown && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[--text-muted]">
+                    Your delegation · {districtLabel(shown)}
+                    {picked && (
+                      <button type="button" onClick={() => setPicked(null)}
+                        className="ml-2 normal-case tracking-normal font-medium text-[--accent] hover:underline">
+                        change district
+                      </button>
+                    )}
                   </p>
                   {reps.map(rep => (
                     <Link key={rep.bioguideId}

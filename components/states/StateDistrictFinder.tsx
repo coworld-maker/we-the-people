@@ -37,16 +37,27 @@ export default function StateDistrictFinder({
     try {
       const res = await fetch(`/api/representatives/district?zip=${z}`)
       const d = await res.json()
-      if (d.state && d.district != null) {
-        if (String(d.state).toUpperCase() !== stateCode.toUpperCase()) {
-          setOtherState(String(d.state).toUpperCase())
-        } else {
-          const m = houseReps.find(h => String(h.district) === String(d.district))
-          if (m) setMatch(m)
-          else setError(`That zip is ${stateCode} District ${d.district}, but we don't have that member yet.`)
-        }
-      } else {
+      // A fifth of ZIPs span several districts, so the API returns every match
+      // and leaves `district` null rather than picking one. On a state page we
+      // can narrow by the state we're already on, which resolves most of them.
+      const matches: Array<{ state: string; district: string }> = d.matches ?? []
+      if (matches.length === 0) {
         setError('Could not find your district — try a nearby zip.')
+      } else {
+        const here = matches.filter(m => m.state.toUpperCase() === stateCode.toUpperCase())
+        if (here.length === 0) {
+          setOtherState(matches[0].state.toUpperCase())
+        } else if (here.length === 1) {
+          const m = houseReps.find(h => String(h.district) === String(here[0].district))
+          if (m) setMatch(m)
+          else setError(`That zip is ${stateCode} District ${here[0].district}, but we don't have that member yet.`)
+        } else {
+          // Still ambiguous within this state — say so instead of guessing.
+          setError(
+            `That zip covers ${stateCode} districts ${here.map(m => m.district).join(', ')}. ` +
+            `Pick yours from the list below.`
+          )
+        }
       }
     } catch {
       setError('Lookup failed, please try again.')

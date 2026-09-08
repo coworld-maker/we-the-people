@@ -1,19 +1,20 @@
 /**
  * GET /api/representatives/district?zip=30310
  *
- * Resolves a zip code to a congressional district using a bundled static
- * ZCTA→district dataset (OpenSourceActivismTech/us-zipcodes-congress).
- * No external API: Google retired the Civic Information API's representative
- * lookup, and Congress.gov's /v3/member silently ignores its zipCode param
- * (it returns an arbitrary member list — we shipped that bug briefly).
+ * Resolves a ZIP to the congressional district(s) it touches, using the bundled
+ * static ZCTA→district dataset. See lib/data/zip-lookup.ts for provenance and
+ * for why a single-district answer was wrong.
  *
- * Multi-district zips are mapped to their dominant district. PO-box-only
- * zips aren't ZCTAs and won't resolve — the UI suggests a nearby zip.
+ * A ZIP that spans several districts has no single correct answer, so this
+ * returns every match and sets `ambiguous`. `state` and `district` are populated
+ * ONLY when the answer is unambiguous; when it isn't they are null, so a caller
+ * that ignores `ambiguous` renders nothing rather than confidently rendering the
+ * wrong representative.
  */
 
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-import zipDistricts from '@/lib/data/zip-districts.json'
+import { lookupZip } from '@/lib/data/zip-lookup'
 
 export async function GET(req: Request) {
   const { userId } = await auth()
@@ -25,13 +26,24 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Valid 5-digit zip required' }, { status: 400 })
   }
 
-  const entry = (zipDistricts as Record<string, string>)[zip]
-  if (!entry) {
-    return NextResponse.json({ error: 'No district found for this zip', district: null })
+  const found = lookupZip(zip)
+  if (!found) {
+    return NextResponse.json({
+      error: 'No district found for this zip',
+      zip, matches: [], ambiguous: false, crossState: false,
+      state: null, district: null,
+    })
   }
 
-  // Entries look like "GA-5"; at-large states use district 0
-  const [state, district] = entry.split('-')
+  const single = found.ambiguous ? null : found.matches[0]
 
-  return NextResponse.json({ district, state, zip })
+  return NextResponse.json({
+    zip,
+    matches: found.matches,
+    ambiguous: found.ambiguous,
+    crossState: found.crossState,
+    // Null when ambiguous — deliberately. Do not fall back to matches[0].
+    state: single?.state ?? null,
+    district: single?.district ?? null,
+  })
 }
