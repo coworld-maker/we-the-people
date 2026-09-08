@@ -74,6 +74,16 @@ export async function GET(req: Request) {
 
   const options = found.matches.map(build)
 
+  // Senators are per-STATE, not per-district, so a ZIP with three GA districts
+  // has one GA pair — not three. Group by state so a cross-state ZIP can show
+  // both pairs labelled rather than silently picking one state's.
+  const senatorsByState = Array.from(new Set(found.matches.map(m => m.state)))
+    .sort()
+    .map(state => ({
+      state,
+      senators: forState(state).filter(r => r.chamber === 'Senate').map(pub),
+    }))
+
   if (!found.ambiguous) {
     const only = options[0]
     return NextResponse.json({
@@ -83,6 +93,7 @@ export async function GET(req: Request) {
       state: only.state,
       district: only.district,
       senators: only.senators,
+      senatorsByState,
       house: only.house,
       options,
     })
@@ -90,14 +101,19 @@ export async function GET(req: Request) {
 
   // Ambiguous: no single delegation is correct. `house`/`district` stay null so
   // a caller that ignores `ambiguous` shows nothing rather than the wrong member.
+  //
+  // `senators` is the flat list, and it is only safe to fill when every match
+  // sits in one state — a cross-state ZIP would otherwise hand the caller two
+  // states' senators with nothing saying which is which. Those callers read
+  // `senatorsByState` instead, which is always labelled.
   return NextResponse.json({
     zip,
     ambiguous: true,
     crossState: found.crossState,
     state: null,
     district: null,
-    // Senators are still safe to return when every match is in one state.
     senators: found.crossState ? [] : options[0].senators,
+    senatorsByState,
     house: null,
     options,
   })
