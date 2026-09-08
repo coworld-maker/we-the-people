@@ -18,6 +18,9 @@ interface LookupResult {
   /** 109 ZIPs cross a state line, so the senators differ too, not just the House member. */
   crossState: boolean
   options: ZipOption[]
+  /** Senators grouped by state — the only labelled form, and the one to use for
+   *  a cross-state ZIP where both pairs are legitimately possible. */
+  senatorsByState: Array<{ state: string; senators: RepLite[] }>
 }
 
 function partyColor(party: string): string {
@@ -128,9 +131,40 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
                   </p>
                   <p className="text-[11px] text-[--text-muted] -mt-1">
                     {result!.crossState
-                      ? 'It also crosses a state line, so your senators depend on which one you live in.'
+                      ? 'It also crosses a state line, so your senators depend on which side you live on.'
                       : 'Pick yours and we’ll show that delegation.'}
                   </p>
+
+                  {/* Cross-state ZIP: both pairs are genuinely possible, so show
+                      both LABELLED rather than picking a state or showing none.
+                      Never merge them into one unlabelled list. */}
+                  {result!.crossState && result!.senatorsByState?.length > 0 && (
+                    <div className="pt-1 space-y-2">
+                      {result!.senatorsByState.map(group => (
+                        <div key={group.state}>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-[--text-muted] mb-1">
+                            If you live in {group.state} · senators
+                          </p>
+                          <div className="space-y-1.5">
+                            {group.senators.map(sen => (
+                              <Link key={sen.bioguideId}
+                                href={signedIn ? `/scorecards/${sen.bioguideId}` : `/sign-up?redirect_url=/scorecards/${sen.bioguideId}`}
+                                className="flex items-center gap-3 p-2.5 rounded-[--radius] bg-[--surface-secondary] hover:bg-[--surface-tertiary] transition-colors group">
+                                <RepAvatar bioguideId={sen.bioguideId} fullName={sen.fullName} party={sen.party} size="sm" />
+                                <span className="flex-1 min-w-0 text-sm font-medium text-[--text] truncate">{sen.fullName}</span>
+                                <span className="text-[10px] font-semibold" style={{ color: partyColor(sen.party) }}>
+                                  {(sen.party || '')[0]}
+                                </span>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      <p className="text-[10px] text-[--text-muted] pt-0.5">
+                        Pick your district below to confirm which set is yours.
+                      </p>
+                    </div>
+                  )}
                   {result!.options.map(o => (
                     <button key={`${o.state}-${o.district}`} type="button" onClick={() => setPicked(o)}
                       className="w-full flex items-center gap-3 p-3 rounded-[--radius] bg-[--surface-secondary] hover:bg-[--surface-tertiary] transition-colors text-left">
