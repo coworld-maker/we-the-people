@@ -35,7 +35,9 @@ const FEATURES = [
   {
     icon: BarChart3,
     title: 'How did my representative vote?',
-    desc: 'Real roll-call records for all 537 members. Cast your own position and see where you and your reps actually agree.',
+    // No hard-coded headcount: "537" had no source and was wrong (535 voting
+    // members, 541 with delegates), and the true figure moves with vacancies.
+    desc: 'Real roll-call records for every current member of Congress. Cast your own position and see where you and your reps actually agree.',
     accent: 'text-emerald-700',
     bg: 'bg-emerald-50',
   },

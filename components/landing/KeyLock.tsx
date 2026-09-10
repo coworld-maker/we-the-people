@@ -1,3 +1,5 @@
+import { DOME_SHACKLE_PATH, KEYHOLE_PATH } from '@/components/ui/Logo'
+
 /**
  * The landing hero's key and lock. The key's bow is the Capitol dome; each ZIP
  * digit cuts one tooth (blank = uncut, higher digit = deeper cut). When the
@@ -39,6 +41,7 @@ export default function KeyLock({
     <svg
       viewBox="0 0 770 290"
       className={`keylock is-${state} ${className}`}
+      overflow="visible"
       role="img"
       aria-label={
         unlocked
@@ -81,18 +84,15 @@ export default function KeyLock({
         ))}
       </g>
 
-      {/* shackle: the Capitol dome, lantern and colonnade */}
-      <g className="keylock-shackle" fill="none" stroke="#F4F6FA" strokeLinecap="round">
-        <path d="M670 10v20" strokeWidth="7" />
-        <rect x="659" y="26" width="22" height="12" rx="3" fill="#F4F6FA" stroke="none" />
-        <path d="M612 128v-26c0-34 26-58 58-58s58 24 58 58v26" strokeWidth="15" />
-        <path d="M640 74v54M655 64v64M670 60v68M685 64v64M700 74v54" strokeWidth="4.5" opacity=".45" />
+      {/* shackle: the brand mark's solid dome (Logo.tsx), scaled 4.8x so its
+          legs land in the body below. The outer group is what lifts. */}
+      <g className="keylock-shackle">
+        <path transform="translate(554.8 -2.8) scale(4.8)" d={DOME_SHACKLE_PATH} fill="#F4F6FA" />
       </g>
 
       {/* body — drawn after the key so the blade disappears into it */}
       <rect x="586" y="122" width="168" height="150" rx="12" fill="#F4F6FA" />
-      <circle cx="670" cy="182" r="12" fill="#0A2463" />
-      <path d="M663.5 188l-4 30h21l-4-30z" fill="#0A2463" />
+      <path transform="translate(554.8 28) scale(4.8)" d={KEYHOLE_PATH} fill="#0A2463" />
     </svg>
   )
 }
