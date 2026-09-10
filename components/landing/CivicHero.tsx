@@ -80,7 +80,8 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E8B33C] mb-4">
             Independent · nonpartisan · public record
           </p>
-          <h1 className="font-serif text-[2.9rem] sm:text-6xl lg:text-7xl leading-[0.98] tracking-tight [text-wrap:balance]">
+          {/* text-white is explicit: the global h1 rule sets ink colour, which vanished on navy. */}
+          <h1 className="font-serif text-white text-[2.9rem] sm:text-6xl lg:text-7xl leading-[0.98] tracking-tight [text-wrap:balance]">
             Your ZIP is <span className="text-[#C79A3E]">the key.</span>
           </h1>
           <p className="mt-5 text-lg text-[#B7C1D8] leading-relaxed max-w-md">
@@ -90,7 +91,9 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
         </div>
 
         <div className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2">
-          <KeyLock zip={zip} unlocked={!!result} className="w-full h-auto max-w-[620px] mx-auto" />
+          {/* 'turning' starts the key moving the moment Unlock is pressed, so the
+              lookup's network time reads as the key travelling, not a pause. */}
+          <KeyLock zip={zip} state={result ? 'unlocked' : loading ? 'turning' : 'idle'} className="w-full h-auto max-w-[620px] mx-auto" />
         </div>
 
         <div className="min-w-0 lg:col-start-1">

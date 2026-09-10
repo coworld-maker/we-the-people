@@ -20,21 +20,25 @@ function toothScale(digit: string | undefined): number {
   return (FULL - (Number(digit) + 1) * 5) / FULL
 }
 
+/** idle: resting · turning: lookup in flight, key travelling · unlocked: seated, shackle up */
+export type KeyLockState = 'idle' | 'turning' | 'unlocked'
+
 export default function KeyLock({
   zip,
-  unlocked,
+  state,
   className = '',
 }: {
   zip: string
-  unlocked: boolean
+  state: KeyLockState
   className?: string
 }) {
   const digits = zip.split('').slice(0, 5)
+  const unlocked = state === 'unlocked'
 
   return (
     <svg
       viewBox="0 0 770 290"
-      className={`keylock ${unlocked ? 'is-unlocked' : ''} ${className}`}
+      className={`keylock is-${state} ${className}`}
       role="img"
       aria-label={
         unlocked
@@ -67,7 +71,7 @@ export default function KeyLock({
           <text
             key={`d${x}`}
             x={x + TOOTH_W / 2}
-            y="198"
+            y="206"
             textAnchor="middle"
             className="keylock-digit"
             fill={digits[i] ? '#FFFFFF' : '#B7C1D8'}
