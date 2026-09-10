@@ -90,7 +90,9 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
           </p>
         </div>
 
-        <div className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2">
+        {/* Top-aligned beside the headline; centring it across both rows left
+            it floating low once the district list opened below the form. */}
+        <div className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-start lg:pt-10">
           {/* 'turning' starts the key moving the moment Unlock is pressed, so the
               lookup's network time reads as the key travelling, not a pause. */}
           <KeyLock zip={zip} state={result ? 'unlocked' : loading ? 'turning' : 'idle'} className="w-full h-auto max-w-[620px] mx-auto" />
