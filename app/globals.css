@@ -917,3 +917,51 @@ code, pre {
   border-radius: var(--radius-xs);
   font-size: 0.85em;
 }
+
+/* ── Landing key + lock (components/landing/KeyLock.tsx) ──────────────────
+   Enter and exit are timed differently on purpose. Unlocking: the key glides
+   in (ease-in-out, no overshoot) and the shackle starts lifting just before
+   the key seats, so the two read as one motion. Relocking: the shackle drops
+   first, then the key backs out. Transforms only — nothing that triggers
+   layout. */
+.keylock-key {
+  transform: translate(0px, 64px);
+  transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1) 0.2s;
+}
+.keylock-shackle {
+  transform: translateY(0px);
+  transition: transform 0.3s cubic-bezier(0.55, 0, 1, 0.45);
+}
+.keylock.is-unlocked .keylock-key {
+  transform: translate(74px, 64px);
+  transition: transform 0.85s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.keylock.is-unlocked .keylock-shackle {
+  transform: translateY(-34px);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.62s;
+}
+.keylock-tooth {
+  transform-box: fill-box;
+  transform-origin: top;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.keylock-digit {
+  font: 500 17px var(--font-mono, ui-monospace), ui-monospace, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  transition: fill 0.2s ease;
+}
+/* Results arrive as the shackle finishes lifting. */
+.keylock-reveal {
+  animation: keylock-reveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.9s both;
+}
+@keyframes keylock-reveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .keylock-key, .keylock-shackle, .keylock-tooth, .keylock-digit,
+  .keylock.is-unlocked .keylock-key, .keylock.is-unlocked .keylock-shackle {
+    transition: none;
+  }
+  .keylock-reveal { animation: none; }
+}
