@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import RepAvatar from '@/components/ui/RepAvatar'
 import KeyLock from '@/components/landing/KeyLock'
@@ -25,6 +25,28 @@ interface LookupResult {
 }
 
 /**
+ * Fades results in behind the lock. While the delayed fade is still at
+ * opacity 0 the block is `inert`, so Tab can't land on links nobody can see.
+ * `immediate` skips the delay (focus is being moved in right away).
+ */
+function Reveal({ immediate, className, children }: { immediate: boolean; className: string; children: React.ReactNode }) {
+  const [hiding, setHiding] = useState(() =>
+    !immediate && !(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches))
+  // Fallback in case animationend never fires (animations disabled elsewhere).
+  useEffect(() => {
+    if (!hiding) return
+    const t = setTimeout(() => setHiding(false), 1500)
+    return () => clearTimeout(t)
+  }, [hiding])
+  return (
+    <div className={`${immediate ? 'keylock-reveal-now' : 'keylock-reveal'} ${className}`} inert={hiding}
+      onAnimationEnd={e => { if (e.target === e.currentTarget) setHiding(false) }}>
+      {children}
+    </div>
+  )
+}
+
+/**
  * "Your ZIP is the key." The visitor's ZIP cuts the key as they type; a
  * successful lookup unlocks the Capitol-dome lock and reveals their delegation.
  * The key only turns on a real answer — a failed lookup leaves it locked.
@@ -36,11 +58,17 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
   const [result, setResult] = useState<LookupResult | null>(null)
   // Which district the visitor picked when their ZIP spans several.
   const [picked, setPicked] = useState<ZipOption | null>(null)
+  // Once the visitor has picked, the blocks they move between skip the lock delay.
+  const [hasPicked, setHasPicked] = useState(false)
+  // Focus targets: picking unmounts the focused button, so focus is placed explicitly.
+  const delegationHeadingRef = useRef<HTMLSpanElement>(null)
+  const firstOptionRef = useRef<HTMLButtonElement>(null)
+  const focusAfterRender = useRef<'delegation' | 'options' | null>(null)
 
   async function lookup(e: React.FormEvent) {
     e.preventDefault()
     if (!/^\d{5}$/.test(zip)) { setError('Enter all five digits of your ZIP code.'); return }
-    setLoading(true); setError(''); setResult(null); setPicked(null)
+    setLoading(true); setError(''); setResult(null); setPicked(null); setHasPicked(false)
     try {
       const res = await fetch(`/api/landing/reps-by-zip?zip=${zip}`)
       const data = await res.json()
@@ -57,9 +85,22 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
     const next = value.replace(/\D/g, '').slice(0, 5)
     setZip(next)
     // Editing the ZIP re-cuts the key, so it backs out of the lock.
-    if (result) { setResult(null); setPicked(null) }
+    if (result) { setResult(null); setPicked(null); setHasPicked(false) }
     if (error) setError('')
   }
+
+  function pickDistrict(o: ZipOption | null) {
+    focusAfterRender.current = o ? 'delegation' : 'options'
+    setHasPicked(true)
+    setPicked(o)
+  }
+
+  useEffect(() => {
+    const target = focusAfterRender.current
+    if (!target) return
+    focusAfterRender.current = null
+    ;(target === 'delegation' ? delegationHeadingRef : firstOptionRef).current?.focus()
+  }, [picked])
 
   // An ambiguous ZIP has no correct delegation until the visitor picks a district.
   // Never fall back to options[0] — silently choosing is the bug this replaced.
@@ -71,6 +112,16 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
   const needsPick = !!result && result.ambiguous && !picked
   const districtLabel = (o: ZipOption) => o.district === '0' ? `${o.state} at-large` : `${o.state}-${o.district}`
   const repHref = (id: string) => signedIn ? `/scorecards/${id}` : `/sign-up?redirect_url=/scorecards/${id}`
+
+  // The one live region. The visible hint blanks on success and the lock's
+  // aria-label isn't announced, so every outcome is spoken from here.
+  const status = loading ? `Looking up ZIP ${zip}…`
+    : error ? error
+    : needsPick ? `ZIP ${result!.zip ?? zip} spans ${result!.options.length} districts. Choose yours below.`
+    : shown ? (reps.length > 0
+      ? `Your delegation for ${districtLabel(shown)}: ${reps.map(r => r.fullName).join(', ')}.`
+      : `No members of Congress found for ${districtLabel(shown)}.`)
+    : ''
 
   return (
     <section className="bg-[#0A2463] text-white">
@@ -99,12 +150,14 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
         </div>
 
         <div className="min-w-0 lg:col-start-1">
-          <form onSubmit={lookup} className="flex gap-2 max-w-md">
+          <p role="status" className="sr-only">{status}</p>
+          <form onSubmit={lookup} aria-busy={loading} className="flex gap-2 max-w-md">
             <label htmlFor="hero-zip" className="sr-only">ZIP code</label>
             <input
               id="hero-zip" autoComplete="postal-code"
               inputMode="numeric" maxLength={5} value={zip}
               onChange={e => onZipChange(e.target.value)}
+              aria-invalid={!!error} aria-describedby="hero-zip-hint"
               placeholder="Your ZIP code"
               className="flex-1 min-w-0 min-h-[52px] px-4 rounded-lg bg-white text-[#131A2C] text-xl font-mono tracking-[0.18em] placeholder:text-base placeholder:tracking-normal placeholder:font-sans placeholder:text-[#5F6B7E] focus:outline-none focus:ring-[3px] focus:ring-[#E8B33C]"
             />
@@ -114,7 +167,9 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
               Unlock
             </button>
           </form>
-          <p className="mt-2 text-sm text-[#B7C1D8]" aria-live="polite">
+          {/* Announced via the status region above, so no aria-live here.
+              #FFB4A8 on the navy is 8.5:1. */}
+          <p id="hero-zip-hint" className={`mt-2 text-sm ${error ? 'text-[#FFB4A8]' : 'text-[#B7C1D8]'}`}>
             {error || (result ? '' : 'Each digit cuts one tooth of the key.')}
           </p>
 
@@ -122,7 +177,7 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
               answer — ask instead of guessing. 21.6% of ZIPs land here, and
               109 of them cross a state line, which changes the senators too. */}
           {needsPick && (
-            <div className="keylock-reveal mt-4 space-y-2 max-w-md" aria-live="polite">
+            <Reveal immediate={hasPicked} className="mt-4 space-y-2 max-w-md">
               <p className="font-semibold">
                 <span className="font-mono">{result!.zip ?? zip}</span> opens {result!.options.length} doors
               </p>
@@ -131,8 +186,9 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
                   ? 'It spans districts in more than one state, so your senators depend on which side you live on. Pick the district on your voter card.'
                   : 'It spans several districts. Pick the one on your voter card; we won’t guess.'}
               </p>
-              {result!.options.map(o => (
-                <button key={`${o.state}-${o.district}`} type="button" onClick={() => setPicked(o)}
+              {result!.options.map((o, i) => (
+                <button key={`${o.state}-${o.district}`} type="button" onClick={() => pickDistrict(o)}
+                  ref={i === 0 ? firstOptionRef : undefined}
                   className="w-full flex items-center gap-3 min-h-[52px] px-4 rounded-lg bg-[#132E73] border border-white/25 hover:border-[#E8B33C] transition-colors text-left">
                   <span className="font-mono text-sm min-w-[56px]">{districtLabel(o)}</span>
                   <span className="flex-1 min-w-0 text-sm text-[#B7C1D8] truncate">
@@ -154,15 +210,17 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
                   ))}
                 </div>
               )}
-            </div>
+            </Reveal>
           )}
 
           {reps.length > 0 && shown && (
-            <div className="keylock-reveal mt-4 space-y-2 max-w-md">
+            <Reveal immediate={hasPicked} className="mt-4 space-y-2 max-w-md">
               <p className="text-xs font-semibold uppercase tracking-wider text-[#B7C1D8] flex items-center gap-2">
-                Your delegation · {districtLabel(shown)}
+                <span ref={delegationHeadingRef} tabIndex={-1} role="heading" aria-level={2} className="focus:outline-none">
+                  Your delegation · {districtLabel(shown)}
+                </span>
                 {picked && (
-                  <button type="button" onClick={() => setPicked(null)}
+                  <button type="button" onClick={() => pickDistrict(null)}
                     className="normal-case tracking-normal font-medium text-[#E8B33C] hover:underline min-h-[44px]">
                     change district
                   </button>
@@ -178,7 +236,7 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
                   </span>
                 </Link>
               ))}
-            </div>
+            </Reveal>
           )}
 
           <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[#B7C1D8]">

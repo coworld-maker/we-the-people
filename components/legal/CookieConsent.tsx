@@ -60,12 +60,22 @@ export default function CookieConsent() {
     const bar = barRef.current
     if (!show || !bar) return
     const body = document.body
+    const html = document.documentElement
     const prev = body.style.paddingBottom
-    const sync = () => { body.style.paddingBottom = `${bar.offsetHeight}px` }
+    const prevScroll = html.style.scrollPaddingBottom
+    // scroll-padding keeps a Tab-focused control from landing under the bar (WCAG 2.4.11).
+    const sync = () => {
+      body.style.paddingBottom = `${bar.offsetHeight}px`
+      html.style.scrollPaddingBottom = `${bar.offsetHeight}px`
+    }
     sync()
     const ro = new ResizeObserver(sync)
     ro.observe(bar)
-    return () => { ro.disconnect(); body.style.paddingBottom = prev }
+    return () => {
+      ro.disconnect()
+      body.style.paddingBottom = prev
+      html.style.scrollPaddingBottom = prevScroll
+    }
   }, [show])
 
   function decide(functional: boolean) {
