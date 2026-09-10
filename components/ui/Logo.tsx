@@ -9,19 +9,28 @@ interface LogoProps {
 }
 
 /**
- * Brand mark: padlock body with the Capitol dome arching as the shackle.
+ * Brand mark: a padlock whose shackle is the Capitol dome, drawn as one solid
+ * silhouette (lantern, dome, cornice) standing on two legs that drop into the
+ * lock body. No thin strokes, so it holds down to favicon sizes and never
+ * reads as bars. Same drawing as the landing hero's lock
+ * (components/landing/KeyLock.tsx); app/icon.svg is a bolder 16px cut of it.
  *
- * This used to try /logo-mark.png first and fall back to this SVG on error.
- * The PNG was never committed, so every page load made two failing image
- * requests (400 from /_next/image), and because the error fired before
- * hydration the onError fallback often never ran — leaving an empty <img>
- * with no alt text. The SVG is now the logo. If a raster asset is added later
- * (scripts/prepare-logo.py), reintroduce it deliberately.
+ * Everything paints in currentColor and the keyhole is cut out of the body
+ * (evenodd), so the mark works on navy and white headers alike without ids.
  */
+export const DOME_SHACKLE_PATH =
+  'M22.6 6V3.8L24 1.6l1.4 2.2V6z' + // lantern
+  'M14 16.6C14 10.2 18.4 5.8 24 5.8s10 4.4 10 10.8z' + // dome
+  'M13 16h22a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H13a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1z' + // cornice
+  'M13 18.5h4V31h-4zM31 18.5h4V31h-4z' // shackle legs (open gap above the body)
+
+export const KEYHOLE_PATH =
+  'M24 30a3 3 0 0 0-1.6 5.54L21.6 40.5h4.8l-.8-4.96A3 3 0 0 0 24 30z'
+
 export default function Logo({ className = 'w-7 h-7', decorative = false }: LogoProps) {
   return (
     <svg
-      viewBox="0 0 24 24"
+      viewBox="0 0 48 48"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
@@ -29,21 +38,13 @@ export default function Logo({ className = 'w-7 h-7', decorative = false }: Logo
         ? { 'aria-hidden': true, focusable: false }
         : { role: 'img', 'aria-label': 'Democracy Unlocked' })}
     >
-      <circle cx="12" cy="2.5" r="0.65" fill="currentColor" />
-      <line x1="12" y1="3.1" x2="12" y2="4.6"
-        stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <line x1="10.5" y1="4.8" x2="13.5" y2="4.8"
-        stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <path d="M 6.5 10.5 V 9 A 5.5 5.5 0 0 1 17.5 9 V 10.5"
-        stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
-      <line x1="9.3" y1="5.7" x2="9.3" y2="10.5"
-        stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.55" />
-      <line x1="14.7" y1="5.7" x2="14.7" y2="10.5"
-        stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.55" />
-      <rect x="4.5" y="10.5" width="15" height="11" rx="2"
-        fill="currentColor" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-      <circle cx="12" cy="14.5" r="1.4" fill="white" />
-      <path d="M 11.25 14.5 L 11.6 18.2 L 12.4 18.2 L 12.75 14.5 Z" fill="white" />
+      <path d={DOME_SHACKLE_PATH} fill="currentColor" />
+      {/* body with the keyhole cut through */}
+      <path
+        fillRule="evenodd"
+        fill="currentColor"
+        d={'M9.5 26h29a3 3 0 0 1 3 3v12.5a3 3 0 0 1-3 3h-29a3 3 0 0 1-3-3V29a3 3 0 0 1 3-3z' + KEYHOLE_PATH}
+      />
     </svg>
   )
 }
