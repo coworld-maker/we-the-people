@@ -1,6 +1,6 @@
 # ▶ RESUME HERE — fast bootstrap for the next session
 
-_Last updated: 2026-09-02. This is the "start here" file. Latest detail:
+_Last updated: 2026-09-10 (see the 2026-09-10 status block below). This is the "start here" file. Latest detail:
 [2026-09-02-lobbying-dollar-attribution.md](./2026-09-02-lobbying-dollar-attribution.md)
 (prior: [2026-08-24-data-correctness-sweep.md](./2026-08-24-data-correctness-sweep.md),
 [2026-06-29-summaries-crons-links-launchprep.md](./2026-06-29-summaries-crons-links-launchprep.md))
@@ -18,6 +18,35 @@ Strategic moat: **community + accountability** (citizen voting, discussions, mon
 Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale members retired (Apr-2026 deaths/resignations) · **`sync-representatives` now auto-retires departed members** (`notIn(seen)` + `MIN_EXPECTED_MEMBERS=400` guard — was append-only) · high-effort code review fixed 10 bugs incl. **a `CRON_SECRET`-unset auth bypass on every sync route** (now centralized in `lib/auth/syncAuth.ts`), LDA firm over-count, FEC `Math.max(...[])`→`-Infinity`, dashboard "mismatches this week" accuracy, `VotingPanel` double-count on re-vote. All merged via **PR #13 → `e5e8682`**.
 **In-flight:** `landing-broadsheet` branch (1 commit, live preview) — ZIP→your-reps product hero, **not yet merged**, decide first.
 **Known silent-empty risks (not fixed):** `/elections` (static fallback now exists, but live data still needs retired Google Civic API), lobbying firm-count badge (sync-lobbying unscheduled), `OPEN_FEC_API_KEY` unset in Vercel. See latest passdown §3.
+
+## ⛳ Status (2026-09-10)
+**✅ All below merged to `main` and verified on production.**
+- `ebdd321` — the fabricated "Your Impact" donut and hardcoded contacts are gone (real
+  delegation alignment or "Not enough overlap yet"); AI confidence is null when missing, not 70.
+  **§6.6 and §6.7 of the 2026-09-02 passdown are CLOSED.**
+- `370b39d` — "Affects GA" → "Likely affects GA" with the stored `reason` as tooltip; one
+  `STATE_IMPACT_HIGH` threshold.
+- `19a8a45` / `ada1482` — ZIP lookup returns every district a ZIP spans (21.6% of ZIPs; 109 cross
+  a state line). Ambiguous ZIPs ask; cross-state ZIPs show both senator pairs, labelled.
+- `1b3a576` — accessibility: `--text-muted` #94A3B8 → #5F6B7E and `--gold-text` → #7E5E12
+  (site-wide, both now ≥4.5:1 on every surface); cookie banner is a compact bottom bar that pads
+  the body instead of covering the ZIP field; ZIP inputs labelled + `autocomplete="postal-code"`;
+  44px header/footer targets. `Logo` now renders the SVG mark only — `/logo-mark.png` was never
+  committed and 400'd on every load. Favicon is `app/icon.svg`.
+- `2f48a32` — **new landing hero, "Your ZIP is the key"** (`components/landing/CivicHero.tsx` +
+  `KeyLock.tsx`, timings in `globals.css` under `.keylock`). Each ZIP digit cuts a tooth; states
+  are idle → turning (lookup in flight, key already travelling) → unlocked (key seats, dome
+  shackle lifts, results fade in). Split enter/exit timing, transforms only, reduced-motion safe.
+  Landing header is navy to match. Lookup/ask/cross-state logic unchanged.
+
+**UI redesign is back ON, at the user's request** — this supersedes the 2026-07-05 "cancelled / do
+not resume UI work" note below. Direction chosen by the user: the Capitol-dome lock as the mark and
+the ZIP-cut key as the hero (mockups: "The Lock Studies" → "The Dome and the Key").
+**Next candidates:** nav logo → the refined dome-shackle drawing (touches dashboard + legal
+layouts too, ask first); the rest of the landing page (feature cards and "Three steps" repeat each
+other; blue→red CTA gradient reads partisan); "Meet the Founder" section (needs the user's bio).
+**Gotcha:** `next lint` has no ESLint config here — running it opens an interactive setup and
+rewrites `tsconfig.json`. Don't run it; if it happens, restore with `git show HEAD:tsconfig.json`.
 
 ## ⛳ Status (2026-09-02)
 **✅ SHIPPED AND VERIFIED IN PRODUCTION** — `main` @ `19bd223`, confirmed on the live H.R. 3633 page.
