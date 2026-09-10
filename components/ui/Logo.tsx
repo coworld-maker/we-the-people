@@ -9,19 +9,18 @@ interface LogoProps {
 }
 
 /**
- * Brand mark: padlock body with the Capitol dome arching as the shackle.
+ * Brand mark: a padlock whose shackle is the Capitol dome — lantern on top,
+ * colonnade showing between the legs. Same drawing as the landing hero's lock
+ * (components/landing/KeyLock.tsx) and the favicon (app/icon.svg).
  *
- * This used to try /logo-mark.png first and fall back to this SVG on error.
- * The PNG was never committed, so every page load made two failing image
- * requests (400 from /_next/image), and because the error fired before
- * hydration the onError fallback often never ran — leaving an empty <img>
- * with no alt text. The SVG is now the logo. If a raster asset is added later
- * (scripts/prepare-logo.py), reintroduce it deliberately.
+ * Everything paints in currentColor, and the keyhole is cut out of the body
+ * (evenodd) rather than painted a fixed colour, so the mark works on the navy
+ * landing header and the white dashboard/legal headers alike.
  */
 export default function Logo({ className = 'w-7 h-7', decorative = false }: LogoProps) {
   return (
     <svg
-      viewBox="0 0 24 24"
+      viewBox="0 0 48 48"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
@@ -29,21 +28,21 @@ export default function Logo({ className = 'w-7 h-7', decorative = false }: Logo
         ? { 'aria-hidden': true, focusable: false }
         : { role: 'img', 'aria-label': 'Democracy Unlocked' })}
     >
-      <circle cx="12" cy="2.5" r="0.65" fill="currentColor" />
-      <line x1="12" y1="3.1" x2="12" y2="4.6"
-        stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <line x1="10.5" y1="4.8" x2="13.5" y2="4.8"
-        stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <path d="M 6.5 10.5 V 9 A 5.5 5.5 0 0 1 17.5 9 V 10.5"
-        stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" fill="none" />
-      <line x1="9.3" y1="5.7" x2="9.3" y2="10.5"
-        stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.55" />
-      <line x1="14.7" y1="5.7" x2="14.7" y2="10.5"
-        stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.55" />
-      <rect x="4.5" y="10.5" width="15" height="11" rx="2"
-        fill="currentColor" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-      <circle cx="12" cy="14.5" r="1.4" fill="white" />
-      <path d="M 11.25 14.5 L 11.6 18.2 L 12.4 18.2 L 12.75 14.5 Z" fill="white" />
+      {/* lantern */}
+      <path d="M24 2.5v4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <rect x="21.5" y="5.5" width="5" height="3" rx="1" fill="currentColor" />
+      {/* dome shackle + colonnade */}
+      <path d="M11.5 24v-5c0-6.8 5.6-11 12.5-11s12.5 4.2 12.5 11v5"
+        stroke="currentColor" strokeWidth="3.6" strokeLinecap="round" />
+      <path d="M18 14.5V24M24 12.5V24M30 14.5V24"
+        stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity=".55" />
+      {/* body with the keyhole cut through */}
+      <path
+        fillRule="evenodd"
+        fill="currentColor"
+        d="M9.5 23.5h29a3 3 0 0 1 3 3v15a3 3 0 0 1-3 3h-29a3 3 0 0 1-3-3v-15a3 3 0 0 1 3-3z
+           M24 28.5a3 3 0 0 0-1.55 5.57L21.7 39.5h4.6l-.75-5.43A3 3 0 0 0 24 28.5z"
+      />
     </svg>
   )
 }
