@@ -107,7 +107,9 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
               </p>
 
               <form onSubmit={lookup} className="flex gap-2 mb-2">
+                <label htmlFor="hero-zip" className="sr-only">ZIP code</label>
                 <input
+                  id="hero-zip" autoComplete="postal-code"
                   inputMode="numeric" maxLength={5} value={zip}
                   onChange={e => setZip(e.target.value.replace(/\D/g, ''))}
                   placeholder="ZIP code"

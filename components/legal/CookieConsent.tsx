@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Cookie, X } from 'lucide-react'
 
 const STORAGE_KEY = 'cookie-consent-v1'
 
@@ -42,14 +41,32 @@ export function hasFunctionalConsent(): boolean {
  * Two explicit choices: accept all functional cookies, or essential only.
  * No "OK" or "continue without choosing" patterns (those don't constitute
  * consent under GDPR).
+ *
+ * A compact full-width bar rather than a floating card: the card was ~230px
+ * tall and sat on top of the ZIP field on phones and the "See who's behind it"
+ * button on desktop. While it is showing, the body is padded by the bar's own
+ * height so every part of the page can still be scrolled into view above it.
  */
 export default function CookieConsent() {
   const [show, setShow] = useState(false)
+  const barRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const consent = readConsent()
     if (!consent.decided) setShow(true)
   }, [])
+
+  useEffect(() => {
+    const bar = barRef.current
+    if (!show || !bar) return
+    const body = document.body
+    const prev = body.style.paddingBottom
+    const sync = () => { body.style.paddingBottom = `${bar.offsetHeight}px` }
+    sync()
+    const ro = new ResizeObserver(sync)
+    ro.observe(bar)
+    return () => { ro.disconnect(); body.style.paddingBottom = prev }
+  }, [show])
 
   function decide(functional: boolean) {
     try {
@@ -71,44 +88,33 @@ export default function CookieConsent() {
 
   return (
     <div
-      role="dialog"
+      ref={barRef}
+      role="region"
       aria-labelledby="cookie-title"
-      aria-describedby="cookie-body"
-      className="fixed inset-x-3 bottom-3 sm:bottom-4 sm:inset-x-auto sm:right-4 sm:max-w-md z-50"
+      className="fixed inset-x-0 bottom-0 z-50 bg-[--surface] border-t border-[--border-strong] shadow-[0_-4px_16px_rgba(15,23,42,0.08)]"
     >
-      <div className="bg-[--surface] border border-[--border] shadow-xl rounded-xl overflow-hidden">
-        <div className="px-5 pt-4 pb-3 flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-[--accent-light] flex items-center justify-center shrink-0">
-            <Cookie className="w-4 h-4 text-[--accent]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 id="cookie-title" className="font-display text-sm font-bold text-[--text] mb-1">
-              We use a few cookies
-            </h3>
-            <p id="cookie-body" className="text-xs text-[--text-secondary] leading-relaxed">
-              Strictly-necessary cookies (login, security) always run. Functional
-              cookies — remembering your state, interests, and reading position —
-              need your OK first. We don't use ads or third-party trackers.{' '}
-              <Link href="/privacy#4-cookies-and-tracking" className="underline text-[--accent] hover:text-[--accent-hover]">
-                Read more
-              </Link>
-              .
-            </p>
-          </div>
-        </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-6">
+        <p id="cookie-body" className="flex-1 min-w-0 text-[13px] text-[--text-secondary] leading-snug">
+          <span id="cookie-title" className="font-semibold text-[--text]">We use a few cookies.</span>{' '}
+          Login and security always run; remembering your state and reading position needs your OK.
+          No ads or third-party trackers.{' '}
+          <Link href="/privacy#4-cookies-and-tracking" className="underline text-[--accent] hover:text-[--accent-hover]">
+            Read more
+          </Link>
+        </p>
 
-        <div className="px-5 pb-4 flex flex-col sm:flex-row gap-2">
-          <button
-            onClick={() => decide(true)}
-            className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-[--accent] text-white hover:bg-[--accent-hover] transition-colors"
-          >
-            Accept all
-          </button>
+        <div className="flex gap-2 shrink-0">
           <button
             onClick={() => decide(false)}
-            className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-[--surface-secondary] text-[--text-secondary] hover:bg-[--surface-tertiary] transition-colors"
+            className="flex-1 sm:flex-none min-h-[44px] px-4 rounded-lg text-sm font-semibold bg-[--surface-secondary] text-[--text] border border-[--border-strong] hover:bg-[--surface-tertiary] transition-colors"
           >
             Essential only
+          </button>
+          <button
+            onClick={() => decide(true)}
+            className="flex-1 sm:flex-none min-h-[44px] px-4 rounded-lg text-sm font-semibold bg-[--accent] text-white hover:bg-[--accent-hover] transition-colors"
+          >
+            Accept all
           </button>
         </div>
       </div>

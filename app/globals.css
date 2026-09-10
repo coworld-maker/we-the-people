@@ -28,7 +28,7 @@
     /* ── Text ─────────────────────────────────────────────── */
     --text:             #0F172A;
     --text-secondary:   #475569;
-    --text-muted:       #94A3B8;
+    --text-muted:       #5F6B7E;            /* ≥4.5:1 on every surface incl. --surface-tertiary; #94A3B8 was 2.15–2.56:1 */
     --text-disabled:    #CBD5E1;
     --text-inverse:     #FFFFFF;
 
@@ -54,7 +54,7 @@
     --gold:              #C79A3E;
     --gold-hover:        #B0852E;
     --gold-light:        rgba(199, 154, 62, 0.12);
-    --gold-text:         #9A751F;            /* gold, readable on light surfaces */
+    --gold-text:         #7E5E12;            /* gold, ≥5:1 on light surfaces; #9A751F was 3.57–4.25:1 */
 
     /* Editorial political-lean scale — calibrated NEUTRAL (muted, non-partisan).
        Deliberately NOT the party blue/red below, so "lean" reads as an

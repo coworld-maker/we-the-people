@@ -25,7 +25,7 @@ export default function MoneyStrip({ data }: { data: MoneyStripData | null }) {
   return (
     <section className="border-y border-[--border] bg-[--surface-secondary]">
       <div className="max-w-5xl mx-auto px-6 py-8 sm:py-10">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[--gold-text] mb-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[--gold-text] mb-3">
           Follow the money
         </p>
 
@@ -65,7 +65,8 @@ export default function MoneyStrip({ data }: { data: MoneyStripData | null }) {
           </Link>
         </div>
 
-        <p className="text-[11px] text-[--text-muted] mt-4">
+        {/* The caveat that keeps this strip honest — it must be readable, not fine print. */}
+        <p className="text-[13px] text-[--text-muted] mt-4">
           Public record, from the Senate Lobbying Disclosure Act database. A filing shows
           disclosed interest in a bill — not proof of influence.
         </p>
