@@ -112,15 +112,16 @@ export default async function LandingPage() {
     <main className="min-h-screen bg-[--bg] text-[--text] selection:bg-[--accent] selection:text-white">
 
       {/* ── HEADER ──────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 px-6 py-3.5 border-b border-[--border] bg-[--surface]/90 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group hover:opacity-90 transition-opacity">
-            <Logo className="w-9 h-9 text-[--accent]" variant="mark" priority />
-            <span className="font-serif text-lg text-[--accent] tracking-tight">
+      <header className="sticky top-0 z-50 px-4 sm:px-6 py-3 border-b border-[--border] bg-[--surface]/90 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 min-h-[44px] min-w-0 group hover:opacity-90 transition-opacity">
+            <Logo className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 text-[--accent]" decorative />
+            <span className="font-serif text-base sm:text-lg text-[--accent] tracking-tight whitespace-nowrap">
               Democracy Unlocked<span className="align-super text-[9px] ml-0.5">™</span>
             </span>
+            {/* Hidden on phones: with it, the wordmark and the CTA both wrapped at 375px. */}
             <span
-              className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200"
+              className="hidden sm:inline text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200"
               title="This site is in beta — expect rough edges and incomplete data while we keep building."
             >
               Beta
@@ -130,19 +131,19 @@ export default async function LandingPage() {
           <div className="flex items-center gap-3">
             {userId ? (
               <Link href="/dashboard"
-                className="inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-[--radius] bg-[--accent] text-white hover:bg-[--accent-hover] transition-colors"
+                className="inline-flex items-center min-h-[44px] px-4 sm:px-5 text-sm font-semibold whitespace-nowrap rounded-[--radius] bg-[--accent] text-white hover:bg-[--accent-hover] transition-colors"
               >
-                Dashboard <ArrowRight className="w-4 h-4 ml-1.5" />
+                Dashboard <ArrowRight className="hidden sm:block w-4 h-4 ml-1.5" />
               </Link>
             ) : (
               <>
-                <Link href="/sign-in" className="hidden sm:block px-4 py-2 text-sm font-medium text-[--text-secondary] hover:text-[--accent] transition-colors">
+                <Link href="/sign-in" className="hidden sm:inline-flex items-center min-h-[44px] px-4 text-sm font-medium text-[--text-secondary] hover:text-[--accent] transition-colors">
                   Log in
                 </Link>
                 <Link href="/sign-up"
-                  className="inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-[--radius] bg-[--accent] text-white hover:bg-[--accent-hover] transition-colors"
+                  className="inline-flex items-center min-h-[44px] px-4 sm:px-5 text-sm font-semibold whitespace-nowrap rounded-[--radius] bg-[--accent] text-white hover:bg-[--accent-hover] transition-colors"
                 >
-                  Get started <ArrowRight className="w-4 h-4 ml-1.5" />
+                  Get started <ArrowRight className="hidden sm:block w-4 h-4 ml-1.5" />
                 </Link>
               </>
             )}
@@ -248,12 +249,12 @@ export default async function LandingPage() {
       <footer className="bg-[--surface] py-10 px-6 border-t border-[--border]">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-[--accent]">
-            <Logo className="w-6 h-6" variant="mark" />
+            <Logo className="w-6 h-6" decorative />
             <span className="font-display text-sm font-semibold text-[--text-secondary]">Democracy Unlocked<span className="align-super text-[8px] ml-0.5">™</span></span>
           </div>
-          <nav className="flex items-center gap-4 text-xs font-medium text-[--text-muted]">
-            <Link href="/privacy" className="hover:text-[--accent] transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-[--accent] transition-colors">Terms</Link>
+          <nav className="flex items-center gap-2 text-sm font-medium text-[--text-muted]">
+            <Link href="/privacy" className="inline-flex items-center min-h-[44px] px-2 hover:text-[--accent] transition-colors">Privacy</Link>
+            <Link href="/terms" className="inline-flex items-center min-h-[44px] px-2 hover:text-[--accent] transition-colors">Terms</Link>
           </nav>
           <p className="text-xs text-[--text-muted]">
             &copy; {new Date().getFullYear()} Democracy Unlocked&trade;. &ldquo;Democracy Unlocked&rdquo; and the logo are trademarks of Democracy Unlocked.

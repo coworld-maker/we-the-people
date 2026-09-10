@@ -100,6 +100,7 @@ export default function StateDistrictFinder({
           <div className="flex gap-2">
             <input
               type="text" inputMode="numeric" maxLength={5}
+              aria-label="ZIP code" autoComplete="postal-code"
               placeholder="5-digit zip"
               value={zip}
               onChange={e => { setZip(e.target.value.replace(/\D/g, '')); setError('') }}
