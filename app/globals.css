@@ -960,6 +960,11 @@ code, pre {
 .keylock-reveal {
   animation: keylock-reveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.9s both;
 }
+/* After a district pick (or "change district") focus moves into the new
+   block at once, so it cannot wait on the lock — same motion, no delay. */
+.keylock-reveal-now {
+  animation: keylock-reveal 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
 @keyframes keylock-reveal {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -970,5 +975,5 @@ code, pre {
   .keylock.is-unlocked .keylock-key, .keylock.is-unlocked .keylock-shackle {
     transition: none;
   }
-  .keylock-reveal { animation: none; }
+  .keylock-reveal, .keylock-reveal-now { animation: none; }
 }
