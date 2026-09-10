@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import RepAvatar from '@/components/ui/RepAvatar'
-import { ArrowRight, Search, Loader2, Building2, Scale } from 'lucide-react'
+import KeyLock from '@/components/landing/KeyLock'
+import { ArrowRight, Loader2 } from 'lucide-react'
 
 interface RepLite { fullName: string; party: string; bioguideId: string; district?: string }
 interface ZipOption { state: string; district: string; senators: RepLite[]; house: RepLite | null }
@@ -23,13 +24,11 @@ interface LookupResult {
   senatorsByState: Array<{ state: string; senators: RepLite[] }>
 }
 
-function partyColor(party: string): string {
-  const p = (party || '').toUpperCase()[0]
-  if (p === 'R') return 'var(--republican)'
-  if (p === 'D') return 'var(--democrat)'
-  return 'var(--independent)'
-}
-
+/**
+ * "Your ZIP is the key." The visitor's ZIP cuts the key as they type; a
+ * successful lookup unlocks the Capitol-dome lock and reveals their delegation.
+ * The key only turns on a real answer — a failed lookup leaves it locked.
+ */
 export default function CivicHero({ billCount, signedIn }: { billCount: number; signedIn: boolean }) {
   const [zip, setZip] = useState('')
   const [loading, setLoading] = useState(false)
@@ -40,7 +39,7 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
 
   async function lookup(e: React.FormEvent) {
     e.preventDefault()
-    if (!/^\d{5}$/.test(zip)) { setError('Enter a 5-digit ZIP code.'); return }
+    if (!/^\d{5}$/.test(zip)) { setError('Enter all five digits of your ZIP code.'); return }
     setLoading(true); setError(''); setResult(null); setPicked(null)
     try {
       const res = await fetch(`/api/landing/reps-by-zip?zip=${zip}`)
@@ -54,6 +53,14 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
     }
   }
 
+  function onZipChange(value: string) {
+    const next = value.replace(/\D/g, '').slice(0, 5)
+    setZip(next)
+    // Editing the ZIP re-cuts the key, so it backs out of the lock.
+    if (result) { setResult(null); setPicked(null) }
+    if (error) setError('')
+  }
+
   // An ambiguous ZIP has no correct delegation until the visitor picks a district.
   // Never fall back to options[0] — silently choosing is the bug this replaced.
   const shown: ZipOption | null =
@@ -63,154 +70,125 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
   const reps: RepLite[] = shown ? [...shown.senators, ...(shown.house ? [shown.house] : [])] : []
   const needsPick = !!result && result.ambiguous && !picked
   const districtLabel = (o: ZipOption) => o.district === '0' ? `${o.state} at-large` : `${o.state}-${o.district}`
+  const repHref = (id: string) => signedIn ? `/scorecards/${id}` : `/sign-up?redirect_url=/scorecards/${id}`
 
   return (
-    <section className="bg-[--bg] border-b border-[--border] bg-engraved">
-      <div className="max-w-6xl mx-auto px-5 pt-16 pb-14 md:pt-24 md:pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+    <section className="bg-[#0A2463] text-white">
+      <div className="max-w-6xl mx-auto px-5 pt-12 pb-14 md:pt-20 md:pb-20 grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-x-14 gap-y-8 items-center">
 
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[--gold-text] mb-5">
-              Independent · nonpartisan · built on Congress.gov data
-            </p>
-            <h1 className="font-serif text-[2.6rem] sm:text-6xl leading-[1.05] text-[--accent] mb-5">
-              Understand. Engage.<br />Make an <span className="text-[--gold-text]">impact</span>.
-            </h1>
-            <p className="text-lg text-[--text-secondary] leading-relaxed max-w-xl mb-8">
-              See the laws being passed, who&apos;s funding them, and how your representatives
-              actually vote — then add your voice.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3 mb-8">
-              <Link href={signedIn ? '/dashboard' : '/sign-up'}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-[--radius] bg-[--accent] text-white font-semibold hover:bg-[--accent-hover] transition-colors">
-                {signedIn ? 'Go to dashboard' : 'Get started'} <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link href="/bills"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-[--radius] border border-[--border-strong] text-[--accent] font-semibold hover:bg-[--surface-secondary] transition-colors">
-                Browse bills
-              </Link>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-[--text-muted]">
-              <span><span className="font-display font-bold text-[--accent]">{billCount.toLocaleString()}</span> bills tracked</span>
-              <span className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5" /> Official Congress.gov data</span>
-              <span className="flex items-center gap-1.5"><Scale className="w-3.5 h-3.5" /> Independent &amp; nonpartisan</span>
-            </div>
-          </div>
-
-          <div className="min-w-0">
-            <div className="bg-[--surface] rounded-2xl border border-[--border] shadow-[var(--shadow-md)] p-6 sm:p-7">
-              <h2 className="font-serif text-2xl text-[--accent] mb-1">Start with your address</h2>
-              <p className="text-sm text-[--text-secondary] mb-5">
-                Enter your ZIP to see who represents you in Congress right now.
-              </p>
-
-              <form onSubmit={lookup} className="flex gap-2 mb-2">
-                <label htmlFor="hero-zip" className="sr-only">ZIP code</label>
-                <input
-                  id="hero-zip" autoComplete="postal-code"
-                  inputMode="numeric" maxLength={5} value={zip}
-                  onChange={e => setZip(e.target.value.replace(/\D/g, ''))}
-                  placeholder="ZIP code"
-                  className="flex-1 min-w-0 px-4 py-3 rounded-[--radius] border border-[--border-strong] bg-[--surface] text-[--text] placeholder:text-[--text-muted] focus:outline-none focus:border-[--accent] focus:ring-2 focus:ring-[--accent]/20"
-                />
-                <button type="submit" disabled={loading}
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-[--radius] bg-[--accent] text-white font-semibold hover:bg-[--accent-hover] transition-colors disabled:opacity-60">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                  Find
-                </button>
-              </form>
-              {error && <p className="text-sm text-[--danger] mb-2">{error}</p>}
-
-              {/* This ZIP spans several districts, so there is no single right
-                  answer — ask instead of guessing. 21.6% of ZIPs land here, and
-                  109 of them cross a state line, which changes the senators too. */}
-              {needsPick && (
-                <div className="mt-4 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[--text-muted]">
-                    ZIP {result!.zip ?? zip} covers {result!.options.length} districts
-                  </p>
-                  <p className="text-[11px] text-[--text-muted] -mt-1">
-                    {result!.crossState
-                      ? 'It also crosses a state line, so your senators depend on which side you live on.'
-                      : 'Pick yours and we’ll show that delegation.'}
-                  </p>
-
-                  {/* Cross-state ZIP: both pairs are genuinely possible, so show
-                      both LABELLED rather than picking a state or showing none.
-                      Never merge them into one unlabelled list. */}
-                  {result!.crossState && result!.senatorsByState?.length > 0 && (
-                    <div className="pt-1 space-y-2">
-                      {result!.senatorsByState.map(group => (
-                        <div key={group.state}>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-[--text-muted] mb-1">
-                            If you live in {group.state} · senators
-                          </p>
-                          <div className="space-y-1.5">
-                            {group.senators.map(sen => (
-                              <Link key={sen.bioguideId}
-                                href={signedIn ? `/scorecards/${sen.bioguideId}` : `/sign-up?redirect_url=/scorecards/${sen.bioguideId}`}
-                                className="flex items-center gap-3 p-2.5 rounded-[--radius] bg-[--surface-secondary] hover:bg-[--surface-tertiary] transition-colors group">
-                                <RepAvatar bioguideId={sen.bioguideId} fullName={sen.fullName} party={sen.party} size="sm" />
-                                <span className="flex-1 min-w-0 text-sm font-medium text-[--text] truncate">{sen.fullName}</span>
-                                <span className="text-[10px] font-semibold" style={{ color: partyColor(sen.party) }}>
-                                  {(sen.party || '')[0]}
-                                </span>
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                      <p className="text-[10px] text-[--text-muted] pt-0.5">
-                        Pick your district below to confirm which set is yours.
-                      </p>
-                    </div>
-                  )}
-                  {result!.options.map(o => (
-                    <button key={`${o.state}-${o.district}`} type="button" onClick={() => setPicked(o)}
-                      className="w-full flex items-center gap-3 p-3 rounded-[--radius] bg-[--surface-secondary] hover:bg-[--surface-tertiary] transition-colors text-left">
-                      <span className="text-sm font-semibold text-[--text]">{districtLabel(o)}</span>
-                      <span className="flex-1 min-w-0 text-xs text-[--text-muted] truncate">
-                        {o.house ? o.house.fullName : 'House seat unmatched'}
-                      </span>
-                      <ArrowRight className="w-3.5 h-3.5 text-[--accent] shrink-0" />
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {reps.length > 0 && shown && (
-                <div className="mt-4 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[--text-muted]">
-                    Your delegation · {districtLabel(shown)}
-                    {picked && (
-                      <button type="button" onClick={() => setPicked(null)}
-                        className="ml-2 normal-case tracking-normal font-medium text-[--accent] hover:underline">
-                        change district
-                      </button>
-                    )}
-                  </p>
-                  {reps.map(rep => (
-                    <Link key={rep.bioguideId}
-                      href={signedIn ? `/scorecards/${rep.bioguideId}` : `/sign-up?redirect_url=/scorecards/${rep.bioguideId}`}
-                      className="flex items-center gap-3 p-3 rounded-[--radius] bg-[--surface-secondary] hover:bg-[--surface-tertiary] transition-colors group">
-                      <RepAvatar bioguideId={rep.bioguideId} fullName={rep.fullName} party={rep.party} size="md" />
-                      <span className="flex-1 min-w-0 text-sm font-medium text-[--text] truncate">{rep.fullName}</span>
-                      <span className="text-xs text-[--accent] font-semibold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                        See votes <ArrowRight className="w-3 h-3" />
-                      </span>
-                    </Link>
-                  ))}
-                  <p className="text-[11px] text-[--text-muted] pt-1">
-                    See how each one votes, who funds them, and where you agree.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
+        <div className="min-w-0 lg:col-start-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E8B33C] mb-4">
+            Independent · nonpartisan · public record
+          </p>
+          {/* text-white is explicit: the global h1 rule sets ink colour, which vanished on navy. */}
+          <h1 className="font-serif text-white text-[2.9rem] sm:text-6xl lg:text-7xl leading-[0.98] tracking-tight [text-wrap:balance]">
+            Your ZIP is <span className="text-[#C79A3E]">the key.</span>
+          </h1>
+          <p className="mt-5 text-lg text-[#B7C1D8] leading-relaxed max-w-md">
+            Five digits unlock your two senators, your House member, and the roll calls
+            they&apos;ve cast, straight from the public record.
+          </p>
         </div>
+
+        {/* Top-aligned beside the headline; centring it across both rows left
+            it floating low once the district list opened below the form. */}
+        <div className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-start lg:pt-10">
+          {/* 'turning' starts the key moving the moment Unlock is pressed, so the
+              lookup's network time reads as the key travelling, not a pause. */}
+          <KeyLock zip={zip} state={result ? 'unlocked' : loading ? 'turning' : 'idle'} className="w-full h-auto max-w-[620px] mx-auto" />
+        </div>
+
+        <div className="min-w-0 lg:col-start-1">
+          <form onSubmit={lookup} className="flex gap-2 max-w-md">
+            <label htmlFor="hero-zip" className="sr-only">ZIP code</label>
+            <input
+              id="hero-zip" autoComplete="postal-code"
+              inputMode="numeric" maxLength={5} value={zip}
+              onChange={e => onZipChange(e.target.value)}
+              placeholder="Your ZIP code"
+              className="flex-1 min-w-0 min-h-[52px] px-4 rounded-lg bg-white text-[#131A2C] text-xl font-mono tracking-[0.18em] placeholder:text-base placeholder:tracking-normal placeholder:font-sans placeholder:text-[#5F6B7E] focus:outline-none focus:ring-[3px] focus:ring-[#E8B33C]"
+            />
+            <button type="submit" disabled={loading}
+              className="inline-flex items-center gap-2 min-h-[52px] px-6 rounded-lg bg-[#E8B33C] text-[#1A1405] font-bold hover:bg-[#F2C352] transition-colors disabled:opacity-70">
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              Unlock
+            </button>
+          </form>
+          <p className="mt-2 text-sm text-[#B7C1D8]" aria-live="polite">
+            {error || (result ? '' : 'Each digit cuts one tooth of the key.')}
+          </p>
+
+          {/* This ZIP spans several districts, so there is no single right
+              answer — ask instead of guessing. 21.6% of ZIPs land here, and
+              109 of them cross a state line, which changes the senators too. */}
+          {needsPick && (
+            <div className="keylock-reveal mt-4 space-y-2 max-w-md" aria-live="polite">
+              <p className="font-semibold">
+                <span className="font-mono">{result!.zip ?? zip}</span> opens {result!.options.length} doors
+              </p>
+              <p className="text-sm text-[#B7C1D8]">
+                {result!.crossState
+                  ? 'It spans districts in more than one state, so your senators depend on which side you live on. Pick the district on your voter card.'
+                  : 'It spans several districts. Pick the one on your voter card; we won’t guess.'}
+              </p>
+              {result!.options.map(o => (
+                <button key={`${o.state}-${o.district}`} type="button" onClick={() => setPicked(o)}
+                  className="w-full flex items-center gap-3 min-h-[52px] px-4 rounded-lg bg-[#132E73] border border-white/25 hover:border-[#E8B33C] transition-colors text-left">
+                  <span className="font-mono text-sm min-w-[56px]">{districtLabel(o)}</span>
+                  <span className="flex-1 min-w-0 text-sm text-[#B7C1D8] truncate">
+                    {o.house ? o.house.fullName : 'House seat unmatched'}
+                  </span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                </button>
+              ))}
+
+              {/* Cross-state ZIP: both pairs are genuinely possible, so show
+                  both LABELLED rather than picking a state or showing none. */}
+              {result!.crossState && result!.senatorsByState?.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  {result!.senatorsByState.map(group => (
+                    <div key={group.state} className="rounded-lg border border-white/20 px-3 py-2.5 text-sm">
+                      <p className="font-mono text-[11px] tracking-wider text-[#B7C1D8] mb-1">IF {group.state}</p>
+                      {group.senators.map(s => <p key={s.bioguideId}>{s.fullName}</p>)}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {reps.length > 0 && shown && (
+            <div className="keylock-reveal mt-4 space-y-2 max-w-md">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#B7C1D8] flex items-center gap-2">
+                Your delegation · {districtLabel(shown)}
+                {picked && (
+                  <button type="button" onClick={() => setPicked(null)}
+                    className="normal-case tracking-normal font-medium text-[#E8B33C] hover:underline min-h-[44px]">
+                    change district
+                  </button>
+                )}
+              </p>
+              {reps.map(rep => (
+                <Link key={rep.bioguideId} href={repHref(rep.bioguideId)}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.06] border border-white/15 hover:border-[#E8B33C] transition-colors group">
+                  <RepAvatar bioguideId={rep.bioguideId} fullName={rep.fullName} party={rep.party} size="md" />
+                  <span className="flex-1 min-w-0 font-medium truncate">{rep.fullName}</span>
+                  <span className="text-xs text-[#E8B33C] font-semibold flex items-center gap-1">
+                    See votes <ArrowRight className="w-3 h-3" />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[#B7C1D8]">
+            <span><span className="font-semibold text-white tabular-nums">{billCount.toLocaleString()}</span> bills tracked · Congress.gov</span>
+            <Link href="/bills" className="inline-flex items-center gap-1 min-h-[44px] font-semibold text-white hover:text-[#E8B33C] transition-colors">
+              Browse bills <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+
       </div>
     </section>
   )

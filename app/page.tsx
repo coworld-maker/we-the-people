@@ -112,11 +112,12 @@ export default async function LandingPage() {
     <main className="min-h-screen bg-[--bg] text-[--text] selection:bg-[--accent] selection:text-white">
 
       {/* ── HEADER ──────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 px-4 sm:px-6 py-3 border-b border-[--border] bg-[--surface]/90 backdrop-blur-md">
+      {/* Navy to run straight into the key hero below it. */}
+      <header className="sticky top-0 z-50 px-4 sm:px-6 py-3 border-b border-white/15 bg-[#0A2463]/95 backdrop-blur-md">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
           <Link href="/" className="flex items-center gap-2 sm:gap-2.5 min-h-[44px] min-w-0 group hover:opacity-90 transition-opacity">
-            <Logo className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 text-[--accent]" decorative />
-            <span className="font-serif text-base sm:text-lg text-[--accent] tracking-tight whitespace-nowrap">
+            <Logo className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 text-[#F4F6FA]" decorative />
+            <span className="font-serif text-base sm:text-lg text-white tracking-tight whitespace-nowrap">
               Democracy Unlocked<span className="align-super text-[9px] ml-0.5">™</span>
             </span>
             {/* Hidden on phones: with it, the wordmark and the CTA both wrapped at 375px. */}
@@ -131,17 +132,17 @@ export default async function LandingPage() {
           <div className="flex items-center gap-3">
             {userId ? (
               <Link href="/dashboard"
-                className="inline-flex items-center min-h-[44px] px-4 sm:px-5 text-sm font-semibold whitespace-nowrap rounded-[--radius] bg-[--accent] text-white hover:bg-[--accent-hover] transition-colors"
+                className="inline-flex items-center min-h-[44px] px-4 sm:px-5 text-sm font-semibold whitespace-nowrap rounded-[--radius] bg-[#F4F6FA] text-[#0A2463] hover:bg-white transition-colors"
               >
                 Dashboard <ArrowRight className="hidden sm:block w-4 h-4 ml-1.5" />
               </Link>
             ) : (
               <>
-                <Link href="/sign-in" className="hidden sm:inline-flex items-center min-h-[44px] px-4 text-sm font-medium text-[--text-secondary] hover:text-[--accent] transition-colors">
+                <Link href="/sign-in" className="hidden sm:inline-flex items-center min-h-[44px] px-4 text-sm font-medium text-[#B7C1D8] hover:text-white transition-colors">
                   Log in
                 </Link>
                 <Link href="/sign-up"
-                  className="inline-flex items-center min-h-[44px] px-4 sm:px-5 text-sm font-semibold whitespace-nowrap rounded-[--radius] bg-[--accent] text-white hover:bg-[--accent-hover] transition-colors"
+                  className="inline-flex items-center min-h-[44px] px-4 sm:px-5 text-sm font-semibold whitespace-nowrap rounded-[--radius] bg-[#F4F6FA] text-[#0A2463] hover:bg-white transition-colors"
                 >
                   Get started <ArrowRight className="hidden sm:block w-4 h-4 ml-1.5" />
                 </Link>
