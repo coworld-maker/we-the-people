@@ -39,6 +39,18 @@ Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale mem
   shackle lifts, results fade in). Split enter/exit timing, transforms only, reduced-motion safe.
   Landing header is navy to match. Lookup/ask/cross-state logic unchanged.
 
+- `3377099` — after a four-voice design council review: hero a11y (one `role="status"`
+  region announces loading / district ask / delegation / errors; focus moves to the delegation
+  heading after a pick and back to the first option on "change district"; `aria-invalid` +
+  error #FFB4A8 8.5:1; result blocks `inert` while fading; cookie bar sets
+  `scroll-padding-bottom`). Logo redrawn as a SOLID Capitol dome (the colonnade strokes read as
+  jail bars); `Logo.tsx` exports `DOME_SHACKLE_PATH`/`KEYHOLE_PATH`, which `KeyLock.tsx` reuses.
+  Dropped the unsourced "all 537 members" (now "every current member of Congress").
+  **Open:** the key's bow in `KeyLock.tsx` is still the old stroked dome — match it to the
+  solid mark. **Tagline pending the user's pick** — council rejected "Understand your impact"
+  (it reasserts the personal-impact claim removed from the dashboard); top option
+  "Do your reps vote like you?", button "Find my reps".
+
 **UI redesign is back ON, at the user's request** — this supersedes the 2026-07-05 "cancelled / do
 not resume UI work" note below. Direction chosen by the user: the Capitol-dome lock as the mark and
 the ZIP-cut key as the hero (mockups: "The Lock Studies" → "The Dome and the Key").
