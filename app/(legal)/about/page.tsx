@@ -13,12 +13,15 @@ export const metadata: Metadata = {
  * claims here; edit FOUNDER with text they supplied.
  */
 const FOUNDER = {
-  name: '',          // supplied by the founder
+  name: 'Coleman Dumas IV',
   role: 'Founder',
-  // Square headshot in /public, e.g. '/founder.jpg'. Null hides the photo.
-  photo: null as string | null,
-  // 2–3 sentences, supplied by the founder.
-  bio: [] as string[],
+  // Square headshot in /public. Null hides the photo.
+  photo: '/founder.jpg' as string | null,
+  // DRAFT — awaiting the founder's edits before merge.
+  bio: [
+    "I'm Coleman Dumas IV, and I built Democracy Unlocked because the votes that shape our lives are public, yet finding them, and making sense of them, takes more time than most people have.",
+    'Every vote here comes from the official congressional record. Enter your ZIP, see what your representatives did, and decide for yourself whether they voted the way you would.',
+  ] as string[],
 }
 
 export default function AboutPage() {
