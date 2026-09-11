@@ -60,9 +60,13 @@ export default function CommandPalette() {
 
   // /api/search is signed-in only; a signed-out query would just 404, so
   // signed-out visitors get a sign-in prompt instead of a silent empty list.
+  // When Clerk loads we skip the request entirely. If it never loads (ad
+  // blocker, network, preview domains), the API's 401/404 answer triggers the
+  // same prompt, so nobody is left looking at an empty list.
   const { isLoaded, isSignedIn } = useAuth()
   const signedOut = isLoaded && !isSignedIn
-  const needsSignIn = signedOut && query.trim().length >= 2
+  const [authRequired, setAuthRequired] = useState(false)
+  const needsSignIn = (signedOut || authRequired) && query.trim().length >= 2
 
   // Flatten grouped results into one keyboard-navigable list
   const flat: Array<Result & { group: string }> = needsSignIn ? []
@@ -138,7 +142,11 @@ export default function CommandPalette() {
       abortRef.current = ctrl
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal })
-        if (res.ok) {
+        // 401 from the route's own check, 404 from the middleware's auth wall.
+        if (res.status === 401 || res.status === 404) {
+          setAuthRequired(true)
+          setResults(null)
+        } else if (res.ok) {
           setResults(await res.json())
           setActiveIndex(0)
         }
