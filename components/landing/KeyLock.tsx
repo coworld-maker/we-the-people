@@ -56,7 +56,8 @@ export default function KeyLock({
             placed so the base straddles the blade; keyhole is the logo's too. */}
         <g transform="translate(-32 -30) scale(5)" fill="#C79A3E">
           <path d={DOME_SHACKLE_PATH} />
-          <path d="M17 18.5h14V31H17z" />
+          {/* overlaps each leg by 1 unit — edge-to-edge left a hairline seam */}
+          <path d="M16 18.5h16V31H16z" />
         </g>
         <path transform="translate(-8 -46) scale(4)" d={KEYHOLE_PATH} fill="#0A2463" />
 
