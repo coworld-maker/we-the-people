@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import RepAvatar from '@/components/ui/RepAvatar'
-import KeyLock from '@/components/landing/KeyLock'
+import KeyLock, { LockGlyph } from '@/components/landing/KeyLock'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import type { RepVote } from '@/lib/data/repVotes'
 
@@ -266,9 +266,13 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
 
   return (
     <section className="bg-[#0A2463] text-white">
-      <div className="max-w-6xl mx-auto px-5 pt-12 pb-14 md:pt-20 md:pb-20 grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-x-14 gap-y-8 items-center">
+      <div className="max-w-6xl mx-auto px-5 pt-12 pb-14 md:pt-20 md:pb-20 grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-x-14 items-center">
 
-        <div className="min-w-0 lg:col-start-1">
+        {/* Narrow screens read top-down: headline → ZIP field → subhead →
+            hint/results, so the field sits in the first screen (~y 330 on a
+            375×812 phone). Wide screens put the subhead back above the form
+            (explicit lg rows) with the large key and lock in the right column. */}
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E8B33C] mb-4">
             Independent · nonpartisan · public record
           </p>
@@ -276,15 +280,13 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
           <h1 className="font-serif text-white text-[2.9rem] sm:text-6xl lg:text-7xl leading-[0.98] tracking-tight [text-wrap:balance]">
             See what <span className="text-[#C79A3E]">Congress</span> is doing.
           </h1>
-          <p className="mt-5 text-lg text-[#B7C1D8] leading-relaxed max-w-md">
-            Enter your ZIP to see your two senators and your House member, and how
-            they&apos;ve voted, straight from the public record.
-          </p>
         </div>
 
         {/* Top-aligned beside the headline; centring it across both rows left
             it floating low once the district list opened below the form. */}
-        <div className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-start lg:pt-10">
+        {/* Below 1024px this is replaced by a small LockGlyph beside the
+            results heading, so the ZIP field isn't pushed below the fold. */}
+        <div className="hidden lg:block min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-4 lg:self-start lg:pt-10">
           {/* 'turning' starts the key's single travel the moment the form is
               submitted; the lookup lands while it moves and the shackle lifts
               as it seats. After the first unlock the lock just shows its state. */}
@@ -294,7 +296,7 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
             className="w-full h-auto max-w-[620px] mx-auto" />
         </div>
 
-        <div className="min-w-0 lg:col-start-1">
+        <div className="min-w-0 mt-6 lg:mt-8 lg:col-start-1 lg:row-start-3">
           <p role="status" className="sr-only">{status}</p>
           <form onSubmit={lookup} aria-busy={loading} className="flex gap-2 max-w-md">
             <label htmlFor="hero-zip" className="sr-only">ZIP code</label>
@@ -314,6 +316,18 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
               Find my reps
             </button>
           </form>
+        </div>
+
+        {/* Two lines max on a phone, so the short copy there. */}
+        <p className="min-w-0 mt-4 lg:mt-5 lg:col-start-1 lg:row-start-2 text-base lg:text-lg text-[#B7C1D8] leading-relaxed max-w-md">
+          <span className="lg:hidden">Your senators and House member, and how they&apos;ve voted on bills.</span>
+          <span className="hidden lg:inline">
+            Enter your ZIP to see your two senators and your House member, and how
+            they&apos;ve voted, straight from the public record.
+          </span>
+        </p>
+
+        <div className="min-w-0 lg:col-start-1 lg:row-start-4">
           {/* Announced via the status region above, so no aria-live here.
               #FFB4A8 on the navy is 8.5:1. */}
           <p id="hero-zip-hint" className={`mt-2 text-sm ${error ? 'text-[#FFB4A8]' : 'text-[#B7C1D8]'}`}>
@@ -326,9 +340,12 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
           {needsPick && (
             <Reveal key={pickKey} immediate={revealNow} onShown={() => onRevealed(pickKey, 'options')}
               className="mt-4 space-y-2 max-w-md">
-              <p ref={optionsHeadingRef} tabIndex={-1} className="font-semibold scroll-mt-24 focus:outline-none">
-                <span className="font-mono">{result!.zip ?? zip}</span> opens {result!.options.length} doors
-              </p>
+              <div className="flex items-center gap-3">
+                <LockGlyph animate={!revealNow} className="lg:hidden w-12 h-12 shrink-0 text-[#F4F6FA]" />
+                <p ref={optionsHeadingRef} tabIndex={-1} className="font-semibold scroll-mt-24 focus:outline-none">
+                  <span className="font-mono">{result!.zip ?? zip}</span> opens {result!.options.length} doors
+                </p>
+              </div>
               <p className="text-sm text-[#B7C1D8]">
                 {result!.crossState
                   ? 'It spans districts in more than one state, so your senators depend on which side you live on. Pick the district on your voter card.'
@@ -406,6 +423,7 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
             <Reveal key={delegationKey} immediate={revealNow} onShown={() => onRevealed(delegationKey, 'delegation')}
               className="mt-4 space-y-2 max-w-md">
               <p className="text-xs font-semibold uppercase tracking-wider text-[#B7C1D8] flex items-center gap-2">
+                <LockGlyph animate={!revealNow} className="lg:hidden w-12 h-12 shrink-0 mr-1 text-[#F4F6FA]" />
                 <span ref={delegationHeadingRef} tabIndex={-1} role="heading" aria-level={2} className="scroll-mt-24 focus:outline-none">
                   Your delegation · {districtLabel(shown)}
                 </span>

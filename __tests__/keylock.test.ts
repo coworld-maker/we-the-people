@@ -1,5 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { keyLockLabel } from '@/components/landing/KeyLock'
+import { keyLockLabel, toothDepth } from '@/components/landing/KeyLock'
+
+describe('toothDepth', () => {
+  it('leaves a blank position uncut (not the biggest tooth)', () => {
+    expect(toothDepth(undefined)).toBe(0)
+    expect(toothDepth('')).toBe(0)
+  })
+
+  it('spans 14 (digit 0) to 58 (digit 9)', () => {
+    expect(toothDepth('0')).toBe(14)
+    expect(toothDepth('9')).toBe(58)
+  })
+
+  it('gives every digit a clearly different depth', () => {
+    const depths = '0123456789'.split('').map(toothDepth)
+    for (let i = 1; i < depths.length; i++) expect(depths[i] - depths[i - 1]).toBeGreaterThan(4.5)
+  })
+})
 
 describe('keyLockLabel', () => {
   it('does not claim a ZIP cut before anything is typed', () => {

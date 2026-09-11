@@ -4,26 +4,39 @@ import { useLayoutEffect, useRef } from 'react'
 import { DOME_SHACKLE_PATH, KEYHOLE_PATH } from '@/components/ui/Logo'
 
 /**
- * The landing hero's key and lock. The key's bow is the Capitol dome; each ZIP
- * digit cuts one tooth (blank = uncut, higher digit = deeper cut). On submit
- * the key slides all the way into the lock in one motion; when the lookup
- * succeeds the dome shackle lifts as the key seats.
+ * The landing hero's key and lock. The visitor holds the key: a plain round
+ * bow with a ring hole and a slim blade whose five teeth are cut from their
+ * ZIP digits. The Capitol dome appears only on the lock (the brand mark).
+ * On submit the key slides all the way into the lock in one motion; when the
+ * lookup succeeds the dome shackle lifts as the key seats.
  *
- * Every tooth is its own rect scaled from the blade edge, so re-cutting eases
- * in all browsers (a single morphing path only animates in some). Timings live
+ * Every tooth is its own trapezoid scaled from the blade edge, so re-cutting
+ * eases in all browsers (a single morphing path only animates in some).
+ * Before typing, faint ghost teeth show where the cuts will go. Timings live
  * in globals.css under `.keylock`.
  */
 
-const TEETH_X = [179, 241, 303, 365, 427] // left edge of each 62-wide tooth
-const TOOTH_W = 62
-const BLADE_BOTTOM = 112
-const FULL = 58 // an uncut tooth's depth below the blade
+const TEETH_X = [186, 246, 306, 366, 426] // left edge of each tooth slot
+const TOOTH_TOP = 56 // tooth width where it leaves the blade
+const TOOTH_BOTTOM_INSET = 14 // each angled side steps in this much by the tip
+const BLADE_BOTTOM = 105
+const FULL = 58 // deepest cut (digit 9); the tooth is drawn at this depth and scaled
+const SHALLOW = 14 // shallowest cut (digit 0)
+const GHOST = 30 // depth of the faint uncut tooth shown before a digit is typed
 /** When the shackle starts lifting, measured from the start of the key's travel. */
 const SHACKLE_START_S = 0.35
 
-function toothScale(digit: string | undefined): number {
-  if (digit == null || !/\d/.test(digit)) return 1
-  return (FULL - (Number(digit) + 1) * 5) / FULL
+/** Tooth depth in SVG units: 0 for a blank position, 14 (digit 0) to 58 (digit 9). */
+export function toothDepth(digit: string | undefined): number {
+  if (digit == null || !/^\d$/.test(digit)) return 0
+  return SHALLOW + (Number(digit) * (FULL - SHALLOW)) / 9
+}
+
+/** A tooth hanging from the blade, angled sides; overlaps the blade by 1 unit. */
+function toothPath(x: number, depth: number): string {
+  const inset = TOOTH_BOTTOM_INSET * (depth / FULL)
+  const top = BLADE_BOTTOM - 1
+  return `M${x} ${top}H${x + TOOTH_TOP}L${x + TOOTH_TOP - inset} ${BLADE_BOTTOM + depth}H${x + inset}z`
 }
 
 /** idle: resting · turning: lookup in flight, key travelling in · unlocked: seated, shackle up */
@@ -91,36 +104,42 @@ export default function KeyLock({
       aria-label={keyLockLabel(zip, state, ambiguous)}
     >
       <g className="keylock-key">
-        {/* bow: the brand mark's solid dome (Logo.tsx) with the gap between
-            its legs filled in, so the key's head is the same Capitol silhouette
-            as the lock and the nav mark — no stroked colonnade. Scaled 5x and
-            placed so the base straddles the blade; keyhole is the logo's too. */}
-        <g transform="translate(-32 -30) scale(5)" fill="#C79A3E">
-          <path d={DOME_SHACKLE_PATH} />
-          {/* overlaps each leg by 1 unit — edge-to-edge left a hairline seam */}
-          <path d="M16 18.5h16V31H16z" />
-        </g>
-        <path transform="translate(-8 -46) scale(4)" d={KEYHOLE_PATH} fill="#0A2463" />
+        {/* bow: a plain ring with a round hole, on the visitor's side */}
+        <path
+          fillRule="evenodd"
+          fill="#C79A3E"
+          d="M46 95a50 50 0 1 0 100 0a50 50 0 1 0-100 0zM62 95a16 16 0 1 0 32 0a16 16 0 1 0-32 0z"
+        />
+        {/* shoulder: joins bow to blade */}
+        <rect x="140" y="77" width="16" height="36" rx="3" fill="#C79A3E" />
 
-        {/* blade + tip */}
-        <path d="M138 78H508L530 95L508 112H138z" fill="#C79A3E" />
+        {/* blade + tip — slim, so it reads as a blade, not a platform */}
+        <path d="M150 85H510L530 95L510 105H150z" fill="#C79A3E" />
+
+        {/* ghost teeth: where the cuts will go, before a digit is typed */}
         {TEETH_X.map((x, i) => (
-          <rect
+          <path
+            key={`g${x}`}
+            className={`keylock-ghost${digits[i] ? ' is-cut' : ''}`}
+            d={toothPath(x, GHOST)}
+            fill="#C79A3E"
+            fillOpacity={0.3}
+          />
+        ))}
+        {TEETH_X.map((x, i) => (
+          <path
             key={x}
             className="keylock-tooth"
-            x={x}
-            y={BLADE_BOTTOM - 1}
-            width={TOOTH_W + (i < 4 ? 1 : 0)}
-            height={FULL + 1}
+            d={toothPath(x, FULL)}
             fill="#C79A3E"
-            style={{ transform: `scaleY(${toothScale(digits[i])})` }}
+            style={{ transform: `scaleY(${toothDepth(digits[i]) / FULL})` }}
           />
         ))}
         {TEETH_X.map((x, i) => (
           <text
             key={`d${x}`}
-            x={x + TOOTH_W / 2}
-            y="206"
+            x={x + TOOTH_TOP / 2}
+            y="196"
             textAnchor="middle"
             className="keylock-digit"
             fill={digits[i] ? '#FFFFFF' : '#B7C1D8'}
@@ -139,6 +158,26 @@ export default function KeyLock({
       {/* body — drawn after the key so the blade disappears into it */}
       <rect x="586" y="122" width="168" height="150" rx="12" fill="#F4F6FA" />
       <path transform="translate(554.8 28) scale(4.8)" d={KEYHOLE_PATH} fill="#0A2463" />
+    </svg>
+  )
+}
+
+/** The logo's lock body (Logo.tsx), drawn on the same 48-unit grid. */
+const GLYPH_BODY_PATH = 'M9.5 26h29a3 3 0 0 1 3 3v12.5a3 3 0 0 1-3 3h-29a3 3 0 0 1-3-3V29a3 3 0 0 1 3-3z'
+
+/**
+ * Small open lock for narrow screens, where the big illustration is hidden.
+ * It sits beside the results heading, so it only ever shows unlocked; with
+ * `animate` the dome shackle lifts as the results fade in.
+ */
+export function LockGlyph({ animate, className = '' }: { animate: boolean; className?: string }) {
+  return (
+    <svg viewBox="0 -6 48 51" aria-hidden="true" focusable="false"
+      className={`keylock-glyph${animate ? ' is-animated' : ''} ${className}`}>
+      <g className="keylock-glyph-shackle">
+        <path d={DOME_SHACKLE_PATH} fill="currentColor" />
+      </g>
+      <path fillRule="evenodd" fill="currentColor" d={GLYPH_BODY_PATH + KEYHOLE_PATH} />
     </svg>
   )
 }
