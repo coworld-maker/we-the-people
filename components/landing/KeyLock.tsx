@@ -50,14 +50,19 @@ export default function KeyLock({
       }
     >
       <g className="keylock-key">
-        {/* bow: the Capitol dome */}
-        <path d="M88 14v18" stroke="#8C6A22" strokeWidth="5" strokeLinecap="round" />
-        <path d="M20 160V108C20 60 50 32 88 32s68 28 68 76v52z" fill="#C79A3E" />
-        <path d="M58 96v52M88 84v64M118 96v52" stroke="#8C6A22" strokeWidth="3.5" strokeLinecap="round" opacity=".5" />
-        <circle cx="88" cy="118" r="11" fill="#0A2463" />
+        {/* bow: the brand mark's solid dome (Logo.tsx) with the gap between
+            its legs filled in, so the key's head is the same Capitol silhouette
+            as the lock and the nav mark — no stroked colonnade. Scaled 5x and
+            placed so the base straddles the blade; keyhole is the logo's too. */}
+        <g transform="translate(-32 -30) scale(5)" fill="#C79A3E">
+          <path d={DOME_SHACKLE_PATH} />
+          {/* overlaps each leg by 1 unit — edge-to-edge left a hairline seam */}
+          <path d="M16 18.5h16V31H16z" />
+        </g>
+        <path transform="translate(-8 -46) scale(4)" d={KEYHOLE_PATH} fill="#0A2463" />
 
         {/* blade + tip */}
-        <path d="M150 78H508L530 95L508 112H150z" fill="#C79A3E" />
+        <path d="M138 78H508L530 95L508 112H138z" fill="#C79A3E" />
         {TEETH_X.map((x, i) => (
           <rect
             key={x}
