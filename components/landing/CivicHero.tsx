@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import RepAvatar from '@/components/ui/RepAvatar'
-import KeyLock from '@/components/landing/KeyLock'
+import KeyLock, { LockGlyph } from '@/components/landing/KeyLock'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import type { RepVote } from '@/lib/data/repVotes'
 
@@ -32,20 +32,30 @@ interface LookupResult {
   senatorsByState: Array<{ state: string; senators: RepLite[] }>
 }
 
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
 /**
  * Fades results in behind the lock. While the delayed fade is still at
  * opacity 0 the block is `inert`, so Tab can't land on links nobody can see.
+ * `inert` also hides it from screen readers, so `onShown` fires once it is
+ * reachable — the parent defers the matching announcement and focus until
+ * then, so what is spoken and what can be reached arrive together.
  * `immediate` skips the delay (focus is being moved in right away).
  */
-function Reveal({ immediate, className, children }: { immediate: boolean; className: string; children: React.ReactNode }) {
-  const [hiding, setHiding] = useState(() =>
-    !immediate && !(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches))
+function Reveal({ immediate, onShown, className, children }: {
+  immediate: boolean; onShown: () => void; className: string; children: React.ReactNode
+}) {
+  const [hiding, setHiding] = useState(() => !immediate && !prefersReducedMotion())
   // Fallback in case animationend never fires (animations disabled elsewhere).
   useEffect(() => {
     if (!hiding) return
     const t = setTimeout(() => setHiding(false), 1500)
     return () => clearTimeout(t)
   }, [hiding])
+  const onShownRef = useRef(onShown)
+  onShownRef.current = onShown
+  useEffect(() => { if (!hiding) onShownRef.current() }, [hiding])
   return (
     <div className={`${immediate ? 'keylock-reveal-now' : 'keylock-reveal'} ${className}`} inert={hiding}
       onAnimationEnd={e => { if (e.target === e.currentTarget) setHiding(false) }}>
@@ -68,10 +78,21 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
   const [picked, setPicked] = useState<ZipOption | null>(null)
   // Once the visitor has picked, the blocks they move between skip the lock delay.
   const [hasPicked, setHasPicked] = useState(false)
+  // The unlock ceremony plays on the first successful lookup of the page view
+  // only; after that the lock just shows its state and results skip the delay.
+  const [ceremonyDone, setCeremonyDone] = useState(false)
+  // Which results block has finished revealing (see Reveal): its announcement
+  // waits for it, since screen readers can't reach an `inert` block.
+  const [revealedKey, setRevealedKey] = useState<string | null>(null)
   // Focus targets: picking unmounts the focused button, so focus is placed explicitly.
+  const zipInputRef = useRef<HTMLInputElement>(null)
   const delegationHeadingRef = useRef<HTMLSpanElement>(null)
+  const optionsHeadingRef = useRef<HTMLParagraphElement>(null)
   const firstOptionRef = useRef<HTMLButtonElement>(null)
-  const focusAfterRender = useRef<'delegation' | 'options' | null>(null)
+  // Placed once the target's Reveal is reachable.
+  const focusOnReveal = useRef<'delegation' | 'optionsHeading' | 'options' | null>(null)
+  // Set on a successful ZIP lookup: dismiss the keyboard, bring results into view.
+  const scrollToResults = useRef(false)
   // "Not sure which?" street-address lookup. The address lives only in this
   // component state: sent once in a POST body, never stored or put in a URL.
   const [addrOpen, setAddrOpen] = useState(false)
@@ -88,7 +109,7 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
 
   async function findByAddress(e: React.FormEvent) {
     e.preventDefault()
-    if (!result) return
+    if (!result || addrLoading) return
     const s = street.trim()
     if (!s) { setAddrMsg('Enter your street address, like 601 Broad St.'); streetRef.current?.focus(); return }
     setAddrLoading(true); setAddrMsg('')
@@ -117,12 +138,18 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
 
   async function lookup(e: React.FormEvent) {
     e.preventDefault()
+    // The button stays enabled while loading (disabling it drops focus to
+    // <body> in Safari/Firefox), so repeat submits are ignored here instead.
+    if (loading) return
     if (!/^\d{5}$/.test(zip)) { setError('Enter all five digits of your ZIP code.'); return }
     setLoading(true); setError(''); setResult(null); setPicked(null); setHasPicked(false); resetAddress()
+    setRevealedKey(null)
     try {
       const res = await fetch(`/api/landing/reps-by-zip?zip=${zip}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Lookup failed.')
+      focusOnReveal.current = data.ambiguous ? 'optionsHeading' : 'delegation'
+      scrollToResults.current = true
       setResult(data)
     } catch (err: any) {
       setError(err.message)
@@ -140,17 +167,42 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
   }
 
   function pickDistrict(o: ZipOption | null) {
-    focusAfterRender.current = o ? 'delegation' : 'options'
+    focusOnReveal.current = o ? 'delegation' : 'options'
     setHasPicked(true)
     setPicked(o)
   }
 
+  // A Reveal became reachable: let its announcement through and place any
+  // focus that was waiting on it (focusing inside an `inert` block fails).
+  function onRevealed(key: string, target: 'delegation' | 'options') {
+    setRevealedKey(key)
+    // Anything after the first reveal skips the ceremony.
+    setCeremonyDone(true)
+    const want = focusOnReveal.current
+    if (!want) return
+    const el = target === 'delegation'
+      ? (want === 'delegation' ? delegationHeadingRef.current : null)
+      : want === 'optionsHeading' ? optionsHeadingRef.current
+      : want === 'options' ? firstOptionRef.current : null
+    if (!el) return
+    focusOnReveal.current = null
+    el.focus({ preventScroll: true })
+  }
+
+  // After a successful lookup: dismiss the phone keyboard and bring the
+  // results heading into view (it clears the sticky header via scroll-mt).
   useEffect(() => {
-    const target = focusAfterRender.current
-    if (!target) return
-    focusAfterRender.current = null
-    ;(target === 'delegation' ? delegationHeadingRef : firstOptionRef).current?.focus()
-  }, [picked])
+    if (!result || !scrollToResults.current) return
+    scrollToResults.current = false
+    zipInputRef.current?.blur()
+    const heading = result.ambiguous ? optionsHeadingRef.current : delegationHeadingRef.current
+    if (!heading) return
+    // Skip the jump when the heading is already comfortably on screen (wide
+    // layouts): scrolling there would carry the lock out of view mid-unlock.
+    const r = heading.getBoundingClientRect()
+    if (r.top >= 96 && r.bottom <= window.innerHeight - 120) return
+    heading.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
+  }, [result])
 
   // An ambiguous ZIP has no correct delegation until the visitor picks a district.
   // Never fall back to options[0] — silently choosing is the bug this replaced.
@@ -190,23 +242,37 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
   })()
   const billCtaHref = (billId: string) => signedIn ? `/bills/${billId}` : `/sign-up?redirect_url=/bills/${billId}`
 
+  // Identify the results block on screen, so its announcement can wait for it.
+  const resultZip = result?.zip ?? zip
+  const pickKey = `pick:${resultZip}`
+  const delegationKey = shown ? `delegation:${resultZip}:${districtLabel(shown)}` : ''
+  // Later lookups and district switches skip the lock's delay.
+  const revealNow = hasPicked || ceremonyDone
+
   // The one live region. The visible hint blanks on success and the lock's
-  // aria-label isn't announced, so every outcome is spoken from here.
+  // aria-label isn't announced, so every outcome is spoken from here. Results
+  // are announced once their block is reachable (not while it is `inert`).
   const status = loading ? `Looking up ZIP ${zip}…`
     : error ? error
     : needsPick && addrLoading ? 'Finding your district from your address…'
     : needsPick && addrMsg ? addrMsg
-    : needsPick ? `ZIP ${result!.zip ?? zip} spans ${result!.options.length} districts. Choose yours below.`
+    : needsPick ? (revealedKey === pickKey
+      ? `ZIP ${resultZip} spans ${result!.options.length} districts. Choose yours below.` : '')
     : shown ? (reps.length > 0
-      ? `Your delegation for ${districtLabel(shown)}: ${reps.map(r => r.fullName).join(', ')}.`
+      ? (revealedKey === delegationKey
+        ? `Your delegation for ${districtLabel(shown)}: ${reps.map(r => r.fullName).join(', ')}.` : '')
       : `No members of Congress found for ${districtLabel(shown)}.`)
     : ''
 
   return (
     <section className="bg-[#0A2463] text-white">
-      <div className="max-w-6xl mx-auto px-5 pt-12 pb-14 md:pt-20 md:pb-20 grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-x-14 gap-y-8 items-center">
+      <div className="max-w-6xl mx-auto px-5 pt-12 pb-14 md:pt-20 md:pb-20 grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-x-14 items-center">
 
-        <div className="min-w-0 lg:col-start-1">
+        {/* Narrow screens read top-down: headline → ZIP field → subhead →
+            hint/results, so the field sits in the first screen (~y 330 on a
+            375×812 phone). Wide screens put the subhead back above the form
+            (explicit lg rows) with the large key and lock in the right column. */}
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#E8B33C] mb-4">
             Independent · nonpartisan · public record
           </p>
@@ -214,38 +280,54 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
           <h1 className="font-serif text-white text-[2.9rem] sm:text-6xl lg:text-7xl leading-[0.98] tracking-tight [text-wrap:balance]">
             See what <span className="text-[#C79A3E]">Congress</span> is doing.
           </h1>
-          <p className="mt-5 text-lg text-[#B7C1D8] leading-relaxed max-w-md">
-            Enter your ZIP to see your two senators and your House member, and how
-            they&apos;ve voted, straight from the public record.
-          </p>
         </div>
 
         {/* Top-aligned beside the headline; centring it across both rows left
             it floating low once the district list opened below the form. */}
-        <div className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-start lg:pt-10">
-          {/* 'turning' starts the key moving the moment Unlock is pressed, so the
-              lookup's network time reads as the key travelling, not a pause. */}
-          <KeyLock zip={zip} state={result ? 'unlocked' : loading ? 'turning' : 'idle'} className="w-full h-auto max-w-[620px] mx-auto" />
+        {/* Below 1024px this is replaced by a small LockGlyph beside the
+            results heading, so the ZIP field isn't pushed below the fold. */}
+        <div className="hidden lg:block min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-4 lg:self-start lg:pt-10">
+          {/* 'turning' starts the key's single travel the moment the form is
+              submitted; the lookup lands while it moves and the shackle lifts
+              as it seats. After the first unlock the lock just shows its state. */}
+          <KeyLock zip={zip}
+            state={result ? 'unlocked' : loading && !ceremonyDone ? 'turning' : 'idle'}
+            ambiguous={!!result?.ambiguous} instant={ceremonyDone}
+            className="w-full h-auto max-w-[620px] mx-auto" />
         </div>
 
-        <div className="min-w-0 lg:col-start-1">
+        <div className="min-w-0 mt-6 lg:mt-8 lg:col-start-1 lg:row-start-3">
           <p role="status" className="sr-only">{status}</p>
           <form onSubmit={lookup} aria-busy={loading} className="flex gap-2 max-w-md">
             <label htmlFor="hero-zip" className="sr-only">ZIP code</label>
             <input
-              id="hero-zip" autoComplete="postal-code"
+              id="hero-zip" ref={zipInputRef} autoComplete="postal-code"
               inputMode="numeric" maxLength={5} value={zip}
               onChange={e => onZipChange(e.target.value)}
               aria-invalid={!!error} aria-describedby="hero-zip-hint"
               placeholder="Your ZIP code"
               className="flex-1 min-w-0 min-h-[52px] px-4 rounded-lg bg-white text-[#131A2C] text-xl font-mono tracking-[0.18em] placeholder:text-base placeholder:tracking-normal placeholder:font-sans placeholder:text-[#5F6B7E] focus:outline-none focus:ring-[3px] focus:ring-[#E8B33C]"
             />
-            <button type="submit" disabled={loading}
-              className="inline-flex items-center gap-2 min-h-[52px] px-6 rounded-lg bg-[#E8B33C] text-[#1A1405] font-bold hover:bg-[#F2C352] transition-colors disabled:opacity-70">
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {/* aria-disabled, not disabled: a disabled button drops focus to
+                <body> in Safari/Firefox. lookup() ignores repeat submits. */}
+            <button type="submit" aria-disabled={loading}
+              className={`inline-flex items-center gap-2 min-h-[52px] px-6 rounded-lg bg-[#E8B33C] text-[#1A1405] font-bold hover:bg-[#F2C352] transition-colors ${loading ? 'opacity-70 cursor-wait' : ''}`}>
+              {loading && <Loader2 aria-hidden="true" className="w-4 h-4 motion-safe:animate-spin" />}
               Find my reps
             </button>
           </form>
+        </div>
+
+        {/* Two lines max on a phone, so the short copy there. */}
+        <p className="min-w-0 mt-4 lg:mt-5 lg:col-start-1 lg:row-start-2 text-base lg:text-lg text-[#B7C1D8] leading-relaxed max-w-md">
+          <span className="lg:hidden">Your senators and House member, and how they&apos;ve voted on bills.</span>
+          <span className="hidden lg:inline">
+            Enter your ZIP to see your two senators and your House member, and how
+            they&apos;ve voted, straight from the public record.
+          </span>
+        </p>
+
+        <div className="min-w-0 lg:col-start-1 lg:row-start-4">
           {/* Announced via the status region above, so no aria-live here.
               #FFB4A8 on the navy is 8.5:1. */}
           <p id="hero-zip-hint" className={`mt-2 text-sm ${error ? 'text-[#FFB4A8]' : 'text-[#B7C1D8]'}`}>
@@ -256,10 +338,14 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
               answer — ask instead of guessing. 21.6% of ZIPs land here, and
               109 of them cross a state line, which changes the senators too. */}
           {needsPick && (
-            <Reveal immediate={hasPicked} className="mt-4 space-y-2 max-w-md">
-              <p className="font-semibold">
-                <span className="font-mono">{result!.zip ?? zip}</span> opens {result!.options.length} doors
-              </p>
+            <Reveal key={pickKey} immediate={revealNow} onShown={() => onRevealed(pickKey, 'options')}
+              className="mt-4 space-y-2 max-w-md">
+              <div className="flex items-center gap-3">
+                <LockGlyph animate={!revealNow} className="lg:hidden w-12 h-12 shrink-0 text-[#F4F6FA]" />
+                <p ref={optionsHeadingRef} tabIndex={-1} className="font-semibold scroll-mt-24 focus:outline-none">
+                  <span className="font-mono">{result!.zip ?? zip}</span> opens {result!.options.length} doors
+                </p>
+              </div>
               <p className="text-sm text-[#B7C1D8]">
                 {result!.crossState
                   ? 'It spans districts in more than one state, so your senators depend on which side you live on. Pick the district on your voter card.'
@@ -279,7 +365,8 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
 
               {/* Don't know your district? Resolve it from a street address via
                   the Census geocoder, then pick it exactly as a click would. */}
-              <div className="pt-1">
+              {/* Wrapping row with a gap: the two links ran together on one line. */}
+              <div className="pt-1 flex flex-wrap items-center gap-x-5 gap-y-1">
                 {!addrOpen ? (
                   <button type="button" onClick={() => { setAddrOpen(true); setAddrMsg('') }}
                     aria-expanded={false} aria-controls="hero-addr-panel"
@@ -299,9 +386,9 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
                         placeholder="e.g. 601 Broad St"
                         className="flex-1 min-w-0 min-h-[48px] px-3 rounded-lg bg-white text-[#131A2C] placeholder:text-[#5F6B7E] focus:outline-none focus:ring-[3px] focus:ring-[#E8B33C]"
                       />
-                      <button type="submit" disabled={addrLoading}
-                        className="inline-flex items-center gap-2 min-h-[48px] px-4 rounded-lg bg-[#E8B33C] text-[#1A1405] font-bold text-sm hover:bg-[#F2C352] transition-colors disabled:opacity-70">
-                        {addrLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                      <button type="submit" aria-disabled={addrLoading}
+                        className={`inline-flex items-center gap-2 min-h-[48px] px-4 rounded-lg bg-[#E8B33C] text-[#1A1405] font-bold text-sm hover:bg-[#F2C352] transition-colors ${addrLoading ? 'opacity-70 cursor-wait' : ''}`}>
+                        {addrLoading && <Loader2 aria-hidden="true" className="w-4 h-4 motion-safe:animate-spin" />}
                         Find my district
                       </button>
                     </div>
@@ -334,9 +421,11 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
           )}
 
           {reps.length > 0 && shown && (
-            <Reveal immediate={hasPicked} className="mt-4 space-y-2 max-w-md">
+            <Reveal key={delegationKey} immediate={revealNow} onShown={() => onRevealed(delegationKey, 'delegation')}
+              className="mt-4 space-y-2 max-w-md">
               <p className="text-xs font-semibold uppercase tracking-wider text-[#B7C1D8] flex items-center gap-2">
-                <span ref={delegationHeadingRef} tabIndex={-1} role="heading" aria-level={2} className="focus:outline-none">
+                <LockGlyph animate={!revealNow} className="lg:hidden w-12 h-12 shrink-0 mr-1 text-[#F4F6FA]" />
+                <span ref={delegationHeadingRef} tabIndex={-1} role="heading" aria-level={2} className="scroll-mt-24 focus:outline-none">
                   Your delegation · {districtLabel(shown)}
                 </span>
                 {picked && (
