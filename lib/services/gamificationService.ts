@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { ON_THE_BILL, agrees, normalizeMemberPosition } from '@/lib/data/voteKinds'
 
 // ── LEVELS ──
 const LEVELS = [
@@ -264,7 +265,8 @@ export class GamificationService {
           id: `mm-${m.id}`,
           type: 'rep_mismatch',
           emoji: '⚡',
-          text: `${m.repName} voted ${m.position === 'Yea' ? 'YES' : 'NO'} on ${m.billType} ${m.billNumber} — opposite of you`,
+          // Stored lowercase: 'yea' === 'Yea' was false, so every item said "voted NO".
+          text: `${m.repName} voted ${normalizeMemberPosition(m.position) === 'yea' ? 'YES' : 'NO'} on ${m.billType} ${m.billNumber} — opposite of you`,
           billId: m.billId,
           date: m.createdAt.toISOString(),
           user: 'Your rep',
@@ -324,6 +326,7 @@ export class GamificationService {
       where: {
         billId: { in: votedBillIds },
         bioguideId: { in: repBioguideIds },
+        ...ON_THE_BILL, // a cloture or recommit vote isn't a stance on the bill
         ...(opts.since ? { createdAt: { gte: opts.since } } : {}),
       },
       include: { bill: { select: { id: true, billType: true, billNumber: true } } },
@@ -344,7 +347,8 @@ export class GamificationService {
       const myPos = userVoteMap.get(cv.billId)
       const repName = repNameMap.get(cv.bioguideId)
       if (!myPos || !repName) continue
-      const isMismatch = (myPos === 'yes' && cv.position === 'Nay') || (myPos === 'no' && cv.position === 'Yea')
+      // Positions are stored lowercase ('yea'/'nay'); the old 'Yea'/'Nay' check never fired.
+      const isMismatch = agrees(myPos, cv.position) === false
       if (!isMismatch) continue
       // One entry per bill, so the count reflects distinct bills, not roll calls.
       if (seenBills.has(cv.billId)) continue

@@ -85,7 +85,8 @@ export async function GET(
     // Recent congressional votes by anyone in this state's delegation
     stateBioguides.length > 0
       ? prisma.congressVote.findMany({
-          where: { bioguideId: { in: stateBioguides } },
+          // Votes on bills themselves only (lib/data/voteKinds.ts).
+          where: { bioguideId: { in: stateBioguides }, kind: 'passage' },
           orderBy: { votedAt: 'desc' },
           take: 10,
           select: {

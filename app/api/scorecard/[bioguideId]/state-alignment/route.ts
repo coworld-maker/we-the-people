@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
+import { ON_THE_BILL, latestPerMemberBill } from '@/lib/data/voteKinds'
 
 interface BillAlignment {
   billId: string
@@ -37,13 +38,14 @@ export async function GET(
   })
   if (!rep) return NextResponse.json({ error: 'Representative not found' }, { status: 404 })
 
-  // Pull the rep's roll-call votes (yea/nay only)
-  const memberVotes = await prisma.congressVote.findMany({
-    where: { bioguideId, position: { in: ['yea', 'nay'] } },
+  // The rep's yea/nay votes on bills themselves (not cloture/recommit), latest
+  // per bill — citizens here vote on the bill, so that's the only fair match.
+  const memberVotes = latestPerMemberBill(await prisma.congressVote.findMany({
+    where: { bioguideId, position: { in: ['yea', 'nay'] }, ...ON_THE_BILL },
     orderBy: { votedAt: 'desc' },
     take: 200,
-    select: { billId: true, position: true },
-  })
+    select: { bioguideId: true, billId: true, position: true, votedAt: true },
+  }))
 
   if (memberVotes.length === 0) {
     return NextResponse.json({

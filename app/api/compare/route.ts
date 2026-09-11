@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { UserService } from '@/lib/services/userService'
+import { ON_THE_BILL, latestPerMemberBill } from '@/lib/data/voteKinds'
 
 import { ABBR_TO_NAME as ABBR_TO_STATE } from '@/lib/utils/state-codes'
 
@@ -61,19 +62,22 @@ export async function GET(request: NextRequest) {
   const repBioguideIds = reps.map(r => r.bioguideId)
 
   // Fetch CongressVotes for these reps on bills the user voted on — no relations, join in memory
-  const congressVotes = await prisma.congressVote.findMany({
+  // Only roll calls that decided the bill itself — a cloture or recommit vote
+  // is not a position on the bill — and each member's latest such vote per bill.
+  const congressVotes = latestPerMemberBill(await prisma.congressVote.findMany({
     where: {
       bioguideId: { in: repBioguideIds },
       billId: { in: votedBillIds },
+      ...ON_THE_BILL,
     },
-  })
+  }))
 
   // Each rep's most recent roll calls, independent of what the user voted on.
   // The comparison above only covers bills the user has voted on, so without
   // this the card reads "No overlapping votes yet" and shows nothing — even
   // though we hold the member's full recorded history.
   const recentVotes = await prisma.congressVote.findMany({
-    where: { bioguideId: { in: repBioguideIds }, votedAt: { not: null } },
+    where: { bioguideId: { in: repBioguideIds }, votedAt: { not: null }, ...ON_THE_BILL },
     orderBy: { votedAt: 'desc' },
     take: repBioguideIds.length * 12,
     include: {
