@@ -220,6 +220,7 @@ export default async function LandingPage() {
             <span className="font-display text-sm font-semibold text-[--text-secondary]">Democracy Unlocked<span className="align-super text-[8px] ml-0.5">™</span></span>
           </div>
           <nav className="flex items-center gap-2 text-sm font-medium text-[--text-muted]">
+            <Link href="/about" className="inline-flex items-center min-h-[44px] px-2 hover:text-[--accent] transition-colors">About</Link>
             <Link href="/privacy" className="inline-flex items-center min-h-[44px] px-2 hover:text-[--accent] transition-colors">Privacy</Link>
             <Link href="/terms" className="inline-flex items-center min-h-[44px] px-2 hover:text-[--accent] transition-colors">Terms</Link>
           </nav>
