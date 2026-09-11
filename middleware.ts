@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 
 const isPublicRoute = createRouteMatcher([
   '/',                          // landing page
+  '/privacy',                   // legal pages must be readable signed out
+  '/terms',
+  '/about',                     // founder page
   '/sign-in(.*)',               // CRITICAL: prevents redirect loop on mobile Safari
   '/sign-up(.*)',               // CRITICAL: prevents redirect loop on mobile Safari
   '/bills',                     // bills list — public for SEO
