@@ -157,6 +157,55 @@ function normalizePosition(raw: string): string | null {
   return null;
 }
 
+type VoteRow = {
+  bioguideId: string; billId: string; position: string; chamber: 'House' | 'Senate';
+  rollNumber: number; congress: string; session: number; votedAt: Date;
+  question: string | null; kind: string | null;
+};
+
+// One INSERT per roll call instead of one per member. ~435 sequential
+// round-trips per House roll call made restoring a few hundred roll calls take
+// hours and blew past Vercel's 300s limit. One row per member per ROLL CALL,
+// not per bill: a bill's cloture, recommit and passage votes are different votes.
+async function upsertRollCallVotes(rows: VoteRow[]): Promise<number> {
+  // A member appears once per roll call; dedupe defensively, because Postgres
+  // rejects an ON CONFLICT upsert that touches the same row twice.
+  const unique = [...new Map(rows.map(r => [r.bioguideId, r])).values()];
+  if (unique.length === 0) return 0;
+  const params: unknown[] = [];
+  const tuples = unique.map((r, i) => {
+    const b = i * 11;
+    params.push(makeId(), r.bioguideId, r.billId, r.position, r.chamber, r.rollNumber, r.congress, r.session, r.votedAt, r.question, r.kind);
+    return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6}, $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10}, $${b + 11}, NOW())`;
+  });
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "CongressVote"
+       (id, "bioguideId", "billId", position, chamber, "rollNumber", congress, session, "votedAt", question, kind, "createdAt")
+     VALUES ${tuples.join(', ')}
+     ON CONFLICT ("bioguideId", chamber, congress, session, "rollNumber")
+     DO UPDATE SET
+       position = EXCLUDED.position,
+       "billId" = EXCLUDED."billId",
+       "votedAt" = EXCLUDED."votedAt",
+       question = COALESCE(EXCLUDED.question, "CongressVote".question),
+       kind = COALESCE(EXCLUDED.kind, "CongressVote".kind)`,
+    ...params,
+  );
+  return unique.length;
+}
+
+// In `rolls` (restore) mode: roll numbers already stored with (nearly) full
+// membership, so a retried batch moves on instead of redoing finished work.
+async function completeRollNumbers(chamber: 'House' | 'Senate', congress: number, session: number): Promise<Set<number>> {
+  const min = chamber === 'House' ? 400 : 95;
+  const groups = await prisma.congressVote.groupBy({
+    by: ['rollNumber'],
+    where: { congress: String(congress), session, chamber },
+    _count: { _all: true },
+  });
+  return new Set(groups.filter(g => g.rollNumber != null && g._count._all >= min).map(g => g.rollNumber as number));
+}
+
 function makeId(): string {
   return `cv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -219,6 +268,7 @@ export async function POST(req: NextRequest) {
       });
       highWaterMark = hwmRow._max.rollNumber ?? 0;
       let skippedAsAlreadySynced = 0;
+      const completeRolls = forceRolls.size > 0 ? await completeRollNumbers('House', congress, session) : new Set<number>();
 
       let offset = 0;
 
@@ -251,6 +301,7 @@ export async function POST(req: NextRequest) {
             vote.rollCallNumber ?? vote.rollNumber ?? vote.roll_number;
           if (forceRolls.size > 0) {
             if (!forceRolls.has(candidateRoll)) continue;
+            if (completeRolls.has(candidateRoll)) { skippedAsAlreadySynced++; continue; }
           } else if (candidateRoll && (alreadySynced.has(candidateRoll) || candidateRoll <= highWaterMark)) {
             skippedAsAlreadySynced++;
             continue;
@@ -323,38 +374,17 @@ export async function POST(req: NextRequest) {
 
             const voteDate = vote.startDate ? new Date(vote.startDate) : new Date();
 
+            const rows: VoteRow[] = [];
             for (const member of members) {
               const bioguideId = member.bioguideID ?? member.bioguideId ?? member.bioGuideId;
               const position = normalizePosition(member.voteCast ?? member.votePosition ?? member.vote ?? '');
               if (!bioguideId || !position) continue;
-
-              // One row per member per ROLL CALL, not per bill: a bill's
-              // recommit, previous-question and passage votes are different votes.
-              await prisma.$executeRawUnsafe(
-                `INSERT INTO "CongressVote"
-                   (id, "bioguideId", "billId", position, chamber, "rollNumber", congress, session, "votedAt", question, kind, "createdAt")
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
-                 ON CONFLICT ("bioguideId", chamber, congress, session, "rollNumber")
-                 DO UPDATE SET
-                   position = EXCLUDED.position,
-                   "billId" = EXCLUDED."billId",
-                   "votedAt" = EXCLUDED."votedAt",
-                   question = COALESCE(EXCLUDED.question, "CongressVote".question),
-                   kind = COALESCE(EXCLUDED.kind, "CongressVote".kind)`,
-                makeId(),
-                bioguideId,
-                bill.id,
-                position,
-                'House',
-                rollNumber,
-                String(congress),
-                session,
-                voteDate,
-                question,
-                kind
-              );
-              totalMemberVotesSynced++;
+              rows.push({
+                bioguideId, billId: bill.id, position, chamber: 'House', rollNumber,
+                congress: String(congress), session, votedAt: voteDate, question, kind,
+              });
             }
+            totalMemberVotesSynced += await upsertRollCallVotes(rows);
           } catch (err) {
             const msg = `Roll ${rollNumber}: ${String(err)}`;
             errors.push(msg);
@@ -398,6 +428,7 @@ export async function POST(req: NextRequest) {
       const senateVotes = senateVotesAll.slice(senateOffset);
       sampleRawDates = rawDateSamples;
       let senateProcessed = 0;
+      const completeSenate = forceRolls.size > 0 ? await completeRollNumbers('Senate', congress, session) : new Set<number>();
 
       for (const vote of senateVotes) {
         if (senateProcessed >= maxVotes) break;
@@ -408,6 +439,7 @@ export async function POST(req: NextRequest) {
         // asked for explicitly (restoring overwritten roll calls).
         if (forceRolls.size > 0) {
           if (!forceRolls.has(rollNumber)) continue;
+          if (completeSenate.has(rollNumber)) continue;
         } else if (alreadySynced.has(rollNumber)) continue;
         senateProcessed++;
         rollCallsProcessed++;
@@ -451,6 +483,7 @@ export async function POST(req: NextRequest) {
           let m;
           const voteDate = date ? new Date(date) : new Date();
 
+          const rows: VoteRow[] = [];
           while ((m = memberRegex.exec(xml)) !== null) {
             const block = m[1];
             const get = (tag: string) => block.match(new RegExp(`<${tag}>(.*?)<\/${tag}>`))?.[1]?.trim() || '';
@@ -460,32 +493,12 @@ export async function POST(req: NextRequest) {
             const bioguideId = (lastName && state) ? (senatorNameMap.get(`${lastName}_${state}`) ?? '') : '';
             const position = normalizePosition(get('vote_cast'));
             if (!bioguideId || !position) continue;
-
-            await prisma.$executeRawUnsafe(
-              `INSERT INTO "CongressVote"
-                 (id, "bioguideId", "billId", position, chamber, "rollNumber", congress, session, "votedAt", question, kind, "createdAt")
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
-               ON CONFLICT ("bioguideId", chamber, congress, session, "rollNumber")
-               DO UPDATE SET
-                 position = EXCLUDED.position,
-                 "billId" = EXCLUDED."billId",
-                 "votedAt" = EXCLUDED."votedAt",
-                 question = COALESCE(EXCLUDED.question, "CongressVote".question),
-                 kind = COALESCE(EXCLUDED.kind, "CongressVote".kind)`,
-              makeId(),
-              bioguideId,
-              bill.id,
-              position,
-              'Senate',
-              rollNumber,
-              String(congress),
-              session,
-              voteDate,
-              question,
-              kind
-            );
-            totalMemberVotesSynced++;
+            rows.push({
+              bioguideId, billId: bill.id, position, chamber: 'Senate', rollNumber,
+              congress: String(congress), session, votedAt: voteDate, question, kind,
+            });
           }
+          totalMemberVotesSynced += await upsertRollCallVotes(rows);
         } catch (err) {
           errors.push(`Senate roll ${rollNumber}: ${String(err)}`);
         }

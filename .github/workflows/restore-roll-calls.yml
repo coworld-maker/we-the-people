@@ -17,8 +17,13 @@ on:
     paths: ['.github/workflows/restore-roll-calls.yml']
   workflow_dispatch:
 
+# Pass 2 (2026-09-11): pass 1 wrote one row per request and its 40-roll
+# batches ran past Vercel's 300s limit. The sync now writes a roll call in one
+# statement and skips roll calls already complete, so this pass re-sends the
+# same lists and only fills what's still missing. Separate group so it doesn't
+# queue behind pass 1.
 concurrency:
-  group: restore-roll-calls
+  group: restore-roll-calls-pass2
   cancel-in-progress: false
 
 jobs:
@@ -26,6 +31,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
+      - name: Wait for the batched-upsert build to be live
+        run: sleep 240
       - name: POST /api/sync-congress-votes with explicit roll lists
         run: |
           call() { # chamber session "comma,separated,rolls"
