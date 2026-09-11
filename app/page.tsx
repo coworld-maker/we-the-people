@@ -1,8 +1,6 @@
 import Link from 'next/link'
 import { auth } from '@clerk/nextjs/server'
-import {
-  Vote, BarChart3, ArrowRight, FileText, DollarSign, BookOpen,
-} from 'lucide-react'
+import { Vote, ArrowRight, Landmark, Scale } from 'lucide-react'
 import CivicHero from '@/components/landing/CivicHero'
 import MoneyStrip, { type MoneyStripData } from '@/components/landing/MoneyStrip'
 import { getLobbyingForBill } from '@/lib/api/lda'
@@ -11,35 +9,26 @@ import Logo from '@/components/ui/Logo'
 import CookieConsent from '@/components/legal/CookieConsent'
 
 // ── STATIC DATA ──────────────────────────────────────────────────────────────
-// Three questions a citizen actually asks, in the order they ask them — rather
-// than six capabilities of equal visual weight, where nothing is emphasised.
-// The middle one is the differentiator and is deliberately in the middle,
-// where the eye lands. "Civic Score / earn badges" is gone: gamification read
-// as a different product next to a nonpartisan accountability tool, and the
-// substantive thing underneath it (your record vs. your reps) is question 3.
-const FEATURES = [
+// One section, three steps, in the order the product is actually used — and
+// leading with the differentiator (your votes next to your reps' real votes),
+// not the summaries. Summaries and lobbying disclosures are supporting facts.
+// Every sentence here must be literally true of the product: no headcounts
+// (the true figure moves with vacancies), no "AI" in a heading.
+const STEPS = [
   {
-    icon: FileText,
-    title: 'What does this bill actually do?',
-    desc: 'Every bill in plain English — the problem, the proposal, and who it affects. Official text from Congress.gov, always one click away.',
-    accent: 'text-[--accent]',
-    bg: 'bg-[--accent-light]',
+    icon: Landmark,
+    title: 'See how your representatives voted',
+    desc: 'Real roll-call votes from the House Clerk and Senate records, on bills that each link to their official text on Congress.gov.',
   },
   {
-    icon: DollarSign,
-    title: 'Who’s paying for it?',
-    desc: 'The organizations lobbying each bill, from Senate disclosures — plus the donor employers behind its sponsors, from FEC filings.',
-    accent: 'text-[--gold-text]',
-    bg: 'bg-[--gold-light]',
+    icon: Vote,
+    title: 'Cast your own vote',
+    desc: 'Take a position on the same bills. Alongside each: a plain-English summary, and any Senate lobbying disclosures filed on it.',
   },
   {
-    icon: BarChart3,
-    title: 'How did my representative vote?',
-    // No hard-coded headcount: "537" had no source and was wrong (535 voting
-    // members, 541 with delegates), and the true figure moves with vacancies.
-    desc: 'Real roll-call records for every current member of Congress. Cast your own position and see where you and your reps actually agree.',
-    accent: 'text-emerald-700',
-    bg: 'bg-emerald-50',
+    icon: Scale,
+    title: 'See where you agree',
+    desc: 'Your votes next to theirs, bill by bill — where you line up, and where you don’t.',
   },
 ]
 
@@ -160,89 +149,64 @@ export default async function LandingPage() {
           filings, named. Renders nothing if we have no verified count. */}
       <MoneyStrip data={moneyStrip} />
 
-      {/* ── BENTO GRID ─────────────────────────────────────────────────── */}
-      <section className="py-24 px-6 bg-[--bg] bg-engraved">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="font-display text-4xl sm:text-5xl font-extrabold text-[--text] tracking-tight mb-4">
-              A dashboard for democracy.
-            </h2>
-            <p className="text-xl text-[--text-secondary] max-w-2xl mx-auto">
-              Official sources, plain English, and the money behind every bill.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {FEATURES.map((feat, i) => (
-              <div
-                key={feat.title}
-                className={`card p-8 hover:border-[--accent] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group rise-in rise-in-${i + 1}`}
-              >
-                <div className={`w-12 h-12 ${feat.bg} rounded-xl flex items-center justify-center mb-5 group-hover:scale-105 transition-transform`}>
-                  <feat.icon className={`w-6 h-6 ${feat.accent}`} />
-                </div>
-                <h3 className="font-display text-xl font-bold mb-2 text-[--text]">{feat.title}</h3>
-                <p className="text-[--text-secondary] leading-relaxed">{feat.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── HOW IT WORKS ───────────────────────────────────────────────── */}
-      <section className="py-24 px-6 bg-[--surface-secondary]">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="font-display text-4xl sm:text-5xl font-extrabold text-[--text] tracking-tight mb-4">
-              Three steps to civic power.
+      {/* One section, composed like a document rather than a bento grid: serif
+          heading on the left, a numbered list on the right. Numbering is kept
+          because the order is real — you need their votes before a comparison
+          means anything. One icon treatment throughout (navy on a navy tint). */}
+      <section aria-labelledby="how-it-works" className="py-20 sm:py-24 px-6 bg-[--bg]">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
+          <div className="lg:col-span-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[--gold-text] mb-4">
+              How it works
+            </p>
+            <h2 id="how-it-works" className="font-serif font-normal text-3xl sm:text-4xl lg:text-[2.75rem] leading-[1.15] tracking-tight text-[--accent] text-balance">
+              Your votes, next to the votes that count.
             </h2>
-            <p className="text-xl text-[--text-secondary] max-w-2xl mx-auto">
-              No jargon. No spin. Just you and the legislation.
+            <p className="mt-5 text-lg text-[--text-secondary] leading-relaxed max-w-md">
+              Vote on the same bills Congress votes on, and see how your record compares
+              with the people who represent you.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { icon: BookOpen,  step: '01', title: 'Read',    desc: 'AI breaks down complex legislation into clear, plain-language summaries with balanced pros and cons.' },
-              { icon: Vote,      step: '02', title: 'Vote',    desc: 'Cast your position on real Congressional bills. Track your history and see how your views evolve.' },
-              { icon: BarChart3, step: '03', title: 'Compare', desc: 'See your alignment score with your elected representatives based on actual roll call votes.' },
-            ].map(item => (
-              <div key={item.title} className="relative card p-8 group hover:border-[--accent] transition-all">
-                <span className="absolute -top-3 -left-3 w-8 h-8 bg-[--accent] text-white text-xs font-bold rounded-full flex items-center justify-center font-display shadow-md">
-                  {item.step}
+          <ol className="lg:col-span-7 border-t border-[--border]">
+            {STEPS.map((step, i) => (
+              <li key={step.title} className="flex gap-5 sm:gap-6 py-7 border-b border-[--border]">
+                <span className="font-serif text-2xl leading-none text-[--gold-text] w-6 shrink-0 pt-1 tabular-nums" aria-hidden="true">
+                  {i + 1}
                 </span>
-                <div className="w-12 h-12 bg-[--accent-light] rounded-xl flex items-center justify-center mb-5 group-hover:scale-105 transition-transform">
-                  <item.icon className="w-6 h-6 text-[--accent]" />
+                <div className="min-w-0">
+                  <h3 className="flex items-center gap-3 font-serif font-normal text-xl sm:text-2xl leading-snug text-[--text]">
+                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[--accent-light] shrink-0" aria-hidden="true">
+                      <step.icon className="w-[18px] h-[18px] text-[--accent]" />
+                    </span>
+                    {step.title}
+                  </h3>
+                  <p className="mt-2 text-[--text-secondary] leading-relaxed max-w-xl">{step.desc}</p>
                 </div>
-                <h3 className="font-display text-xl font-bold text-[--text] mb-2">{item.title}</h3>
-                <p className="text-[--text-secondary] leading-relaxed">{item.desc}</p>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
       {/* ── CTA ────────────────────────────────────────────────────────── */}
-      <section className="py-24 px-6 bg-[--bg]">
-        <div className="max-w-6xl mx-auto hero-gradient rounded-[2.5rem] p-10 sm:p-16 text-center relative overflow-hidden shadow-2xl">
-          {/* Texture overlay */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E")`,
-            }}
-          />
-          <div className="relative z-10 max-w-3xl mx-auto">
-            <h2 className="font-display text-4xl sm:text-5xl font-extrabold text-white mb-6 tracking-tight leading-tight">
-              Ready to take your seat at the table?
+      {/* Flat navy, like the hero. No gradient: blue→red read as the two
+          parties. White on #0A2463 is ~14:1; #C8D0E2 sub-line is ~10:1. */}
+      <section className="px-6 pb-20 sm:pb-24 bg-[--bg]">
+        <div className="max-w-6xl mx-auto rounded-2xl bg-[#0A2463] px-8 py-14 sm:px-16 sm:py-20">
+          <div className="max-w-3xl">
+            <h2 className="font-serif font-normal text-3xl sm:text-4xl lg:text-5xl leading-[1.15] tracking-tight text-white text-balance">
+              See how often your representatives vote the way you would.
             </h2>
-            <p className="text-xl text-white/80 mb-10">
-              Free, private, and fiercely nonpartisan.
+            <p className="mt-5 text-lg text-[#C8D0E2]">
+              Free to use, with every vote drawn from the official congressional record.
             </p>
             <Link
               href={userId ? '/dashboard' : '/sign-up'}
-              className="inline-flex items-center justify-center px-8 py-4 text-lg font-bold rounded-full bg-white text-[--accent] hover:scale-105 hover:bg-white/95 transition-all shadow-xl"
+              className="mt-9 inline-flex items-center justify-center min-h-[48px] px-7 text-base font-semibold rounded-[--radius] bg-[#E8B33C] text-[#0A2463] hover:bg-[#F0C35A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-colors"
             >
-              Get Started — It&apos;s Free <ArrowRight className="w-5 h-5 ml-2" />
+              Get started — it&rsquo;s free <ArrowRight className="w-5 h-5 ml-2" aria-hidden="true" />
             </Link>
           </div>
         </div>
