@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkSyncAuth } from '@/lib/auth/syncAuth';
-import { classifyVote } from '@/lib/data/voteKinds';
+import { classifyVote, isBillType, parseLegisNum } from '@/lib/data/voteKinds';
 
 const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY;
 const BASE_URL = 'https://api.congress.gov/v3';
@@ -71,18 +71,23 @@ async function fetchHouseMemberVotes(congress: number, session: number, rollNumb
   return res.json();
 }
 
-// House: the question voted on ("On Passage", "On Motion to Recommit", …) from
-// the Clerk's public roll-call XML. Congress.gov's list endpoint doesn't carry
-// it, and without it a procedural vote gets stored as a vote on the bill.
-// Returns null rather than throwing: an unknown question is stored as unknown.
-async function fetchHouseQuestion(congress: number, session: number, rollNumber: number): Promise<string | null> {
+// House: from the Clerk's public roll-call XML, the question voted on ("On
+// Passage", "On Motion to Recommit", …) and <legis-num>, the bill it concerns.
+// Congress.gov's list carries neither reliably: no question at all, and for
+// amendment votes it names the amendment, not the bill. Returns null rather
+// than throwing: an unknown question is stored as unknown.
+type ClerkInfo = { question: string | null; legisNum: string | null };
+async function fetchHouseClerkInfo(congress: number, session: number, rollNumber: number): Promise<ClerkInfo | null> {
   const year = congressSessionYear(congress, session);
   const url = `https://clerk.house.gov/evs/${year}/roll${String(rollNumber).padStart(3, '0')}.xml`;
   try {
     const res = await fetch(url, { next: { revalidate: 0 } });
     if (!res.ok) return null;
     const xml = await res.text();
-    return xml.match(/<vote-question>([^<]*)<\/vote-question>/)?.[1]?.trim() || null;
+    return {
+      question: xml.match(/<vote-question>([^<]*)<\/vote-question>/)?.[1]?.trim() || null,
+      legisNum: xml.match(/<legis-num>([^<]*)<\/legis-num>/)?.[1]?.trim() || null,
+    };
   } catch {
     return null;
   }
@@ -321,14 +326,23 @@ export async function POST(req: NextRequest) {
             debugSamples.push({ rollNumber, keys: Object.keys(vote), legType, legNumber, voteType: vote.voteType ?? vote.type });
           }
 
-          if (!rollNumber || !legType || !legNumber) continue;
-          rollCallsWithBillRef++;
+          if (!rollNumber) continue;
 
-          const billType = legType;
-          const billNumber = legNumber;
+          // Amendment votes: Congress.gov's reference is the amendment (not a
+          // bill type we store), so the lookup below found nothing and the roll
+          // call was skipped. The Clerk's record names the bill being amended.
+          let billType = legType;
+          let billNumber = legNumber;
+          let clerk: ClerkInfo | null = null;
+          if (!isBillType(billType) || !billNumber) {
+            clerk = await fetchHouseClerkInfo(congress, session, rollNumber);
+            const fromClerk = parseLegisNum(clerk?.legisNum);
+            if (fromClerk) ({ billType, billNumber } = fromClerk);
+          }
           const billCongress = String(vote.congress ?? congress);
 
           if (!billType || !billNumber) continue;
+          rollCallsWithBillRef++;
 
           // Look up this bill in our DB
           const bill = await prisma.bill.findFirst({
@@ -338,7 +352,7 @@ export async function POST(req: NextRequest) {
 
           if (!bill) continue;
           rollCallsMatched++;
-          const question = await fetchHouseQuestion(congress, session, rollNumber);
+          const question = (clerk ?? await fetchHouseClerkInfo(congress, session, rollNumber))?.question ?? null;
           const kind = classifyVote(question, bill.title);
 
           // Fetch member votes for this roll call
