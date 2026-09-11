@@ -1,4 +1,4 @@
-import { UserButton } from '@clerk/nextjs'
+import { SignedIn, UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
 import PageTransition from '@/components/ui/PageTransition'
@@ -44,7 +44,11 @@ export default function DashboardLayout({
             {/* Search + Notification bell + Avatar */}
             <div className="shrink-0 flex items-center gap-2">
               <SearchButton />
-              <NotificationBell />
+              {/* Signed-in only: /api/notifications is protected, so for a
+                  signed-out visitor on a public page the fetch just 404s. */}
+              <SignedIn>
+                <NotificationBell />
+              </SignedIn>
               <UserButton
                 afterSignOutUrl="/"
                 appearance={{ elements: { avatarBox: 'w-8 h-8' } }}
