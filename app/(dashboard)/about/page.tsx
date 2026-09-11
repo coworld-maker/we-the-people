@@ -2,6 +2,7 @@ import {
   Vote, BookOpen, BarChart3, Shield, Lock, Eye,
   Scale, Heart, Code, ArrowRight, CheckCircle2, ExternalLink,
 } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 
 export const metadata = {
@@ -25,6 +26,33 @@ export default function AboutPage() {
           engage with, and influence the legislation that shapes their lives.
         </p>
       </div>
+
+      {/* Meet the founder — the founder's own words. Don't add claims here. */}
+      <section aria-labelledby="founder" className="mb-14 flex flex-col sm:flex-row gap-6 sm:gap-8 sm:items-start">
+        <Image
+          src="/founder.jpg"
+          alt="Coleman Dumas IV, founder of Democracy Unlocked"
+          width={160}
+          height={160}
+          className="w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover shrink-0 ring-1 ring-[--border]"
+        />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[--accent] uppercase tracking-wider mb-3">Meet the founder</p>
+          <h2 id="founder" className="font-display text-2xl font-extrabold text-[--text]">Coleman Dumas IV</h2>
+          <div className="mt-4 text-[--text-secondary] leading-relaxed space-y-4">
+            {/* DRAFT — awaiting the founder's edits before merge. */}
+            <p>
+              I built Democracy Unlocked because the votes that shape our lives are public, yet
+              finding them, and making sense of them, takes more time than most people have.
+            </p>
+            <p>
+              Every vote here comes from the official congressional record. Enter your ZIP, see
+              what your representatives did, and decide for yourself whether they voted the way
+              you would.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Mission */}
       <section className="mb-14">
