@@ -39,20 +39,22 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params
   const bill = await BillService.getBillById(id)
   if (!bill) return {}
-  const title = `${bill.shortTitle || bill.title} | Democracy Unlocked`
+  const name = bill.shortTitle || bill.title
   const rawSummary = bill.summary?.replace(/<[^>]+>/g, '').slice(0, 160) ?? ''
   const description = rawSummary || `AI summary, community vote, and rep breakdown for ${bill.billType} ${bill.billNumber}.`
   return {
-    title,
+    // The root layout's template appends "| Democracy Unlocked" to the tab
+    // title; the Twitter card doesn't use the template, so it carries the name.
+    title: name,
     description,
     openGraph: {
-      title: bill.shortTitle || bill.title,
+      title: name,
       description,
       url: `https://www.democracyunlocked.com/bills/${id}`,
       type: 'article',
       images: [{ url: 'https://www.democracyunlocked.com/og-default.png', width: 1200, height: 630 }],
     },
-    twitter: { card: 'summary_large_image', title, description },
+    twitter: { card: 'summary_large_image', title: `${name} | Democracy Unlocked`, description },
   }
 }
 
