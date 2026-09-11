@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   classifyVote, voteKindLabel, normalizeMemberPosition, normalizeUserPosition,
-  agrees, latestPerMemberBill,
+  agrees, latestPerMemberBill, parseLegisNum, isBillType,
 } from '@/lib/data/voteKinds'
 
 // Stored values as of 2026-09-11: CongressVote.position is lowercase
@@ -35,6 +35,29 @@ describe('position comparison', () => {
     expect(agrees('abstain', 'yea')).toBeNull()
     expect(agrees('yes', 'not_voting')).toBeNull()
     expect(agrees('yes', 'present')).toBeNull()
+  })
+})
+
+describe('parseLegisNum / isBillType', () => {
+  it('reads House Clerk <legis-num> values into our bill keys', () => {
+    expect(parseLegisNum('H R 1048')).toEqual({ billType: 'HR', billNumber: '1048' })
+    expect(parseLegisNum('H RES 566')).toEqual({ billType: 'HRES', billNumber: '566' })
+    expect(parseLegisNum('H J RES 105')).toEqual({ billType: 'HJRES', billNumber: '105' })
+    expect(parseLegisNum('S 5')).toEqual({ billType: 'S', billNumber: '5' })
+  })
+
+  it('returns null for things that are not bills', () => {
+    expect(parseLegisNum('QUORUM')).toBeNull()
+    expect(parseLegisNum('H AMDT 12')).toBeNull()
+    expect(parseLegisNum('')).toBeNull()
+    expect(parseLegisNum(null)).toBeNull()
+  })
+
+  it('isBillType accepts bill types and rejects amendments', () => {
+    expect(isBillType('HR')).toBe(true)
+    expect(isBillType('S.J.Res.')).toBe(true)
+    expect(isBillType('HAMDT')).toBe(false)
+    expect(isBillType('')).toBe(false)
   })
 })
 
