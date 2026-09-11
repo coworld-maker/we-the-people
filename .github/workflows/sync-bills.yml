@@ -243,12 +243,15 @@ jobs:
   prewarm-summaries:
     name: Pre-warm AI bill summaries
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Raised from 15 iterations / 20 min (~60 bills a night) to drain the
+    # ~2,200-bill backlog in a few nights. The loop still stops as soon as a
+    # batch finds nothing left, so once drained this costs no more than before.
+    timeout-minutes: 180
     steps:
-      - name: Loop POST /api/sync-summaries until drained (cap ~60 bills)
+      - name: Loop POST /api/sync-summaries until drained (cap ~600 bills)
         run: |
           total=0
-          for i in $(seq 1 15); do
+          for i in $(seq 1 150); do
             response=$(curl -s -o /tmp/body -w "%{http_code}" \
               --max-time 70 --retry 2 --retry-delay 10 --retry-all-errors \
               -X POST \
