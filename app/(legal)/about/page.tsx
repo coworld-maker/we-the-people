@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'About — Democracy Unlocked',
+  title: 'About', // the root layout's template appends "| Democracy Unlocked"
   description: 'Who built Democracy Unlocked, and why.',
 }
 
