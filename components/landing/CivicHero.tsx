@@ -365,7 +365,8 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
 
               {/* Don't know your district? Resolve it from a street address via
                   the Census geocoder, then pick it exactly as a click would. */}
-              <div className="pt-1">
+              {/* Wrapping row with a gap: the two links ran together on one line. */}
+              <div className="pt-1 flex flex-wrap items-center gap-x-5 gap-y-1">
                 {!addrOpen ? (
                   <button type="button" onClick={() => { setAddrOpen(true); setAddrMsg('') }}
                     aria-expanded={false} aria-controls="hero-addr-panel"
