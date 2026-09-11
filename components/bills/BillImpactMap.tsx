@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import { geoAlbersUsa, geoPath } from 'd3-geo'
 import { feature } from 'topojson-client'
 import type { Feature, FeatureCollection, Geometry } from 'geojson'
@@ -91,6 +93,13 @@ export default function BillImpactMap({ billId }: Props) {
   const [error, setError] = useState('')
   const [hovered, setHovered] = useState<string | null>(null)
 
+  // Generating costs AI credit, so it's signed-in only (the POST checks too).
+  // Signed-out visitors can read a stored analysis but never trigger one. The
+  // 401/404 fallback covers Clerk not loading (ad blockers, preview domains).
+  const { isLoaded, isSignedIn } = useAuth()
+  const [authBlocked, setAuthBlocked] = useState(false)
+  const canGenerate = !(isLoaded && !isSignedIn) && !authBlocked
+
   // Load impacts + map data in parallel
   useEffect(() => {
     let cancelled = false
@@ -117,11 +126,11 @@ export default function BillImpactMap({ billId }: Props) {
   // bills resolve instantly. AI is only invoked for the long tail.
   const triggeredRef = useRef(false)
   useEffect(() => {
-    if (loading || impacts || generating || triggeredRef.current) return
+    if (loading || impacts || generating || triggeredRef.current || !canGenerate) return
     triggeredRef.current = true
     handleGenerate()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, impacts, generating])
+  }, [loading, impacts, generating, canGenerate])
 
   const paths = useMemo(() => {
     if (!features) return [] as Array<{ code: string; d: string }>
@@ -142,6 +151,8 @@ export default function BillImpactMap({ billId }: Props) {
     setError('')
     try {
       const res = await fetch(`/api/bills/${billId}/state-impact`, { method: 'POST' })
+      // 401 from the route's own check, 404 from the middleware's auth wall.
+      if (res.status === 401 || res.status === 404) { setAuthBlocked(true); return }
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Failed to generate')
       setImpacts(json.stateImpacts)
@@ -196,6 +207,21 @@ export default function BillImpactMap({ billId }: Props) {
             <button onClick={handleGenerate} className="btn-secondary text-xs px-3 py-1.5">
               <Sparkles className="w-3 h-3" /> Try again
             </button>
+          </div>
+        ) : !impacts && !canGenerate ? (
+          /* Signed out and no stored analysis: say so plainly, no error. */
+          <div className="text-center py-6">
+            <Sparkles className="w-6 h-6 text-orange-500 mx-auto mb-3 opacity-60" />
+            <p className="text-sm font-semibold text-[--text] mb-1">No impact analysis yet</p>
+            <p className="text-xs text-[--text-muted] mb-4 max-w-xs mx-auto">
+              This bill&apos;s per-state impact estimate hasn&apos;t been generated.
+            </p>
+            <Link
+              href={`/sign-in?redirect_url=${encodeURIComponent(`/bills/${billId}`)}`}
+              className="btn-primary text-xs px-4 py-2"
+            >
+              Sign in to generate it
+            </Link>
           </div>
         ) : !impacts ? (
           /* Fallback — auto-trigger hasn't fired yet (effect race) */

@@ -10,6 +10,12 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',               // CRITICAL: prevents redirect loop on mobile Safari
   '/bills',                     // bills list — public for SEO
   '/bills/(.*)',                // bill detail pages — public for SEO
+  // Read-only data behind public bill-page sections. The matcher is by path,
+  // not method: every write handler on these routes (generate impacts, post,
+  // delete) runs its own auth check and stays signed-in only.
+  '/api/bills/(.*)/state-impact',     // stored per-state impact analysis
+  '/api/bills/(.*)/state-sentiment',  // per-state vote totals, no identities
+  '/api/bills/(.*)/discussions',      // comments; authors as usernames, never real names
   '/api/sync-bills',            // bill sync (protected by CRON_SECRET)
   '/api/sync-congress-votes',   // vote sync (protected by CRON_SECRET)
   '/api/sync-representatives',  // rep sync (protected by CRON_SECRET)

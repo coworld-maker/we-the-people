@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { UserService } from '@/lib/services/userService'
 import { isAdminUserId, isModerator } from '@/lib/admin'
+import { publicThread } from '@/lib/data/discussionAuthor'
 
 // Content moderation (inline — if you have lib/moderation.ts, import from there instead)
 function moderateContent(content: string): { ok: boolean; reason?: string } {
@@ -39,9 +40,9 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Public read — authors go out as usernames only (publicThread); posting
+  // and deleting below keep their own auth checks.
   const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const { id: billId } = await params
 
   const discussions = await prisma.discussion.findMany({
@@ -64,11 +65,11 @@ export async function GET(
     orderBy: { createdAt: 'desc' },
   })
 
-  // Moderator = env admin OR DB isModerator flag
-  const me = await UserService.getCurrentUser()
-  const isAdmin = isModerator(userId, me as any)
+  // Moderator = env admin OR DB isModerator flag (only possible when signed in)
+  const me = userId ? await UserService.getCurrentUser() : null
+  const isAdmin = userId ? isModerator(userId, me as any) : false
 
-  return NextResponse.json({ discussions, isAdmin })
+  return NextResponse.json({ discussions: discussions.map(d => publicThread(d)), isAdmin })
 }
 
 export async function POST(
@@ -131,7 +132,7 @@ export async function POST(
     },
   })
 
-  return NextResponse.json({ discussion })
+  return NextResponse.json({ discussion: publicThread(discussion) })
 }
 
 export async function DELETE(

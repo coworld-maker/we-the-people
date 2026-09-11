@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 
 interface StateBreakdown {
@@ -17,9 +16,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+  // Public: totals per state only — no voter identities leave this handler.
   const { id } = await params
 
   // Pull all votes on this bill that have a state attached via the user
