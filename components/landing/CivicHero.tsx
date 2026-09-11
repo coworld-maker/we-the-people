@@ -64,11 +64,53 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
   const delegationHeadingRef = useRef<HTMLSpanElement>(null)
   const firstOptionRef = useRef<HTMLButtonElement>(null)
   const focusAfterRender = useRef<'delegation' | 'options' | null>(null)
+  // "Not sure which?" street-address lookup. The address lives only in this
+  // component state: sent once in a POST body, never stored or put in a URL.
+  const [addrOpen, setAddrOpen] = useState(false)
+  const [street, setStreet] = useState('')
+  const [addrLoading, setAddrLoading] = useState(false)
+  const [addrMsg, setAddrMsg] = useState('')
+  const streetRef = useRef<HTMLInputElement>(null)
+
+  function resetAddress() {
+    setAddrOpen(false); setStreet(''); setAddrLoading(false); setAddrMsg('')
+  }
+
+  useEffect(() => { if (addrOpen) streetRef.current?.focus() }, [addrOpen])
+
+  async function findByAddress(e: React.FormEvent) {
+    e.preventDefault()
+    if (!result) return
+    const s = street.trim()
+    if (!s) { setAddrMsg('Enter your street address, like 601 Broad St.'); streetRef.current?.focus(); return }
+    setAddrLoading(true); setAddrMsg('')
+    try {
+      const res = await fetch('/api/landing/district-by-address', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ street: s.slice(0, 200), zip: result.zip ?? zip }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Address lookup failed. Pick your district above.')
+      const match = result.options.find(o => o.state === data.state && o.district === data.district)
+      if (match) {
+        resetAddress()
+        pickDistrict(match)
+      } else {
+        const label = data.district === '0' ? `${data.state} at-large` : `${data.state}-${data.district}`
+        setAddrMsg(`That address is in ${label}, which isn't one of the districts listed for this ZIP. Double-check your ZIP, or pick the district on your voter card.`)
+      }
+    } catch (err: any) {
+      setAddrMsg(err.message)
+    } finally {
+      setAddrLoading(false)
+    }
+  }
 
   async function lookup(e: React.FormEvent) {
     e.preventDefault()
     if (!/^\d{5}$/.test(zip)) { setError('Enter all five digits of your ZIP code.'); return }
-    setLoading(true); setError(''); setResult(null); setPicked(null); setHasPicked(false)
+    setLoading(true); setError(''); setResult(null); setPicked(null); setHasPicked(false); resetAddress()
     try {
       const res = await fetch(`/api/landing/reps-by-zip?zip=${zip}`)
       const data = await res.json()
@@ -85,7 +127,7 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
     const next = value.replace(/\D/g, '').slice(0, 5)
     setZip(next)
     // Editing the ZIP re-cuts the key, so it backs out of the lock.
-    if (result) { setResult(null); setPicked(null); setHasPicked(false) }
+    if (result) { setResult(null); setPicked(null); setHasPicked(false); resetAddress() }
     if (error) setError('')
   }
 
@@ -117,6 +159,8 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
   // aria-label isn't announced, so every outcome is spoken from here.
   const status = loading ? `Looking up ZIP ${zip}…`
     : error ? error
+    : needsPick && addrLoading ? 'Finding your district from your address…'
+    : needsPick && addrMsg ? addrMsg
     : needsPick ? `ZIP ${result!.zip ?? zip} spans ${result!.options.length} districts. Choose yours below.`
     : shown ? (reps.length > 0
       ? `Your delegation for ${districtLabel(shown)}: ${reps.map(r => r.fullName).join(', ')}.`
@@ -133,11 +177,11 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
           </p>
           {/* text-white is explicit: the global h1 rule sets ink colour, which vanished on navy. */}
           <h1 className="font-serif text-white text-[2.9rem] sm:text-6xl lg:text-7xl leading-[0.98] tracking-tight [text-wrap:balance]">
-            Your ZIP is <span className="text-[#C79A3E]">the key.</span>
+            See what <span className="text-[#C79A3E]">Congress</span> is doing.
           </h1>
           <p className="mt-5 text-lg text-[#B7C1D8] leading-relaxed max-w-md">
-            Five digits unlock your two senators, your House member, and the roll calls
-            they&apos;ve cast, straight from the public record.
+            Enter your ZIP to see your two senators and your House member, and how
+            they&apos;ve voted, straight from the public record.
           </p>
         </div>
 
@@ -164,7 +208,7 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
             <button type="submit" disabled={loading}
               className="inline-flex items-center gap-2 min-h-[52px] px-6 rounded-lg bg-[#E8B33C] text-[#1A1405] font-bold hover:bg-[#F2C352] transition-colors disabled:opacity-70">
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              Unlock
+              Find my reps
             </button>
           </form>
           {/* Announced via the status region above, so no aria-live here.
@@ -197,6 +241,47 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
                   <ArrowRight className="w-4 h-4 shrink-0" />
                 </button>
               ))}
+
+              {/* Don't know your district? Resolve it from a street address via
+                  the Census geocoder, then pick it exactly as a click would. */}
+              <div className="pt-1">
+                {!addrOpen ? (
+                  <button type="button" onClick={() => { setAddrOpen(true); setAddrMsg('') }}
+                    aria-expanded={false} aria-controls="hero-addr-panel"
+                    className="min-h-[44px] text-sm font-medium text-[#E8B33C] hover:underline">
+                    Not sure which? Use your street address
+                  </button>
+                ) : (
+                  <form id="hero-addr-panel" onSubmit={findByAddress} aria-busy={addrLoading}
+                    className="rounded-lg border border-white/20 p-3 space-y-2">
+                    <label htmlFor="hero-street" className="block text-sm font-semibold">Street address</label>
+                    <div className="flex gap-2">
+                      <input
+                        id="hero-street" ref={streetRef} autoComplete="street-address"
+                        maxLength={200} value={street}
+                        onChange={e => { setStreet(e.target.value); if (addrMsg) setAddrMsg('') }}
+                        aria-invalid={!!addrMsg} aria-describedby="hero-street-hint"
+                        placeholder="e.g. 601 Broad St"
+                        className="flex-1 min-w-0 min-h-[48px] px-3 rounded-lg bg-white text-[#131A2C] placeholder:text-[#5F6B7E] focus:outline-none focus:ring-[3px] focus:ring-[#E8B33C]"
+                      />
+                      <button type="submit" disabled={addrLoading}
+                        className="inline-flex items-center gap-2 min-h-[48px] px-4 rounded-lg bg-[#E8B33C] text-[#1A1405] font-bold text-sm hover:bg-[#F2C352] transition-colors disabled:opacity-70">
+                        {addrLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                        Find my district
+                      </button>
+                    </div>
+                    {/* Announced via the status region, so no aria-live here. */}
+                    <p id="hero-street-hint" className={`text-xs ${addrMsg ? 'text-[#FFB4A8]' : 'text-[#B7C1D8]'}`}>
+                      {addrMsg || `ZIP ${result!.zip ?? zip}. Used once to find your district, never stored.`}
+                    </p>
+                  </form>
+                )}
+                <a href="https://www.house.gov/representatives/find-your-representative"
+                  target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center min-h-[44px] text-sm text-[#B7C1D8] underline hover:text-white">
+                  Or look it up on house.gov<span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </div>
 
               {/* Cross-state ZIP: both pairs are genuinely possible, so show
                   both LABELLED rather than picking a state or showing none. */}
