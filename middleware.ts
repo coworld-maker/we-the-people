@@ -18,7 +18,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/cron/digest',           // weekly email digest (Vercel cron; protected by CRON_SECRET / cron header)
   '/api/landing/reps-by-zip',   // public zip->reps lookup for the landing hero
   '/api/landing/district-by-address', // public street address->district (Census geocoder) for ambiguous ZIPs; address never stored/logged
-  '/api/alignment',             // alignment API
+  '/api/landing/rep-votes',     // public: each shown rep's latest passage votes (public roll-call facts)
+  '/api/alignment',            // alignment API
   '/api/scorecard/(.*)',        // scorecard API
   '/api/track',                 // anonymous analytics — signed-out share-link visitors included
 ]);

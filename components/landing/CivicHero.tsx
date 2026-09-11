@@ -5,8 +5,16 @@ import Link from 'next/link'
 import RepAvatar from '@/components/ui/RepAvatar'
 import KeyLock from '@/components/landing/KeyLock'
 import { ArrowRight, Loader2 } from 'lucide-react'
+import type { RepVote } from '@/lib/data/repVotes'
 
 interface RepLite { fullName: string; party: string; bioguideId: string; district?: string }
+type VotesState = { status: 'loading' } | { status: 'error' } | { status: 'done'; votes: Record<string, RepVote[]> }
+
+// Neutral wording only — no party/stance colours on positions.
+const POSITION_LABEL: Record<string, string> = { yea: 'Yes', nay: 'No', not_voting: "Didn't vote", present: 'Present' }
+const fmtDate = (iso: string | null) => iso
+  ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+  : null
 interface ZipOption { state: string; district: string; senators: RepLite[]; house: RepLite | null }
 interface LookupResult {
   zip: string
@@ -155,6 +163,33 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
   const districtLabel = (o: ZipOption) => o.district === '0' ? `${o.state} at-large` : `${o.state}-${o.district}`
   const repHref = (id: string) => signedIn ? `/scorecards/${id}` : `/sign-up?redirect_url=/scorecards/${id}`
 
+  // Latest votes on bills for whichever delegation is shown. Keyed on the ids
+  // so re-renders don't refetch; a changed delegation aborts the old request.
+  // Deliberately not announced: the delegation announcement already fires.
+  const repIds = reps.map(r => r.bioguideId).join(',')
+  const [votesState, setVotesState] = useState<VotesState | null>(null)
+  useEffect(() => {
+    if (!repIds) { setVotesState(null); return }
+    const ctrl = new AbortController()
+    setVotesState({ status: 'loading' })
+    fetch(`/api/landing/rep-votes?ids=${encodeURIComponent(repIds)}`, { signal: ctrl.signal })
+      .then(async res => {
+        const data = await res.json().catch(() => null)
+        if (!res.ok || !data || typeof data.votes !== 'object') throw new Error('bad response')
+        setVotesState({ status: 'done', votes: data.votes })
+      })
+      .catch(() => { if (!ctrl.signal.aborted) setVotesState({ status: 'error' }) })
+    return () => ctrl.abort()
+  }, [repIds])
+
+  const mostRecentBillId = (() => {
+    if (votesState?.status !== 'done') return null
+    const all = Object.values(votesState.votes).flat().filter(v => v.votedAt)
+    all.sort((a, b) => b.votedAt!.localeCompare(a.votedAt!))
+    return all[0]?.billId ?? Object.values(votesState.votes).flat()[0]?.billId ?? null
+  })()
+  const billCtaHref = (billId: string) => signedIn ? `/bills/${billId}` : `/sign-up?redirect_url=/bills/${billId}`
+
   // The one live region. The visible hint blanks on success and the lock's
   // aria-label isn't announced, so every outcome is spoken from here.
   const status = loading ? `Looking up ZIP ${zip}…`
@@ -214,7 +249,7 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
           {/* Announced via the status region above, so no aria-live here.
               #FFB4A8 on the navy is 8.5:1. */}
           <p id="hero-zip-hint" className={`mt-2 text-sm ${error ? 'text-[#FFB4A8]' : 'text-[#B7C1D8]'}`}>
-            {error || (result ? '' : 'Each digit cuts one tooth of the key.')}
+            {error || (result ? '' : 'Type your ZIP to unlock your delegation.')}
           </p>
 
           {/* This ZIP spans several districts, so there is no single right
@@ -311,16 +346,70 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
                   </button>
                 )}
               </p>
-              {reps.map(rep => (
-                <Link key={rep.bioguideId} href={repHref(rep.bioguideId)}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.06] border border-white/15 hover:border-[#E8B33C] transition-colors group">
-                  <RepAvatar bioguideId={rep.bioguideId} fullName={rep.fullName} party={rep.party} size="md" />
-                  <span className="flex-1 min-w-0 font-medium truncate">{rep.fullName}</span>
-                  <span className="text-xs text-[#E8B33C] font-semibold flex items-center gap-1">
-                    See votes <ArrowRight className="w-3 h-3" />
-                  </span>
+              <p className="text-[11px] text-[#B7C1D8]">
+                Latest votes on bills · House Clerk / senate.gov
+              </p>
+              {reps.map(rep => {
+                const list = votesState?.status === 'done' ? votesState.votes[rep.bioguideId] ?? [] : null
+                return (
+                  <div key={rep.bioguideId} className="rounded-lg bg-white/[0.06] border border-white/15">
+                    <Link href={repHref(rep.bioguideId)}
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/[0.04] transition-colors group">
+                      <RepAvatar bioguideId={rep.bioguideId} fullName={rep.fullName} party={rep.party} size="md" />
+                      <span className="flex-1 min-w-0 font-medium truncate">{rep.fullName}</span>
+                      <span className="text-xs text-[#E8B33C] font-semibold flex items-center gap-1">
+                        See votes <ArrowRight className="w-3 h-3" />
+                      </span>
+                    </Link>
+                    <div className="px-3 pb-2 border-t border-white/10">
+                      {votesState?.status === 'loading' && (
+                        <p className="py-2 text-xs text-[#B7C1D8]">Loading votes…</p>
+                      )}
+                      {votesState?.status === 'error' && (
+                        <p className="py-2 text-xs text-[#B7C1D8]">Couldn&apos;t load votes right now.</p>
+                      )}
+                      {list && list.length === 0 && (
+                        <p className="py-2 text-xs text-[#B7C1D8]">No recorded votes on bills yet.</p>
+                      )}
+                      {list && list.length > 0 && (
+                        <ul aria-label={`${rep.fullName}'s latest votes on bills`} className="divide-y divide-white/10">
+                          {list.map(v => {
+                            const label = (v.position && POSITION_LABEL[v.position]) || 'Position not recorded'
+                            const date = fmtDate(v.votedAt)
+                            return (
+                              <li key={v.billId} className="py-1 text-sm">
+                                <div className="flex items-start gap-2">
+                                  <span className="shrink-0 min-w-[5.5rem] pt-3 text-xs font-semibold text-white">{label}</span>
+                                  <Link href={`/bills/${v.billId}`}
+                                    className="flex-1 min-w-0 min-h-[44px] py-2.5 text-[#B7C1D8] hover:text-white">
+                                    <span className="font-mono text-xs text-white">{v.code}</span>
+                                    {v.title && <span className="block truncate">{v.title}</span>}
+                                  </Link>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-x-3 pl-[6rem] text-xs text-[#B7C1D8]">
+                                  {date && <span>{date}</span>}
+                                  {v.sourceUrl && (
+                                    <a href={v.sourceUrl} target="_blank" rel="noopener noreferrer"
+                                      className="inline-flex items-center min-h-[44px] underline hover:text-white">
+                                      Official record<span className="sr-only"> (opens in a new tab)</span>
+                                    </a>
+                                  )}
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+              {mostRecentBillId && (
+                <Link href={billCtaHref(mostRecentBillId)}
+                  className="inline-flex items-center gap-1 min-h-[44px] text-sm font-semibold text-[#E8B33C] hover:underline">
+                  Vote on these bills yourself <ArrowRight className="w-4 h-4" />
                 </Link>
-              ))}
+              )}
             </Reveal>
           )}
 
