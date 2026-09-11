@@ -114,7 +114,7 @@ async function fetchSenateVoteList(congress: number, session: number): Promise<{
   let match;
   while ((match = voteRegex.exec(xml)) !== null) {
     const block = match[1];
-    const get = (tag: string) => block.match(new RegExp(`<${tag}>(.*?)<\/${tag}>`))?.[1]?.trim() || '';
+    const get = (tag: string) => block.match(new RegExp(`<${tag}>([\\s\\S]*?)<\/${tag}>`))?.[1]?.trim() || ''; // [\s\S]: senate.gov wraps some values (e.g. <question>) onto a new line
     const rollNumber = parseInt(get('vote_number'));
     const docShort = get('document_short_title') || get('issue');
     const rawDate = get('vote_date');
@@ -475,7 +475,11 @@ export async function POST(req: NextRequest) {
           });
           if (!bill) continue;
           rollCallsMatched++;
-          const question: string | null = vote.question ?? null;
+          // The per-vote XML carries the question on one clean line; the vote
+          // menu wraps it across lines, which a `.`-regex silently read as
+          // empty — every Senate roll call synced before 2026-09-11 lost it.
+          const question: string | null =
+            xml.match(/<question>([\s\S]*?)<\/question>/)?.[1]?.trim() || vote.question || null;
           const kind = classifyVote(question, bill.title);
 
           // Parse member votes from XML
@@ -486,7 +490,7 @@ export async function POST(req: NextRequest) {
           const rows: VoteRow[] = [];
           while ((m = memberRegex.exec(xml)) !== null) {
             const block = m[1];
-            const get = (tag: string) => block.match(new RegExp(`<${tag}>(.*?)<\/${tag}>`))?.[1]?.trim() || '';
+            const get = (tag: string) => block.match(new RegExp(`<${tag}>([\\s\\S]*?)<\/${tag}>`))?.[1]?.trim() || ''; // [\s\S]: senate.gov wraps some values (e.g. <question>) onto a new line
             // Match senator to bioguide ID via lastName+state lookup in our DB map
             const lastName = get('last_name').toUpperCase();
             const state = get('state').toUpperCase();
