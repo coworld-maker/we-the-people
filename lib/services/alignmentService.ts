@@ -1,22 +1,14 @@
 import prisma from '@/lib/prisma'
-import { ON_THE_BILL, agrees, latestPerMemberBill } from '@/lib/data/voteKinds'
-
-const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY
-const BASE_URL = 'https://api.congress.gov/v3'
-
-interface MemberVote {
-  billId: string
-  billType: string
-  billNumber: string
-  memberPosition: 'Yea' | 'Nay' | 'Not Voting' | 'Present' | string
-}
+import { ON_THE_BILL, latestPerMemberBill } from '@/lib/data/voteKinds'
+import { tallyAgreement } from '@/lib/data/agreement'
 
 interface AlignmentResult {
   memberName: string
   party: string
   chamber: string
   state: string
-  alignmentPct: number
+  /** null = no shared votes yet. Render as "not enough data", never 0%. */
+  alignmentPct: number | null
   matchedVotes: number
   totalOverlap: number
   details: Array<{
@@ -31,13 +23,16 @@ interface AlignmentResult {
 
 export class AlignmentService {
   /**
-   * Calculate alignment between a user and a Congress member.
-   * 
-   * Flow:
-   * 1. Get all bills the user has voted on
-   * 2. For each bill, check if there's a recorded roll call vote in Congress
-   * 3. Find how the specified member voted on those same bills
-   * 4. Calculate overlap percentage
+   * Agreement between a user and one member of Congress, from stored roll
+   * calls (`CongressVote`) — votes on the bill itself only, latest per bill.
+   *
+   * This used to ask Congress.gov live for every bill the user had voted on
+   * (a request per bill plus one per roll call, needing CONGRESS_API_KEY) and
+   * took the first roll call it found, which was often procedural (cloture,
+   * recommit) rather than the vote on the bill. It also reported 0% for a user
+   * with no shared votes. It now uses the same data and rules as
+   * calculateDelegationAlignment, and `alignmentPct` is null when nothing
+   * overlaps.
    */
   static async calculateAlignment(
     userId: string,
@@ -47,175 +42,50 @@ export class AlignmentService {
     memberChamber: string,
     memberState: string
   ): Promise<AlignmentResult> {
-    // Get user's votes with bill info
+    const base = { memberName, party: memberParty, chamber: memberChamber, state: memberState }
+    const empty: AlignmentResult = { ...base, alignmentPct: null, matchedVotes: 0, totalOverlap: 0, details: [] }
+
     const userVotes = await prisma.vote.findMany({
-      where: { userId },
-      include: {
-        bill: {
-          select: {
-            id: true,
-            title: true,
-            shortTitle: true,
-            billType: true,
-            billNumber: true,
-            congress: true,
-            originChamber: true,
-          },
-        },
+      where: { userId, position: { in: ['yes', 'no'] } },
+      select: {
+        billId: true,
+        position: true,
+        bill: { select: { title: true, shortTitle: true, billType: true, billNumber: true } },
       },
     })
+    if (userVotes.length === 0) return empty
 
-    if (userVotes.length === 0) {
-      return {
-        memberName, party: memberParty, chamber: memberChamber, state: memberState,
-        alignmentPct: 0, matchedVotes: 0, totalOverlap: 0, details: [],
-      }
-    }
+    const memberVotes = latestPerMemberBill(await prisma.congressVote.findMany({
+      where: {
+        bioguideId: memberBioguideId,
+        billId: { in: userVotes.map(v => v.billId) },
+        ...ON_THE_BILL,
+      },
+      select: { billId: true, bioguideId: true, position: true, votedAt: true },
+    }))
 
-    const details: AlignmentResult['details'] = []
-    let matches = 0
-    let totalOverlap = 0
-
-    // For each user vote, try to find the member's vote on the same bill
-    for (const uv of userVotes) {
-      if (!uv.bill) continue
-
-      try {
-        const memberPos = await this.getMemberVoteOnBill(
-          uv.bill.congress,
-          uv.bill.billType,
-          uv.bill.billNumber,
-          memberBioguideId,
-          memberChamber
-        )
-
-        if (!memberPos) continue // No roll call vote found for this bill
-
-        // Not Voting / Present / an abstaining user took no side, so they're
-        // excluded rather than counted as a disagreement (they used to count
-        // toward the overlap and could never match, understating agreement).
-        const same = agrees(uv.position, memberPos)
-        if (same === null) continue
-
-        totalOverlap++
-        const aligned = same
-        if (aligned) matches++
-
-        details.push({
-          billType: uv.bill.billType,
-          billNumber: uv.bill.billNumber,
-          billTitle: uv.bill.shortTitle || uv.bill.title,
-          userPosition: uv.position,
-          memberPosition: memberPos,
-          aligned,
-        })
-      } catch (err) {
-        console.error(`Error fetching vote for ${uv.bill.billType} ${uv.bill.billNumber}:`, err)
-        continue
-      }
-    }
-
-    const alignmentPct = totalOverlap > 0 ? Math.round((matches / totalOverlap) * 100) : 0
+    const { pct, matched, overlap, compared } = tallyAgreement(
+      new Map(userVotes.map(v => [v.billId, v.position])),
+      memberVotes,
+    )
+    const billById = new Map(userVotes.map(v => [v.billId, v.bill]))
 
     return {
-      memberName, party: memberParty, chamber: memberChamber, state: memberState,
-      alignmentPct, matchedVotes: matches, totalOverlap, details,
-    }
-  }
-
-  /**
-   * Look up how a member voted on a specific bill via Congress.gov API.
-   * Returns the member's position or null if no roll call vote found.
-   */
-  private static async getMemberVoteOnBill(
-    congress: number | string,
-    billType: string,
-    billNumber: string,
-    bioguideId: string,
-    chamber: string
-  ): Promise<string | null> {
-    if (!CONGRESS_API_KEY) return null
-
-    // Map bill type to API format
-    const typeMap: Record<string, string> = {
-      'HR': 'hr', 'S': 's', 'HRES': 'hres', 'SRES': 'sres',
-      'HJRES': 'hjres', 'SJRES': 'sjres', 'HCONRES': 'hconres', 'SCONRES': 'sconres',
-      'hr': 'hr', 's': 's',
-    }
-    const apiType = typeMap[billType] || billType.toLowerCase()
-
-    try {
-      // Get bill actions to find roll call vote numbers
-      const actionsUrl = `${BASE_URL}/bill/${congress}/${apiType}/${billNumber}/actions?api_key=${CONGRESS_API_KEY}&limit=50`
-      const actionsRes = await fetch(actionsUrl, {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 86400 },
-      })
-
-      if (!actionsRes.ok) return null
-      const actionsData = await actionsRes.json()
-      const actions = actionsData.actions || []
-
-      // Find roll call votes in actions
-      for (const action of actions) {
-        const rollCallRef = action.recordedVotes
-        if (!rollCallRef || rollCallRef.length === 0) continue
-
-        for (const rv of rollCallRef) {
-          // rv should have: chamber, congress, date, rollNumber, sessionNumber, url
-          const vChamber = rv.chamber === 'Senate' ? 'Senate' : 'House'
-
-          // Get the actual roll call vote details
-          const rollUrl = rv.url
-          if (!rollUrl) continue
-
-          const voteRes = await fetch(`${rollUrl}?api_key=${CONGRESS_API_KEY}`, {
-            headers: { 'Accept': 'application/json' },
-            next: { revalidate: 86400 },
-          })
-
-          if (!voteRes.ok) continue
-          const voteData = await voteRes.json()
-          const vote = voteData.vote
-
-          if (!vote?.positions) continue
-
-          // Find the member's vote
-          const memberVote = vote.positions.find(
-            (p: any) => p.member_id === bioguideId || p.bioguide_id === bioguideId
-          )
-
-          if (memberVote) {
-            return memberVote.vote_position || memberVote.position || null
-          }
+      ...base,
+      alignmentPct: pct,
+      matchedVotes: matched,
+      totalOverlap: overlap,
+      details: compared.map(({ vote, userPosition, aligned }) => {
+        const bill = billById.get(vote.billId)
+        return {
+          billType: bill?.billType ?? '',
+          billNumber: bill?.billNumber ?? '',
+          billTitle: bill?.shortTitle || bill?.title || '',
+          userPosition,
+          memberPosition: vote.position,
+          aligned,
         }
-      }
-
-      return null
-    } catch (err) {
-      console.error('Vote lookup error:', err)
-      return null
-    }
-  }
-
-  /**
-   * Get basic member info from Congress.gov by bioguide ID
-   */
-  static async getMemberInfo(bioguideId: string) {
-    if (!CONGRESS_API_KEY) return null
-
-    try {
-      const url = `${BASE_URL}/member/${bioguideId}?api_key=${CONGRESS_API_KEY}`
-      const res = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
-        next: { revalidate: 86400 },
-      })
-
-      if (!res.ok) return null
-      const data = await res.json()
-      return data.member || null
-    } catch {
-      return null
+      }),
     }
   }
 
@@ -268,32 +138,13 @@ export class AlignmentService {
     }))
     if (memberVotes.length === 0) return { ...empty, memberCount: members.length }
 
-    const userPositionByBill = new Map(userVotes.map(v => [v.billId, v.position]))
-
-    let matched = 0
-    let overlap = 0
-    for (const mv of memberVotes) {
-      const userPos = userPositionByBill.get(mv.billId)
-      if (!userPos) continue
-
-      // Same yes/no semantics as calculateAlignment above. Abstentions,
-      // "Present" and "Not Voting" are excluded from BOTH sides rather than
-      // counted as disagreement — a member who did not vote has not disagreed
-      // with anyone, and scoring it as a miss would understate agreement.
-      // Positions are stored lowercase ('yea'); the old 'Yea'/'Aye' check
-      // never matched, so this always returned "not enough overlap".
-      const same = agrees(userPos, mv.position)
-      if (same === null) continue
-
-      overlap++
-      if (same) matched++
-    }
-
-    return {
-      pct: overlap > 0 ? Math.round((matched / overlap) * 100) : null,
-      matched,
-      overlap,
-      memberCount: members.length,
-    }
+    // Same rules as calculateAlignment (lib/data/agreement.ts): abstentions,
+    // "Present" and "Not Voting" are excluded from both sides rather than
+    // counted as disagreement.
+    const { pct, matched, overlap } = tallyAgreement(
+      new Map(userVotes.map(v => [v.billId, v.position])),
+      memberVotes,
+    )
+    return { pct, matched, overlap, memberCount: members.length }
   }
 }

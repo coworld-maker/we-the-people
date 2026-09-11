@@ -13,7 +13,8 @@ interface Representative {
 }
 
 interface AlignmentData {
-  alignmentPct: number; matchedVotes: number; totalOverlap: number
+  // null = no shared votes yet (undefined agreement, not 0%)
+  alignmentPct: number | null; matchedVotes: number; totalOverlap: number
 }
 
 function AgreementBadge({ pct }: { pct: number }) {
@@ -63,13 +64,17 @@ function RepCard({ rep }: { rep: Representative }) {
         <p className="text-xs text-[--text-muted]">
           {rep.office} ({rep.party === 'R' ? 'R' : rep.party === 'D' ? 'D' : 'I'})
         </p>
-        {alignment ? (
+        {alignment && alignment.alignmentPct !== null ? (
           <div className="flex items-center gap-3 mt-1.5">
             <AgreementBadge pct={alignment.alignmentPct} />
             <span className="text-xs text-[--text-muted]">
               {alignment.matchedVotes}/{alignment.totalOverlap} votes match
             </span>
           </div>
+        ) : alignment ? (
+          <p className="text-[10px] text-[--text-muted] mt-1 italic">
+            No shared votes yet — vote on bills they&apos;ve voted on to see agreement
+          </p>
         ) : loading ? (
           <p className="text-[10px] text-[--text-muted] mt-1 flex items-center gap-1">
             <span className="w-2.5 h-2.5 border border-[--text-muted]/30 border-t-[--text-muted] rounded-full animate-spin" />
