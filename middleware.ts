@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 const isPublicRoute = createRouteMatcher([
   '/',                          // landing page
@@ -23,9 +24,24 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
+  if (isPublicRoute(req)) return;
+
+  const { userId } = await auth();
+  if (userId) return;
+
+  // API callers keep the existing response; there's no page to send them to.
+  if (req.nextUrl.pathname.startsWith('/api/') || req.nextUrl.pathname.startsWith('/trpc/')) {
     await auth.protect();
+    return;
   }
+
+  // A signed-out person opening a signed-in page (e.g. /dashboard, /states/GA)
+  // got a bare 404 from auth.protect(), which reads as "this page doesn't
+  // exist". Send them to sign in and back to where they were going instead.
+  // Path + query only (never a full URL), so this can't become an open redirect.
+  const signIn = new URL('/sign-in', req.url);
+  signIn.searchParams.set('redirect_url', req.nextUrl.pathname + req.nextUrl.search);
+  return NextResponse.redirect(signIn);
 });
 
 export const config = {
