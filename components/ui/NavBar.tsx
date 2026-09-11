@@ -7,7 +7,7 @@ import {
   ChevronDown,
   LayoutDashboard, FileText, ScrollText, Grid3X3,
   Users, BarChart3,
-  Landmark, Newspaper, Megaphone, GraduationCap,
+  Landmark, Newspaper, Megaphone, GraduationCap, Info,
 } from 'lucide-react'
 import { track } from '@/lib/track'
 
@@ -46,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   { kind: 'link', href: '/act', icon: Megaphone, label: 'Act' },
   { kind: 'link', href: '/get-started?from=nav', icon: GraduationCap, label: 'Get Started' },
+  { kind: 'link', href: '/about', icon: Info, label: 'About' },
 ]
 
 // ── Component ────────────────────────────────────────────────────────────────

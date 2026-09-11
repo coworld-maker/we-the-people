@@ -121,6 +121,10 @@ export default async function LandingPage() {
           </Link>
 
           <div className="flex items-center gap-3">
+            {/* Hidden on phones with Log in, for the same 375px wrapping reason; the footer links About there. */}
+            <Link href="/about" className="hidden sm:inline-flex items-center min-h-[44px] px-4 text-sm font-medium text-[#B7C1D8] hover:text-white transition-colors">
+              About
+            </Link>
             {userId ? (
               <Link href="/dashboard"
                 className="inline-flex items-center min-h-[44px] px-4 sm:px-5 text-sm font-semibold whitespace-nowrap rounded-[--radius] bg-[#F4F6FA] text-[#0A2463] hover:bg-white transition-colors"
