@@ -19,6 +19,53 @@ Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale mem
 **In-flight:** `landing-broadsheet` branch (1 commit, live preview) — ZIP→your-reps product hero, **not yet merged**, decide first.
 **Known silent-empty risks (not fixed):** `/elections` (static fallback now exists, but live data still needs retired Google Civic API), lobbying firm-count badge (sync-lobbying unscheduled), `OPEN_FEC_API_KEY` unset in Vercel. See latest passdown §3.
 
+## ⛳ Status (2026-09-11)
+**✅ Merged to `main` and verified on production** (except where marked).
+- **Roll calls, not bills** (`961905f`). `CongressVote` is now one row per member per ROLL CALL:
+  unique `(bioguideId, chamber, congress, session, rollNumber)`, plus `question` ("On Passage",
+  "On Cloture on the Motion to Proceed", …) and `kind` ('passage' | 'procedural'). The old
+  `(bioguideId, billId)` unique index is DROPPED (Supabase migrations
+  `congress_vote_per_roll_call_step1/2`). Why: 37 of 44 stored Senate and 31 of 124 House roll
+  calls were procedural but shown/scored as a Yea/Nay on the bill, and later roll calls
+  overwrote earlier ones member by member. `lib/data/voteKinds.ts` is the single source:
+  `classifyVote` (House "rules" = procedural), `agrees()`, `ON_THE_BILL`, `latestPerMemberBill`.
+  **Every "how did they vote on this bill" / alignment reader must filter `ON_THE_BILL`.**
+- **Casing bugs fixed in the same change** — stored positions are lowercase ('yea', 'not_voting');
+  user votes are 'yes'/'no'/'abstain'. Were silently never matching: dashboard delegation
+  alignment (always "not enough overlap"), scorecard alignment (every overlap a disagreement →
+  false 0%), bill-page "Agrees with you", rep-mismatch feed (and its text always said "voted NO"),
+  My Representatives recent votes. Scorecard "party line" counted the whole chamber; now same
+  party, per roll call. **Not verified in a signed-in browser** — Clerk won't run on previews and
+  we can't sign in to prod. Owner should eyeball dashboard + a scorecard.
+- **Sync** captures the question (Clerk XML / senate.gov menu), writes one multi-row upsert per
+  roll call (`a829f81`; was ~435 round-trips each), and takes `rolls: [..]` to (re)process
+  explicit roll numbers, skipping ones already complete.
+- **Restore — DONE.** The old high-water-mark skip meant most roll calls were never stored. A
+  scan of the official records found 559 roll calls on bills we hold missing/incomplete; a
+  one-off workflow refilled them (since deleted, `a909143`). Now: **House 432 roll calls /
+  186,467 member votes (254 on the bill itself); Senate 204 / 20,037 (48 on the bill itself)**,
+  up from 124 and 44. Every row has `question` and `kind`; no partial roll calls.
+- **Senate questions were never captured** by the sync: senate.gov's vote menu wraps
+  `<question>` onto a new line and the parser used a `.`-regex. Fixed (`a909143`, reads the
+  per-vote XML) and the 162 affected roll calls backfilled from the official records.
+- **Known gap (low impact):** 87 House roll calls on our bills are still unstored — 85 are
+  "On Agreeing to the Amendment", 2 "Previous Question". Congress.gov's House vote list points
+  those at the amendment, not the bill, so the sync's bill lookup skips them. None decide a
+  bill, so alignment is unaffected; only full voting-record/attendance counts are short.
+  Fix: resolve `vote.amendment` → its parent bill in the House branch of the sync.
+- **Landing:** headline "See what Congress is doing.", button "Find my reps"; ambiguous ZIPs
+  offer "Not sure which? Use your street address" → `POST /api/landing/district-by-address`
+  (US Census geocoder; address never logged/stored) + house.gov fallback link. Tested:
+  30165 + "1600 Martha Berry Hwy NW" → GA-14 auto-picked, focus + status correct.
+- **Signed-out visitors** to protected pages now get `/sign-in?redirect_url=…` (307) instead of
+  a 404 (`b1dd82c`, `middleware.ts`). APIs unchanged.
+- **AI summary backlog:** nightly pre-warm raised to ~600/night (`45e96f2`); 2,198 bills were
+  unsummarised → ~4 nights, ~$22 of Anthropic credit at ~$0.01/bill.
+- **Next candidates:** the key's bow in `KeyLock.tsx` is the old stroked dome (match the solid
+  mark); "Recent votes" panel on rep cards (option A from the council, now unblocked by
+  `kind`); `alignmentService.calculateAlignment` still returns `alignmentPct: 0` when a user has
+  no votes (should be null) and reads votes live from the Congress API rather than `kind`.
+
 ## ⛳ Status (2026-09-10)
 **✅ All below merged to `main` and verified on production.**
 - `ebdd321` — the fabricated "Your Impact" donut and hardcoded contacts are gone (real
