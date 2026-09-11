@@ -11,7 +11,9 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import {
   Search, FileText, Users, Grid3X3, CornerDownLeft,
   LayoutDashboard, Landmark, Loader2,
@@ -56,8 +58,15 @@ export default function CommandPalette() {
   const listRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
+  // /api/search is signed-in only; a signed-out query would just 404, so
+  // signed-out visitors get a sign-in prompt instead of a silent empty list.
+  const { isLoaded, isSignedIn } = useAuth()
+  const signedOut = isLoaded && !isSignedIn
+  const needsSignIn = signedOut && query.trim().length >= 2
+
   // Flatten grouped results into one keyboard-navigable list
-  const flat: Array<Result & { group: string }> = query.trim().length >= 2 && results
+  const flat: Array<Result & { group: string }> = needsSignIn ? []
+    : query.trim().length >= 2 && results
     ? [
         ...results.bills.map(r => ({ ...r, group: 'Bills' })),
         ...results.reps.map(r => ({ ...r, group: 'Representatives' })),
@@ -121,7 +130,7 @@ export default function CommandPalette() {
   // Debounced search
   useEffect(() => {
     const q = query.trim()
-    if (q.length < 2) { setResults(null); setLoading(false); return }
+    if (q.length < 2 || signedOut) { setResults(null); setLoading(false); return }
     setLoading(true)
     const t = setTimeout(async () => {
       abortRef.current?.abort()
@@ -138,7 +147,7 @@ export default function CommandPalette() {
       }
     }, 250)
     return () => clearTimeout(t)
-  }, [query])
+  }, [query, signedOut])
 
   function select(item: Result & { group?: string }) {
     selectedRef.current = true
@@ -222,6 +231,18 @@ export default function CommandPalette() {
           role="listbox"
           className="max-h-[50vh] overflow-y-auto py-2"
         >
+          {needsSignIn && (
+            <div className="px-4 py-6 text-center" role="status">
+              <p className="text-sm text-[--text]">Sign in to search bills, representatives, and topics.</p>
+              <Link
+                href={`/sign-in?redirect_url=${encodeURIComponent(pathname)}`}
+                className="mt-3 inline-flex items-center justify-center min-h-[44px] px-5 text-sm font-semibold rounded-[--radius] bg-[--accent] text-white hover:bg-[--accent-hover] transition-colors"
+              >
+                Sign in
+              </Link>
+            </div>
+          )}
+
           {noResults && (
             <p className="px-4 py-6 text-sm text-[--text-muted] text-center">
               No results for “{query.trim()}” — try a bill number like “HR 2847” or a rep&apos;s last name.
