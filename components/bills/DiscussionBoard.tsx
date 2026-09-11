@@ -3,16 +3,18 @@
 import { useState, useEffect } from 'react'
 import { MessageSquare, Send, CornerDownRight, AlertCircle, Trash2, ShieldAlert, Flag, Check } from 'lucide-react'
 import UsernamePicker from '@/components/ui/UsernamePicker'
+import Link from 'next/link'
+import { useAuth } from '@clerk/nextjs'
 
-interface User { id: string; firstName: string | null; lastName: string | null; username?: string | null }
+// Built server-side (lib/data/discussionAuthor.ts); real names never reach the browser.
+interface User { id: string; username: string | null; displayName: string }
 interface Item { id: string; content: string; createdAt: string; user: User; replies?: Item[] }
 
 function name(u: User) {
-  if (u.username) return `@${u.username}`
-  return u.firstName ? `${u.firstName} ${(u.lastName || '').charAt(0)}.`.trim() : 'Citizen'
+  return u.displayName
 }
 function initial(u: User) {
-  return (u.username || u.firstName || 'C').charAt(0).toUpperCase()
+  return (u.username || u.displayName.replace(/^@/, '') || 'C').charAt(0).toUpperCase()
 }
 
 const REPORT_REASONS: { value: string; label: string }[] = [
@@ -80,7 +82,7 @@ function timeAgo(d: string) {
 const COLORS = ['bg-indigo-600','bg-emerald-600','bg-amber-600','bg-rose-600','bg-violet-600','bg-cyan-600']
 function avatarBg(id: string) { return COLORS[id.split('').reduce((a,c)=>a+c.charCodeAt(0),0)%COLORS.length] }
 
-function Comment({ c, billId, onRefresh, depth=0, isAdmin }: { c: Item; billId: string; onRefresh: ()=>void; depth?: number; isAdmin: boolean }) {
+function Comment({ c, billId, onRefresh, depth=0, isAdmin, signedOut=false }: { c: Item; billId: string; onRefresh: ()=>void; depth?: number; isAdmin: boolean; signedOut?: boolean }) {
   const [showReply, setShowReply] = useState(false)
   const [reply, setReply] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -129,9 +131,9 @@ function Comment({ c, billId, onRefresh, depth=0, isAdmin }: { c: Item; billId: 
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             )
-          ) : (
+          ) : !signedOut ? (
             <ReportControl discussionId={c.id} />
-          )}
+          ) : null}
         </div>
 
         {/* Delete confirmation */}
@@ -156,7 +158,7 @@ function Comment({ c, billId, onRefresh, depth=0, isAdmin }: { c: Item; billId: 
 
         <p className="text-[15px] text-[--text-secondary] leading-relaxed whitespace-pre-wrap mb-2">{c.content}</p>
         <div className="flex items-center gap-3">
-          {depth < 2 && (
+          {depth < 2 && !signedOut && (
             <button onClick={() => setShowReply(!showReply)}
               className="flex items-center gap-1 text-xs text-[--text-muted] hover:text-[--accent] font-medium transition-colors"
             >
@@ -188,7 +190,7 @@ function Comment({ c, billId, onRefresh, depth=0, isAdmin }: { c: Item; billId: 
           </div>
         )}
       </div>
-      {c.replies && showReplies && c.replies.map(r => <Comment key={r.id} c={r} billId={billId} onRefresh={onRefresh} depth={depth+1} isAdmin={isAdmin} />)}
+      {c.replies && showReplies && c.replies.map(r => <Comment key={r.id} c={r} billId={billId} onRefresh={onRefresh} depth={depth+1} isAdmin={isAdmin} signedOut={signedOut} />)}
     </div>
   )
 }
@@ -203,6 +205,12 @@ export default function DiscussionBoard({ billId }: { billId: string }) {
   // undefined = still loading, null = no username yet, string = set
   const [username, setUsername] = useState<string | null | undefined>(undefined)
 
+  // Reading is public; posting needs an account. The 401/404 fallback covers
+  // Clerk not loading (ad blockers, preview domains).
+  const { isLoaded, isSignedIn } = useAuth()
+  const [authBlocked, setAuthBlocked] = useState(false)
+  const signedOut = (isLoaded && !isSignedIn) || authBlocked
+
   async function load() {
     try {
       const res = await fetch(`/api/bills/${billId}/discussions`)
@@ -216,11 +224,16 @@ export default function DiscussionBoard({ billId }: { billId: string }) {
   useEffect(() => { load() }, [billId])
 
   useEffect(() => {
+    if (isLoaded && !isSignedIn) return
     fetch('/api/user/username')
-      .then(r => r.ok ? r.json() : null)
+      .then(r => {
+        // 401 from the route's own check, 404 from the middleware's auth wall.
+        if (r.status === 401 || r.status === 404) { setAuthBlocked(true); return null }
+        return r.ok ? r.json() : null
+      })
       .then(d => setUsername(d ? d.username : null))
       .catch(() => setUsername(null))
-  }, [])
+  }, [isLoaded, isSignedIn])
 
   async function handlePost() {
     if (!text.trim()) return; setSubmitting(true); setError('')
@@ -247,11 +260,24 @@ export default function DiscussionBoard({ billId }: { billId: string }) {
         <span className="text-xs text-[--text-muted]">{discussions.length} comment{discussions.length !== 1 ? 's' : ''}</span>
       </div>
       <div className="p-6">
-        {/* Username gate — pseudonym required before posting */}
-        {username === null && <UsernamePicker onSet={setUsername} />}
+        {signedOut ? (
+          /* Reading is public; joining in needs an account. */
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 rounded-lg bg-[--surface-secondary] border border-[--border]">
+            <p className="text-sm text-[--text-secondary]">Sign in to join the discussion.</p>
+            <Link
+              href={`/sign-in?redirect_url=${encodeURIComponent(`/bills/${billId}`)}`}
+              className="btn-primary text-sm shrink-0 text-center"
+            >
+              Sign in
+            </Link>
+          </div>
+        ) : (
+          /* Username gate — pseudonym required before posting */
+          username === null && <UsernamePicker onSet={setUsername} />
+        )}
 
         {/* Compose */}
-        <div className={`mb-6 ${username == null ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div hidden={signedOut} className={`mb-6 ${username == null ? 'opacity-50 pointer-events-none' : ''}`}>
           <textarea value={text} onChange={e => setText(e.target.value)}
             placeholder="Share your perspective. Be respectful and constructive."
             maxLength={2000} rows={3}
@@ -279,7 +305,7 @@ export default function DiscussionBoard({ billId }: { billId: string }) {
           </div>
         ) : (
           <div className="divide-y divide-[--border]">
-            {discussions.map(d => <Comment key={d.id} c={d} billId={billId} onRefresh={load} isAdmin={isAdmin} />)}
+            {discussions.map(d => <Comment key={d.id} c={d} billId={billId} onRefresh={load} isAdmin={isAdmin} signedOut={signedOut} />)}
           </div>
         )}
       </div>
