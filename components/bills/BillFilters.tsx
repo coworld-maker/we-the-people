@@ -7,6 +7,8 @@ import { Search, X, MapPin, Users, Check } from 'lucide-react'
 interface Props {
   policyAreas: string[]
   userState: string | null
+  // /bills is public; "voted by me" and the state filters need an account.
+  signedIn: boolean
 }
 
 const VOTED_OPTIONS = [
@@ -15,7 +17,7 @@ const VOTED_OPTIONS = [
   { value: 'no',  label: 'Not voted yet' },
 ] as const
 
-export default function BillFilters({ policyAreas, userState }: Props) {
+export default function BillFilters({ policyAreas, userState, signedIn }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -117,13 +119,15 @@ export default function BillFilters({ policyAreas, userState }: Props) {
           {policyAreas.map(pa => <option key={pa} value={pa}>{pa}</option>)}
         </select>
 
-        <select
-          value={voted}
-          onChange={e => { setVoted(e.target.value); apply({ voted: e.target.value }) }}
-          className="px-3 py-2 border border-[--border] rounded-lg text-sm text-[--text] bg-[--surface] cursor-pointer focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
-        >
-          {VOTED_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        {signedIn && (
+          <select
+            value={voted}
+            onChange={e => { setVoted(e.target.value); apply({ voted: e.target.value }) }}
+            className="px-3 py-2 border border-[--border] rounded-lg text-sm text-[--text] bg-[--surface] cursor-pointer focus:ring-2 focus:ring-[--accent] focus:border-[--accent] outline-none"
+          >
+            {VOTED_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        )}
       </div>
 
       {/* Row 3 — State-aware toggle chips */}
@@ -150,7 +154,11 @@ export default function BillFilters({ policyAreas, userState }: Props) {
           label={userState ? `Voted on by ${userState}` : 'Voted on by my state'}
           activeCls="bg-[--accent-light] text-[--accent] border-[--accent]/40"
         />
-        {!userState && (
+        {!signedIn ? (
+          <p className="text-[10px] text-[--text-muted] italic">
+            <a href="/sign-in?redirect_url=%2Fbills" className="underline">Sign in</a> to filter by your state and your votes.
+          </p>
+        ) : !userState && (
           <p className="text-[10px] text-[--text-muted] italic">
             Pick your state on the <a href="/my-representatives" className="underline">map</a> to enable state filters.
           </p>

@@ -1,5 +1,4 @@
 import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
 import { BillService } from '@/lib/services/billService'
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
@@ -121,8 +120,9 @@ export default async function BillsPage({
     groupBy?: string; sort?: string; recent?: string;
   }>
 }) {
+  // Public (search engines, links from the landing page and search). Signed in
+  // adds the personal filters; signed out, the list is the same without them.
   const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
 
   const params = await searchParams
   const page = parseInt(params.page || '1')
@@ -130,9 +130,9 @@ export default async function BillsPage({
   const offset = (page - 1) * limit
   const groupByPolicy = params.groupBy === 'policy'
 
-  const userRow = await prisma.user.findUnique({
-    where: { clerkId: userId }, select: { id: true, state: true },
-  })
+  const userRow = userId
+    ? await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true, state: true } })
+    : null
   const userState = userRow?.state ?? null
   const userInternalId = userRow?.id ?? null
 
@@ -258,7 +258,7 @@ export default async function BillsPage({
         </div>
       </div>
 
-      <BillFilters policyAreas={policyAreas} userState={userState} />
+      <BillFilters policyAreas={policyAreas} userState={userState} signedIn={!!userId} />
 
       {/* Legislative stage — the split that matters most to a reader. Most bills
           never leave committee, so "introduced" and "passed the House" sitting
