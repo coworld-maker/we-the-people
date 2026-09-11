@@ -2,12 +2,16 @@ import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import { CheckCircle2, XCircle, MinusCircle } from 'lucide-react'
 import RepAvatar from '@/components/ui/RepAvatar'
+import { ON_THE_BILL, agrees, latestPerMemberBill, normalizeMemberPosition } from '@/lib/data/voteKinds'
 
+// Keys are the normalised positions. The stored values are lowercase
+// ('yea', 'not_voting'); the old 'Yea'/'Nay' keys never matched, so every
+// row fell through to the raw value and "Agrees with you" never showed.
 const POSITION_MAP: Record<string, { label: string; cls: string }> = {
-  'Yea':        { label: 'Voted YES',  cls: 'text-emerald-600' },
-  'Nay':        { label: 'Voted NO',   cls: 'text-red-600' },
-  'Not Voting': { label: 'Not voting', cls: 'text-[--text-muted]' },
-  'Present':    { label: 'Present',    cls: 'text-amber-600' },
+  yea:        { label: 'Voted YES',  cls: 'text-emerald-600' },
+  nay:        { label: 'Voted NO',   cls: 'text-red-600' },
+  not_voting: { label: 'Not voting', cls: 'text-[--text-muted]' },
+  present:    { label: 'Present',    cls: 'text-amber-600' },
 }
 
 export default async function RepVotesOnBill({
@@ -26,12 +30,13 @@ export default async function RepVotesOnBill({
       where: { state: userState, currentTerm: true },
       orderBy: [{ chamber: 'asc' }, { lastName: 'asc' }],
     }),
-    prisma.congressVote.findMany({ where: { billId } }),
+    // Votes on the bill itself only; a procedural vote is not "how they voted" on it.
+    prisma.congressVote.findMany({ where: { billId, ...ON_THE_BILL } }),
   ])
 
   if (reps.length === 0) return null
 
-  const voteByBioguide = new Map(congressVotes.map(v => [v.bioguideId, v]))
+  const voteByBioguide = new Map(latestPerMemberBill(congressVotes).map(v => [v.bioguideId, v]))
   const rows = reps
     .map(rep => ({ rep, cv: voteByBioguide.get(rep.bioguideId) }))
     .filter(({ cv }) => cv !== undefined)
@@ -52,14 +57,13 @@ export default async function RepVotesOnBill({
 
       <div className="divide-y divide-[--border]">
         {rows.map(({ rep, cv }) => {
-          const pos     = cv!.position
+          const pos     = normalizeMemberPosition(cv!.position) ?? cv!.position
           const posInfo = POSITION_MAP[pos] ?? { label: pos, cls: 'text-[--text-muted]' }
 
-          const repYes = pos === 'Yea'
-          const repNo  = pos === 'Nay'
-          const hasVote  = userYes || userNo
-          const isMatch    = hasVote && ((userYes && repYes) || (userNo && repNo))
-          const isMismatch = hasVote && ((userYes && repNo)  || (userNo && repYes))
+          const hasVote    = userYes || userNo
+          const same       = agrees(userVotePosition, cv!.position)
+          const isMatch    = same === true
+          const isMismatch = same === false
 
           return (
             <div key={rep.bioguideId} className="px-5 py-3 flex items-center gap-3">
@@ -74,6 +78,9 @@ export default async function RepVotesOnBill({
               </div>
               <div className="text-right shrink-0">
                 <p className={`text-xs font-bold ${posInfo.cls}`}>{posInfo.label}</p>
+                {cv!.question && (
+                  <p className="text-[10px] text-[--text-muted]">{cv!.question}</p>
+                )}
                 {isMatch && (
                   <p className="text-[10px] font-medium text-emerald-600 flex items-center justify-end gap-0.5 mt-0.5">
                     <CheckCircle2 className="w-3 h-3" /> Agrees with you
@@ -84,7 +91,7 @@ export default async function RepVotesOnBill({
                     <XCircle className="w-3 h-3" /> Disagrees
                   </p>
                 )}
-                {hasVote && !isMatch && !isMismatch && pos === 'Not Voting' && (
+                {hasVote && !isMatch && !isMismatch && pos === 'not_voting' && (
                   <p className="text-[10px] text-[--text-muted] flex items-center justify-end gap-0.5 mt-0.5">
                     <MinusCircle className="w-3 h-3" /> Didn't vote
                   </p>

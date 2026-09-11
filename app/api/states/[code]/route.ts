@@ -129,7 +129,9 @@ export async function GET(
   const repsWithStats = reps.map(r => ({ ...r, votesTracked: voteCountMap.get(r.bioguideId) ?? 0 }))
   const recentRepVotes = repBioguides.length > 0
     ? await prisma.congressVote.findMany({
-        where: { bioguideId: { in: repBioguides } },
+        // Votes on bills themselves only (lib/data/voteKinds.ts) — a cloture
+        // vote shown as "Nay on <bill>" states a position that wasn't taken.
+        where: { bioguideId: { in: repBioguides }, kind: 'passage' },
         orderBy: { votedAt: 'desc' },
         take: 10,
         select: { bioguideId: true, billId: true, position: true, votedAt: true, chamber: true },

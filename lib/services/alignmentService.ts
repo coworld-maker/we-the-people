@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { ON_THE_BILL, agrees, latestPerMemberBill } from '@/lib/data/voteKinds'
 
 const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY
 const BASE_URL = 'https://api.congress.gov/v3'
@@ -90,15 +91,14 @@ export class AlignmentService {
 
         if (!memberPos) continue // No roll call vote found for this bill
 
+        // Not Voting / Present / an abstaining user took no side, so they're
+        // excluded rather than counted as a disagreement (they used to count
+        // toward the overlap and could never match, understating agreement).
+        const same = agrees(uv.position, memberPos)
+        if (same === null) continue
+
         totalOverlap++
-
-        // Compare positions
-        const userYes = uv.position === 'yes'
-        const userNo = uv.position === 'no'
-        const memberYea = memberPos === 'Yea' || memberPos === 'Aye'
-        const memberNay = memberPos === 'Nay' || memberPos === 'No'
-
-        const aligned = (userYes && memberYea) || (userNo && memberNay)
+        const aligned = same
         if (aligned) matches++
 
         details.push({
@@ -257,13 +257,15 @@ export class AlignmentService {
     ])
     if (userVotes.length === 0 || members.length === 0) return empty
 
-    const memberVotes = await prisma.congressVote.findMany({
+    // Votes on the bill itself only (not cloture/recommit), latest per member per bill.
+    const memberVotes = latestPerMemberBill(await prisma.congressVote.findMany({
       where: {
         billId: { in: userVotes.map(v => v.billId) },
         bioguideId: { in: members.map(m => m.bioguideId) },
+        ...ON_THE_BILL,
       },
-      select: { billId: true, position: true },
-    })
+      select: { billId: true, bioguideId: true, position: true, votedAt: true },
+    }))
     if (memberVotes.length === 0) return { ...empty, memberCount: members.length }
 
     const userPositionByBill = new Map(userVotes.map(v => [v.billId, v.position]))
@@ -278,12 +280,13 @@ export class AlignmentService {
       // "Present" and "Not Voting" are excluded from BOTH sides rather than
       // counted as disagreement — a member who did not vote has not disagreed
       // with anyone, and scoring it as a miss would understate agreement.
-      const memberYea = mv.position === 'Yea' || mv.position === 'Aye'
-      const memberNay = mv.position === 'Nay' || mv.position === 'No'
-      if (!memberYea && !memberNay) continue
+      // Positions are stored lowercase ('yea'); the old 'Yea'/'Aye' check
+      // never matched, so this always returned "not enough overlap".
+      const same = agrees(userPos, mv.position)
+      if (same === null) continue
 
       overlap++
-      if ((userPos === 'yes' && memberYea) || (userPos === 'no' && memberNay)) matched++
+      if (same) matched++
     }
 
     return {

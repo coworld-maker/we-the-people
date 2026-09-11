@@ -39,7 +39,10 @@ export async function GET(req: NextRequest) {
   const senatorMap = new Map(senators.map(s => [s.bioguideId, s]));
 
   // Step 2: Get votes for those senators
-  const voteWhere: any = { bioguideId: { in: bioguideIds } };
+  // Votes on bills themselves only; procedural roll calls (cloture, recommit,
+  // motions to proceed) would otherwise be listed as a Yea/Nay on the bill.
+  // See lib/data/voteKinds.ts.
+  const voteWhere: any = { bioguideId: { in: bioguideIds }, kind: 'passage' };
   if (position) voteWhere.position = position;
   if (billId) voteWhere.billId = billId;
 

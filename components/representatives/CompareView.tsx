@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { CheckCircle2, XCircle, MinusCircle, ChevronDown, ChevronUp, Users } from 'lucide-react'
 import Link from 'next/link'
+import { normalizeMemberPosition } from '@/lib/data/voteKinds'
 import RepAvatar from '@/components/ui/RepAvatar'
 
 const STORAGE_KEY = 'my-reps-state'
@@ -158,8 +159,12 @@ function RepCard({ rep }: { rep: Rep }) {
             </div>
             <div className="space-y-1.5">
               {rep.recentVotes.map(v => {
-                const yes = v.position === 'Yea'
-                const no  = v.position === 'Nay'
+                // Stored lowercase ('yea', 'not_voting'); 'Yea' never matched,
+                // so every vote rendered as raw uppercase text with no colour.
+                const p   = normalizeMemberPosition(v.position)
+                const yes = p === 'yea'
+                const no  = p === 'nay'
+                const other = p === 'not_voting' ? 'NO VOTE' : p === 'present' ? 'PRESENT' : v.position.toUpperCase()
                 return (
                   <Link
                     key={v.billId}
@@ -171,7 +176,7 @@ function RepCard({ rep }: { rep: Rep }) {
                       : no ? 'bg-red-50 text-red-700'
                       : 'bg-[--surface-tertiary] text-[--text-muted]'
                     }`}>
-                      {yes ? 'YES' : no ? 'NO' : v.position.toUpperCase()}
+                      {yes ? 'YES' : no ? 'NO' : other}
                     </span>
                     <span className="flex-1 min-w-0 text-xs text-[--text-secondary] leading-snug line-clamp-2 group-hover/vote:text-[--accent] transition-colors">
                       <span className="font-semibold text-[--text-muted]">

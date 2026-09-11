@@ -162,7 +162,11 @@ model BillVoteAggregate {
 }
 
 // ---------------------------------------------------------------------------
-// CongressVote — how each member of congress voted on a bill
+// CongressVote — how each member of congress voted on one ROLL CALL.
+// A bill can have several roll calls (cloture, motion to proceed, recommit,
+// passage); each is its own row. `kind` says whether the roll call decided
+// the measure itself — only 'passage' rows may be compared with a user's
+// position on the bill. See lib/data/voteKinds.ts.
 // ---------------------------------------------------------------------------
 model CongressVote {
   id         String    @id @default(cuid())
@@ -174,11 +178,15 @@ model CongressVote {
   rollNumber Int?
   congress   String?
   session    Int?
+  question   String?   // as published: "On Passage", "On Cloture on the Motion to Proceed", …
+  kind       String?   // 'passage' | 'procedural'; null = question unknown
   createdAt  DateTime  @default(now())
 
   bill Bill @relation(fields: [billId], references: [id])
 
-  @@unique([bioguideId, billId])
+  @@unique([bioguideId, chamber, congress, session, rollNumber])
+  @@index([bioguideId, billId])
+  @@index([billId, kind])
 }
 
 // ---------------------------------------------------------------------------

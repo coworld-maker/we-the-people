@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { checkSyncAuth } from '@/lib/auth/syncAuth';
+import { classifyVote } from '@/lib/data/voteKinds';
 
 const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY;
 const BASE_URL = 'https://api.congress.gov/v3';
@@ -70,6 +71,23 @@ async function fetchHouseMemberVotes(congress: number, session: number, rollNumb
   return res.json();
 }
 
+// House: the question voted on ("On Passage", "On Motion to Recommit", …) from
+// the Clerk's public roll-call XML. Congress.gov's list endpoint doesn't carry
+// it, and without it a procedural vote gets stored as a vote on the bill.
+// Returns null rather than throwing: an unknown question is stored as unknown.
+async function fetchHouseQuestion(congress: number, session: number, rollNumber: number): Promise<string | null> {
+  const year = congressSessionYear(congress, session);
+  const url = `https://clerk.house.gov/evs/${year}/roll${String(rollNumber).padStart(3, '0')}.xml`;
+  try {
+    const res = await fetch(url, { next: { revalidate: 0 } });
+    if (!res.ok) return null;
+    const xml = await res.text();
+    return xml.match(/<vote-question>([^<]*)<\/vote-question>/)?.[1]?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 // Month abbreviation → 0-based index (matches senate.gov "DD-Mon" format, e.g. "18-Dec")
 const MONTH_ABBR: Record<string, number> = {
   Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
@@ -116,7 +134,7 @@ async function fetchSenateVoteList(congress: number, session: number): Promise<{
     } else {
       date = rawDate; // fallback for unexpected formats
     }
-    entries.push({ rollNumber, docShort, date });
+    entries.push({ rollNumber, docShort, date, question: get('question') || null });
   }
   return { entries, sampleRawDates };
 }
@@ -156,6 +174,13 @@ export async function POST(req: NextRequest) {
   const chamber = (body.chamber as string | undefined) ?? 'house'; // 'house' | 'senate' | 'both'
   // senateOffset: skip the N most recent Senate roll calls before starting (for pagination)
   const senateOffset = Number(body.senateOffset ?? 0);
+  // rolls: explicit roll numbers to (re)process, bypassing the already-synced
+  // and high-water-mark skips. Used to restore roll calls that the old
+  // one-row-per-(member, bill) key overwrote: they sit below the high-water
+  // mark, so a normal run can never reach them again. Upserts are idempotent.
+  const forceRolls = new Set<number>(
+    Array.isArray(body.rolls) ? body.rolls.map(Number).filter((n: number) => Number.isInteger(n) && n > 0) : []
+  );
 
   let totalMemberVotesSynced = 0;
   let rollCallsMatched = 0;
@@ -224,7 +249,9 @@ export async function POST(req: NextRequest) {
           // or below the high-water mark (tried before but no bill matched).
           const candidateRoll: number =
             vote.rollCallNumber ?? vote.rollNumber ?? vote.roll_number;
-          if (candidateRoll && (alreadySynced.has(candidateRoll) || candidateRoll <= highWaterMark)) {
+          if (forceRolls.size > 0) {
+            if (!forceRolls.has(candidateRoll)) continue;
+          } else if (candidateRoll && (alreadySynced.has(candidateRoll) || candidateRoll <= highWaterMark)) {
             skippedAsAlreadySynced++;
             continue;
           }
@@ -255,11 +282,13 @@ export async function POST(req: NextRequest) {
           // Look up this bill in our DB
           const bill = await prisma.bill.findFirst({
             where: { billType, billNumber, congress: billCongress },
-            select: { id: true },
+            select: { id: true, title: true },
           });
 
           if (!bill) continue;
           rollCallsMatched++;
+          const question = await fetchHouseQuestion(congress, session, rollNumber);
+          const kind = classifyVote(question, bill.title);
 
           // Fetch member votes for this roll call
           try {
@@ -299,16 +328,19 @@ export async function POST(req: NextRequest) {
               const position = normalizePosition(member.voteCast ?? member.votePosition ?? member.vote ?? '');
               if (!bioguideId || !position) continue;
 
-              // Upsert — ON CONFLICT on the unique (bioguideId, billId) index
+              // One row per member per ROLL CALL, not per bill: a bill's
+              // recommit, previous-question and passage votes are different votes.
               await prisma.$executeRawUnsafe(
                 `INSERT INTO "CongressVote"
-                   (id, "bioguideId", "billId", position, chamber, "rollNumber", congress, session, "votedAt", "createdAt")
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-                 ON CONFLICT ("bioguideId", "billId")
+                   (id, "bioguideId", "billId", position, chamber, "rollNumber", congress, session, "votedAt", question, kind, "createdAt")
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+                 ON CONFLICT ("bioguideId", chamber, congress, session, "rollNumber")
                  DO UPDATE SET
                    position = EXCLUDED.position,
-                   "rollNumber" = EXCLUDED."rollNumber",
-                   "votedAt" = EXCLUDED."votedAt"`,
+                   "billId" = EXCLUDED."billId",
+                   "votedAt" = EXCLUDED."votedAt",
+                   question = COALESCE(EXCLUDED.question, "CongressVote".question),
+                   kind = COALESCE(EXCLUDED.kind, "CongressVote".kind)`,
                 makeId(),
                 bioguideId,
                 bill.id,
@@ -317,7 +349,9 @@ export async function POST(req: NextRequest) {
                 rollNumber,
                 String(congress),
                 session,
-                voteDate
+                voteDate,
+                question,
+                kind
               );
               totalMemberVotesSynced++;
             }
@@ -370,8 +404,11 @@ export async function POST(req: NextRequest) {
 
         const { rollNumber, date } = vote;
         if (!rollNumber) continue;
-        // Skip if we already have this roll number in the DB
-        if (alreadySynced.has(rollNumber)) continue;
+        // Skip if we already have this roll number in the DB — unless it was
+        // asked for explicitly (restoring overwritten roll calls).
+        if (forceRolls.size > 0) {
+          if (!forceRolls.has(rollNumber)) continue;
+        } else if (alreadySynced.has(rollNumber)) continue;
         senateProcessed++;
         rollCallsProcessed++;
 
@@ -402,10 +439,12 @@ export async function POST(req: NextRequest) {
 
           const bill = await prisma.bill.findFirst({
             where: { billType, billNumber, congress: billCongress },
-            select: { id: true },
+            select: { id: true, title: true },
           });
           if (!bill) continue;
           rollCallsMatched++;
+          const question: string | null = vote.question ?? null;
+          const kind = classifyVote(question, bill.title);
 
           // Parse member votes from XML
           const memberRegex = /<member>([\s\S]*?)<\/member>/g;
@@ -424,13 +463,15 @@ export async function POST(req: NextRequest) {
 
             await prisma.$executeRawUnsafe(
               `INSERT INTO "CongressVote"
-                 (id, "bioguideId", "billId", position, chamber, "rollNumber", congress, session, "votedAt", "createdAt")
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-               ON CONFLICT ("bioguideId", "billId")
+                 (id, "bioguideId", "billId", position, chamber, "rollNumber", congress, session, "votedAt", question, kind, "createdAt")
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+               ON CONFLICT ("bioguideId", chamber, congress, session, "rollNumber")
                DO UPDATE SET
                  position = EXCLUDED.position,
-                 "rollNumber" = EXCLUDED."rollNumber",
-                 "votedAt" = EXCLUDED."votedAt"`,
+                 "billId" = EXCLUDED."billId",
+                 "votedAt" = EXCLUDED."votedAt",
+                 question = COALESCE(EXCLUDED.question, "CongressVote".question),
+                 kind = COALESCE(EXCLUDED.kind, "CongressVote".kind)`,
               makeId(),
               bioguideId,
               bill.id,
@@ -439,7 +480,9 @@ export async function POST(req: NextRequest) {
               rollNumber,
               String(congress),
               session,
-              voteDate
+              voteDate,
+              question,
+              kind
             );
             totalMemberVotesSynced++;
           }

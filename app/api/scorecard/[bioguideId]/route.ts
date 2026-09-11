@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
+import { ON_THE_BILL, agrees, latestPerMemberBill } from '@/lib/data/voteKinds'
 
 export async function GET(
   req: NextRequest,
@@ -30,11 +31,15 @@ export async function GET(
   })
 
   // ── 1. Voting records ──────────────────────────────────────────────────────
-  const congressVotes = await prisma.congressVote.findMany({
-    where: { bioguideId },
+  // Votes on the bill itself only — the record, positions, alignment and
+  // party-line figures below all read as "how they voted on this bill", which
+  // a cloture or recommit vote is not. Attendance (further down) still counts
+  // every roll call. Latest passage-type vote per bill.
+  const congressVotes = latestPerMemberBill(await prisma.congressVote.findMany({
+    where: { bioguideId, ...ON_THE_BILL },
     orderBy: { votedAt: 'desc' },
     take: 100,
-  })
+  }))
 
   const billIds = congressVotes.map(v => v.billId)
 
@@ -113,10 +118,12 @@ export async function GET(
 
   for (const [billId, userPos] of userVoteMap) {
     const memberPos = memberVoteMap.get(billId)
-    if (!memberPos || userPos === 'abstain') continue
+    // User votes are 'yes'/'no' and member votes 'yea'/'nay'. The old check
+    // compared 'yes' to 'yea', so every overlap scored as a disagreement.
+    const same = agrees(userPos, memberPos)
+    if (same === null) continue
     total++
-    const normalizedUser = userPos === 'for' ? 'yea' : userPos === 'against' ? 'nay' : userPos
-    const aligned = normalizedUser === memberPos
+    const aligned = same
     if (aligned) matched++
     const bill = billMap.get(billId)
     if (bill) {
@@ -165,19 +172,31 @@ export async function GET(
   if (repProfile && billIds.length > 0) {
     const myParty = repProfile.party
     // Get all party members' votes on these bills
+    // Same-party members only — this used to count the whole chamber, so
+    // "party line" was really "chamber majority" — and grouped per ROLL CALL,
+    // since one bill can have several.
+    const partyIds = (await prisma.representative.findMany({
+      where: { party: myParty },
+      select: { bioguideId: true },
+    })).map(r => r.bioguideId)
     const partyVotes = await prisma.congressVote.findMany({
       where: {
         billId: { in: billIds },
+        bioguideId: { in: partyIds },
         position: { in: ['yea', 'nay'] },
+        ...ON_THE_BILL,
       },
-      select: { billId: true, bioguideId: true, position: true },
+      select: { billId: true, bioguideId: true, position: true, chamber: true, session: true, rollNumber: true },
     })
+    const rollKey = (r: { chamber: string | null; session: number | null; rollNumber: number | null }) =>
+      `${r.chamber}|${r.session}|${r.rollNumber}`
 
-    // Build bill → { yeaIds, nayIds } for party members
+    // Build roll call → { yeaIds, nayIds } for party members
     const partyBillMap = new Map<string, { yea: Set<string>; nay: Set<string> }>()
     for (const pv of partyVotes) {
-      if (!partyBillMap.has(pv.billId)) partyBillMap.set(pv.billId, { yea: new Set(), nay: new Set() })
-      const entry = partyBillMap.get(pv.billId)!
+      const key = rollKey(pv)
+      if (!partyBillMap.has(key)) partyBillMap.set(key, { yea: new Set(), nay: new Set() })
+      const entry = partyBillMap.get(key)!
       if (pv.position === 'yea') entry.yea.add(pv.bioguideId)
       else entry.nay.add(pv.bioguideId)
     }
@@ -185,7 +204,7 @@ export async function GET(
     // For each rep's yea/nay vote, check party majority
     for (const v of congressVotes) {
       if (v.position !== 'yea' && v.position !== 'nay') continue
-      const entry = partyBillMap.get(v.billId)
+      const entry = partyBillMap.get(rollKey(v))
       if (!entry) continue
       const partyYea = entry.yea.size
       const partyNay = entry.nay.size
