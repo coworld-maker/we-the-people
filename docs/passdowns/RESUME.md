@@ -48,11 +48,11 @@ Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale mem
 - **Senate questions were never captured** by the sync: senate.gov's vote menu wraps
   `<question>` onto a new line and the parser used a `.`-regex. Fixed (`a909143`, reads the
   per-vote XML) and the 162 affected roll calls backfilled from the official records.
-- **Known gap (low impact):** 87 House roll calls on our bills are still unstored — 85 are
-  "On Agreeing to the Amendment", 2 "Previous Question". Congress.gov's House vote list points
-  those at the amendment, not the bill, so the sync's bill lookup skips them. None decide a
-  bill, so alignment is unaffected; only full voting-record/attendance counts are short.
-  Fix: resolve `vote.amendment` → its parent bill in the House branch of the sync.
+- **Amendment-vote gap — CLOSED** (`b69ae3d`). Congress.gov's House vote list names the
+  amendment, not the bill, for amendment roll calls, so the sync skipped 87 of them. The sync
+  now falls back to the House Clerk's `<legis-num>` (`parseLegisNum` in voteKinds.ts). All 87
+  restored; **House now 280/280 (2025) and 239/239 (2026) roll calls on bills we hold — an
+  exact match with the official records**; Senate 136 and 68. 0 rows without question/kind.
 - **Landing:** headline "See what Congress is doing.", button "Find my reps"; ambiguous ZIPs
   offer "Not sure which? Use your street address" → `POST /api/landing/district-by-address`
   (US Census geocoder; address never logged/stored) + house.gov fallback link. Tested:
