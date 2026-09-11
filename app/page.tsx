@@ -200,7 +200,7 @@ export default async function LandingPage() {
               See how often your representatives vote the way you would.
             </h2>
             <p className="mt-5 text-lg text-[#C8D0E2]">
-              Free to use, with every vote drawn from the official congressional record.
+              Free, nonpartisan, and drawn from the official congressional record.
             </p>
             <Link
               href={userId ? '/dashboard' : '/sign-up'}
