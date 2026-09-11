@@ -2,13 +2,13 @@
 
 /**
  * Mobile bottom tab bar — replaces the hamburger drawer on small viewports.
- * The four task sections stay visible and thumb-reachable on every page;
+ * The four task sections plus About stay visible and thumb-reachable on every page;
  * deeper pages are reached through the hubs, search, and cross-links.
  */
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileText, Users, Megaphone } from 'lucide-react'
+import { LayoutDashboard, FileText, Users, Megaphone, Info } from 'lucide-react'
 import { track } from '@/lib/track'
 
 const TABS = [
@@ -16,6 +16,9 @@ const TABS = [
   { href: '/bills',              icon: FileText,        label: 'Track' },
   { href: '/my-representatives', icon: Users,           label: 'Know' },
   { href: '/act',                icon: Megaphone,       label: 'Act' },
+  // Fifth tab added at the founder's request (2026-09-11), superseding the
+  // June "stays at 4 tabs" call.
+  { href: '/about',              icon: Info,            label: 'About' },
 ]
 
 // Routes that belong to a tab's section, so the tab stays lit on deep pages
@@ -38,7 +41,7 @@ export default function MobileTabBar() {
       aria-label="Primary"
       className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-[--surface] border-t border-[--border] shadow-[0_-2px_8px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom)]"
     >
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-5">
         {TABS.map(tab => {
           const active = isActive(tab.href)
           return (
