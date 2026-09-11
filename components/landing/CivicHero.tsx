@@ -197,8 +197,10 @@ export default function CivicHero({ billCount, signedIn }: { billCount: number; 
     zipInputRef.current?.blur()
     const heading = result.ambiguous ? optionsHeadingRef.current : delegationHeadingRef.current
     if (!heading) return
-    // Skip the jump when the heading is already comfortably on screen (wide
-    // layouts): scrolling there would carry the lock out of view mid-unlock.
+    // Phones only. From 1024px the big key is on screen, and scrolling would
+    // carry it out of view mid-unlock — even on short desktop windows.
+    if (window.matchMedia('(min-width: 1024px)').matches) return
+    // Skip the jump when the heading is already comfortably on screen.
     const r = heading.getBoundingClientRect()
     if (r.top >= 96 && r.bottom <= window.innerHeight - 120) return
     heading.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' })
