@@ -919,32 +919,35 @@ code, pre {
 }
 
 /* ── Landing key + lock (components/landing/KeyLock.tsx) ──────────────────
-   Enter and exit are timed differently on purpose. Unlocking: the key glides
-   in (ease-in-out, no overshoot) and the shackle starts lifting just before
-   the key seats, so the two read as one motion. Relocking: the shackle drops
-   first, then the key backs out. Transforms only — nothing that triggers
-   layout. */
+   One continuous unlock (< 1s): on submit the key travels all the way in
+   (0–0.5s, ease-in-out) and seats with its tip ~55 units inside the body;
+   the shackle lifts 0.35–0.7s; results fade in from 0.5s. 'turning' and
+   'unlocked' share the key's target and timing, so a fast lookup never
+   retargets the transition mid-flight. Relocking: the shackle drops first,
+   then the key backs out. KeyLock sets --keylock-shackle-delay so the lift
+   starts 0.35s after the travel began whatever the lookup time.
+   Transforms only — nothing that triggers layout. */
 .keylock-key {
   transform: translate(0px, 64px);
-  transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1) 0.2s;
+  transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1) 0.15s;
 }
 .keylock-shackle {
   transform: translateY(0px);
-  transition: transform 0.3s cubic-bezier(0.55, 0, 1, 0.45);
+  transition: transform 0.2s cubic-bezier(0.55, 0, 1, 0.45);
 }
-/* Lookup in flight: the key starts toward the lock at once and eases to a
-   stop just short of it, so network latency reads as travel, not a pause. */
-.keylock.is-turning .keylock-key {
-  transform: translate(46px, 64px);
-  transition: transform 0.7s cubic-bezier(0.33, 1, 0.68, 1);
-}
+.keylock.is-turning .keylock-key,
 .keylock.is-unlocked .keylock-key {
-  transform: translate(74px, 64px);
-  transition: transform 0.7s cubic-bezier(0.45, 0, 0.2, 1);
+  transform: translate(111px, 64px);
+  transition: transform 0.5s cubic-bezier(0.65, 0, 0.35, 1);
 }
 .keylock.is-unlocked .keylock-shackle {
   transform: translateY(-34px);
-  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.45s;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1) var(--keylock-shackle-delay, 0.35s);
+}
+/* The ceremony plays once per page view; later lookups just show the state. */
+.keylock.is-instant .keylock-key,
+.keylock.is-instant .keylock-shackle {
+  transition: none;
 }
 .keylock-tooth {
   transform-box: fill-box;
@@ -956,9 +959,9 @@ code, pre {
   font-variant-numeric: tabular-nums;
   transition: fill 0.2s ease;
 }
-/* Results arrive as the shackle finishes lifting. */
+/* Results arrive as the key seats and the shackle lifts. */
 .keylock-reveal {
-  animation: keylock-reveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.9s both;
+  animation: keylock-reveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
 }
 /* After a district pick (or "change district") focus moves into the new
    block at once, so it cannot wait on the lock — same motion, no delay. */

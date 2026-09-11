@@ -1,53 +1,94 @@
+'use client'
+
+import { useLayoutEffect, useRef } from 'react'
 import { DOME_SHACKLE_PATH, KEYHOLE_PATH } from '@/components/ui/Logo'
 
 /**
  * The landing hero's key and lock. The key's bow is the Capitol dome; each ZIP
- * digit cuts one tooth (blank = uncut, higher digit = deeper cut). When the
- * lookup succeeds the key slides into the lock and the dome shackle lifts.
+ * digit cuts one tooth (blank = uncut, higher digit = deeper cut). On submit
+ * the key slides all the way into the lock in one motion; when the lookup
+ * succeeds the dome shackle lifts as the key seats.
  *
  * Every tooth is its own rect scaled from the blade edge, so re-cutting eases
  * in all browsers (a single morphing path only animates in some). Timings live
- * in globals.css under `.keylock` so locking and unlocking can differ: on
- * unlock the key travels first and the shackle follows as it seats; on relock
- * the shackle drops first and the key backs out after it.
+ * in globals.css under `.keylock`.
  */
 
 const TEETH_X = [179, 241, 303, 365, 427] // left edge of each 62-wide tooth
 const TOOTH_W = 62
 const BLADE_BOTTOM = 112
 const FULL = 58 // an uncut tooth's depth below the blade
+/** When the shackle starts lifting, measured from the start of the key's travel. */
+const SHACKLE_START_S = 0.35
 
 function toothScale(digit: string | undefined): number {
   if (digit == null || !/\d/.test(digit)) return 1
   return (FULL - (Number(digit) + 1) * 5) / FULL
 }
 
-/** idle: resting · turning: lookup in flight, key travelling · unlocked: seated, shackle up */
+/** idle: resting · turning: lookup in flight, key travelling in · unlocked: seated, shackle up */
 export type KeyLockState = 'idle' | 'turning' | 'unlocked'
+
+export function keyLockLabel(zip: string, state: KeyLockState, ambiguous = false): string {
+  const digits = zip.replace(/\D/g, '').slice(0, 5)
+  if (state === 'unlocked') {
+    return `The key cut from ZIP ${digits} has opened the Capitol-dome lock. ` +
+      (ambiguous ? 'This ZIP spans several districts; choose yours below.' : 'Your delegation is below.')
+  }
+  if (state === 'turning') return `The key cut from ZIP ${digits} is going into the Capitol-dome lock while your ZIP is looked up.`
+  if (!digits) return 'An uncut key beside a locked padlock whose shackle is the Capitol dome. Type your ZIP code to cut the key.'
+  return `A key cut from the digits ${digits.split('').join(' ')}` +
+    (digits.length < 5 ? `, ${5 - digits.length} still to go,` : ',') +
+    ' beside a locked padlock whose shackle is the Capitol dome.'
+}
 
 export default function KeyLock({
   zip,
   state,
+  ambiguous = false,
+  instant = false,
   className = '',
 }: {
   zip: string
   state: KeyLockState
+  /** The ZIP spans several districts, so no single delegation is shown. */
+  ambiguous?: boolean
+  /** Skip the travel/shackle motion (the ceremony already played this page view). */
+  instant?: boolean
   className?: string
 }) {
   const digits = zip.split('').slice(0, 5)
-  const unlocked = state === 'unlocked'
+  const svgRef = useRef<SVGSVGElement>(null)
+  const travelStartedAt = useRef<number | null>(null)
+
+  // The key starts travelling on submit ('turning'); the lookup usually answers
+  // before it seats. The shackle should start lifting SHACKLE_START_S after the
+  // travel began, however long the lookup took, so the delay is the remainder.
+  // Set before paint, in the same frame as the class change that starts it.
+  useLayoutEffect(() => {
+    const svg = svgRef.current
+    if (!svg) return
+    if (state === 'turning') {
+      travelStartedAt.current = performance.now()
+    } else if (state === 'unlocked') {
+      const started = travelStartedAt.current
+      const elapsed = started == null ? 0 : (performance.now() - started) / 1000
+      const delay = started == null ? SHACKLE_START_S : Math.max(0, SHACKLE_START_S - elapsed)
+      svg.style.setProperty('--keylock-shackle-delay', `${delay.toFixed(3)}s`)
+      travelStartedAt.current = null
+    } else {
+      travelStartedAt.current = null
+    }
+  }, [state])
 
   return (
     <svg
+      ref={svgRef}
       viewBox="0 0 770 290"
-      className={`keylock is-${state} ${className}`}
+      className={`keylock is-${state}${instant ? ' is-instant' : ''} ${className}`}
       overflow="visible"
       role="img"
-      aria-label={
-        unlocked
-          ? 'The key, cut from your ZIP code, has opened the Capitol-dome lock'
-          : 'A key whose teeth are cut from the digits of your ZIP code, beside a lock whose shackle is the Capitol dome'
-      }
+      aria-label={keyLockLabel(zip, state, ambiguous)}
     >
       <g className="keylock-key">
         {/* bow: the brand mark's solid dome (Logo.tsx) with the gap between
