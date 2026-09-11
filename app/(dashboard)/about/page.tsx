@@ -6,7 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'About | Democracy Unlocked',
+  title: 'About', // the root layout's template appends "| Democracy Unlocked"
   description: 'Our mission to make civic engagement accessible to everyone.',
 }
 
