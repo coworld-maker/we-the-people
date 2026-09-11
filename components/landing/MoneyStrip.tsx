@@ -26,7 +26,7 @@ export default function MoneyStrip({ data }: { data: MoneyStripData | null }) {
     <section className="border-y border-[--border] bg-[--surface-secondary]">
       <div className="max-w-5xl mx-auto px-6 py-8 sm:py-10">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[--gold-text] mb-3">
-          Follow the money
+          Public lobbying record
         </p>
 
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
@@ -53,7 +53,7 @@ export default function MoneyStrip({ data }: { data: MoneyStripData | null }) {
                   </span>
                 </>
               )}
-              . Most people never see this.
+              .
             </p>
           </div>
 
@@ -61,7 +61,7 @@ export default function MoneyStrip({ data }: { data: MoneyStripData | null }) {
             href={`/bills/${data.billId}`}
             className="inline-flex items-center gap-2 shrink-0 px-5 py-3 rounded-[--radius] bg-[--accent] text-white font-semibold hover:bg-[--accent-hover] transition-colors"
           >
-            See who&rsquo;s behind it <ArrowRight className="w-4 h-4" />
+            View lobbying filings <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
