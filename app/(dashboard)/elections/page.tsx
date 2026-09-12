@@ -1,5 +1,3 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import {
   Vote, Calendar, MapPin, TrendingUp, ExternalLink, AlertCircle,
@@ -79,9 +77,6 @@ function daysUntilElection(): number {
 }
 
 export default async function ElectionsPage() {
-  const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
-
   // Current House from the member table (synced nightly), voting members only.
   // Was hand-typed "220 R / 215 D (est.)"; on 2026-09-12 the table had 218 R,
   // 214 D, 1 independent and 2 vacancies. null = query failed → no counts shown.
