@@ -50,6 +50,9 @@ Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale mem
   **Not verified signed in.**
 - **Tab titles:** pages set a bare `title`; the root layout's template adds "| Democracy Unlocked"
   (it was doubled on 13 pages). Don't hard-code the site name in a page title again.
+- **Repo cleanup:** 22 merged remote branches and 5 stale `.claude/worktrees/agent-*` worktrees
+  (only untracked `node_modules` in each) deleted; local branches pruned to `main`. Remote now has
+  only `main` plus the unmerged `claude/fix-vercel-deployment-Ld6an` (not ours — left alone).
 - **Preview gotcha:** create `get_access_to_vercel_url` links for a deployment's own URL *after* it
   is READY. Links made mid-build, or for the branch alias, bounce to the Vercel login page.
 - **Open:** owner should eyeball signed-in pages (dashboard alignment, scorecards); AI summary
