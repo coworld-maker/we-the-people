@@ -1,9 +1,39 @@
 import { describe, it, expect } from 'vitest'
-import { displayName, partyCode, summarizeRace, formatRaised, dedupeCampaigns, type FecElectionCandidate } from '../lib/data/senateRaces'
+import { displayName, partyCode, summarizeRace, formatRaised, dedupeCampaigns, applyIncumbentParties, type FecElectionCandidate } from '../lib/data/senateRaces'
 
 const row = (name: string, party: string, status: string | null, raised: number, date = '2026-06-30T00:00:00'): FecElectionCandidate => ({
   candidate_id: name, candidate_name: name, party_full: party, incumbent_challenge_full: status,
   total_receipts: raised, coverage_end_date: date,
+})
+
+describe('applyIncumbentParties', () => {
+  const names: Record<string, string> = { ID: 'Idaho', CO: 'Colorado' }
+  const stateName = (c: string) => names[c] ?? null
+  const senators = [
+    { state: 'Idaho', lastName: 'Risch', party: 'R' },
+    { state: 'Colorado', lastName: 'Hickenlooper', party: 'D' },
+  ]
+
+  it('fills an incumbent the FEC left without a party from the member table', () => {
+    const race = summarizeRace('ID', [row('RISCH, JAMES E', '', 'Incumbent', 4_400_000)])
+    const [fixed] = applyIncumbentParties([race], senators, stateName)
+    expect(fixed.candidates[0].party).toBe('R')
+  })
+
+  it('leaves challengers and already-labeled incumbents alone', () => {
+    const race = summarizeRace('CO', [
+      row('CHEW, ROBERT', '', 'Challenger', 900_000),
+      row('HICKENLOOPER, JOHN', 'DEMOCRATIC PARTY', 'Incumbent', 5_000_000),
+    ])
+    const [fixed] = applyIncumbentParties([race], senators, stateName)
+    expect(fixed.candidates.map(c => c.party)).toEqual(['D', 'O'])
+  })
+
+  it('does not borrow a party across states or mismatched names', () => {
+    const race = summarizeRace('CO', [row('RISCH, JAMES E', '', 'Incumbent', 1_000_000)])
+    const [fixed] = applyIncumbentParties([race], senators, stateName)
+    expect(fixed.candidates[0].party).toBe('O')
+  })
 })
 
 describe('displayName', () => {
