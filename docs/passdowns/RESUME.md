@@ -26,6 +26,18 @@ Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale mem
   Labeled "filed with the FEC, by money raised — not a ballot": FEC data keeps primary losers and
   withdrawals and doesn't mark results. Senate ratings dropped (no source). The FEC's own
   `incumbent_challenge_full` handles retirements ("Open seat") and specials correctly.
+- **Dashboard feed privacy** (`85067c2`): "Platform activity" used to show every user the last 15
+  votes with each voter's real first name and position ("Waver voted yes on HR 9055"), breaking the
+  About page's "votes are anonymous / never share individual voting records". Founder's choice: your
+  own activity ("You voted yes on …") + everyone else only as anonymous per-bill totals ("4 people
+  have voted on HR 9055", counted with `groupBy`, no names or positions loaded) + rep-mismatch
+  items. `lib/data/activityFeed.ts` (tested). **Never show another user's name or position.**
+- **House card** (`a479bde`): counts current voting members from the roster (Congress.gov, synced
+  nightly), excluding the six non-voting delegates — 218 R / 214 D / 1 I / 2 vacant on Sep 12 —
+  instead of the hand-typed "220 R / 215 D (est.)".
+- **Signed-in walkthrough (Sep 12):** dashboard rep cards show "No shared votes yet" and the
+  delegation card "Not enough overlap yet" (correct: none of the owner's 8 votes overlap a passage
+  roll call); Ossoff's scorecard renders (46 votes, 98% attendance, 89% party line).
 - **Governor ratings checked** (`b446033`): incumbents/term limits were all right, but 5 of 8
   ratings didn't match Cook (TX, NY, PA, GA, AZ) and three Cook toss-ups were missing (NV, OH, WI).
   Now 11 rows in Cook's wording, labeled "checked Sep 12, 2026" via the `GOV_RATINGS_CHECKED`
