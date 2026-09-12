@@ -6,7 +6,7 @@ import { ChevronRight, FileText, Vote, TrendingUp } from 'lucide-react'
 import CategorizeUncategorized from '@/components/policy-areas/CategorizeUncategorized'
 
 export const metadata = {
-  title: 'Policy Areas | Democracy Unlocked',
+  title: 'Policy Areas',
   description: 'Browse Congressional bills organized by policy area.',
 }
 

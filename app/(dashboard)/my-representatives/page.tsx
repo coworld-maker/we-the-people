@@ -6,7 +6,7 @@ import SectionNav from '@/components/ui/SectionNav'
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'My Representatives | Democracy Unlocked',
+  title: 'My Representatives',
   description: 'Compare your votes to how your representatives voted in Congress.',
 }
 

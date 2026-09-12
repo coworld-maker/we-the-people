@@ -9,7 +9,7 @@ import SectionNav from '@/components/ui/SectionNav'
 import USPartyMap from '@/components/representatives/USPartyMap'
 
 export const metadata = {
-  title: 'Scorecards | Democracy Unlocked',
+  title: 'Scorecards',
   description: 'See how your elected officials vote and how they align with your views.',
 }
 

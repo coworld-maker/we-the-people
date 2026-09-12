@@ -8,7 +8,7 @@ import {
 import RepFinder from '@/components/action/RepFinder'
 
 export const metadata = {
-  title: 'Civic Action Center | Democracy Unlocked',
+  title: 'Civic Action Center',
   description: 'Register to vote, find your representatives, and take civic action.',
 }
 

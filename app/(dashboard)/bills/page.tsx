@@ -8,6 +8,9 @@ import BillTypeBadge from '@/components/bills/BillTypeBadge'
 import { getStateImpact } from '@/lib/data/state-impact-weights'
 import { billStatusLabel } from '@/lib/bill-status'
 
+// The root layout's template appends "| Democracy Unlocked".
+export const metadata = { title: 'Bills' }
+
 // Per-policy-area accent palette — used for section headers in the grouped view
 // 6 semantic color groups instead of 18 one-offs — reduces badge noise on list pages
 const SECURITY  = { color: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-200' }
