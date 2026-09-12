@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { displayName, partyCode, summarizeRace, formatRaised, type FecElectionCandidate } from '../lib/data/senateRaces'
+import { displayName, partyCode, summarizeRace, formatRaised, dedupeCampaigns, type FecElectionCandidate } from '../lib/data/senateRaces'
 
 const row = (name: string, party: string, status: string | null, raised: number, date = '2026-06-30T00:00:00'): FecElectionCandidate => ({
   candidate_id: name, candidate_name: name, party_full: party, incumbent_challenge_full: status,
@@ -73,6 +73,52 @@ describe('summarizeRace', () => {
     expect(r.asOf).toBe('2026-06-30')
     const allFuture = summarizeRace('XX', [row('A, BIG', 'REPUBLICAN PARTY', 'Incumbent', 1, '2026-12-31')], { today: '2026-09-12' })
     expect(allFuture.asOf).toBeNull()
+  })
+})
+
+describe('dedupeCampaigns', () => {
+  const chew = (name: string, id: string, extra: Partial<FecElectionCandidate> = {}): FecElectionCandidate => ({
+    candidate_id: id, candidate_name: name, party_full: 'OTHER', incumbent_challenge_full: 'Challenger',
+    total_receipts: 1_300_000, coverage_end_date: '2026-06-30', ...extra,
+  })
+
+  it('merges two records that share a principal campaign committee', () => {
+    const rows = dedupeCampaigns([
+      chew('CHEW, ROBERT', 'S1', { candidate_pcc_id: 'C001' }),
+      chew('CHEW, BOB', 'S2', { candidate_pcc_id: 'C001', total_receipts: 1_250_000 }),
+    ])
+    expect(rows).toHaveLength(1)
+  })
+
+  it('without committee ids, merges same last name + party + identical total', () => {
+    expect(dedupeCampaigns([chew('CHEW, ROBERT', 'S1'), chew('CHEW, BOB', 'S2')])).toHaveLength(1)
+  })
+
+  it('keeps different people who share a last name', () => {
+    const rows = dedupeCampaigns([
+      chew('SMITH, ANN', 'S1', { total_receipts: 500_000 }),
+      chew('SMITH, JOE', 'S2', { total_receipts: 90_000 }),
+    ])
+    expect(rows).toHaveLength(2)
+  })
+
+  it('keeps the record with the latest report', () => {
+    const rows = dedupeCampaigns([
+      chew('CHEW, BOB', 'OLD', { coverage_end_date: '2026-03-31' }),
+      chew('CHEW, ROBERT', 'NEW', { coverage_end_date: '2026-06-30' }),
+    ])
+    expect(rows.map(r => r.candidate_id)).toEqual(['NEW'])
+  })
+
+  it('summarizeRace shows one Chew, not two', () => {
+    const co = summarizeRace('CO', [
+      row('HICKENLOOPER, JOHN W.', 'DEMOCRATIC PARTY', 'Incumbent', 10_300_000),
+      chew('CHEW, ROBERT', 'S1'),
+      chew('CHEW, BOB', 'S2'),
+      row('GONZALES, JULIE', 'DEMOCRATIC PARTY', 'Challenger', 979_000),
+    ])
+    expect(co.candidates.filter(c => c.name.endsWith('Chew'))).toHaveLength(1)
+    expect(co.filedCount).toBe(3)
   })
 })
 

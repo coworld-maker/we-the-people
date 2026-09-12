@@ -16,6 +16,35 @@ export interface FecElectionCandidate {
   incumbent_challenge_full: string | null  // "Incumbent" | "Challenger" | "Open seat" | null
   total_receipts: number | null
   coverage_end_date: string | null         // "2026-06-30T00:00:00" or "2026-06-30"
+  candidate_pcc_id?: string | null         // principal campaign committee
+}
+
+const lastName = (fecName: string) => (fecName.split(',')[0] ?? '').trim().toUpperCase()
+
+/**
+ * Two FEC rows are one campaign when they share a principal campaign committee
+ * — or, if a committee id is missing, the same last name, party and exact
+ * (non-zero) total raised. The FEC sometimes keeps two candidate records for
+ * one person (Colorado 2026 listed "Robert Chew" and "Bob Chew", same $1.3M).
+ */
+function sameCampaign(a: FecElectionCandidate, b: FecElectionCandidate): boolean {
+  if (a.candidate_pcc_id && b.candidate_pcc_id && a.candidate_pcc_id === b.candidate_pcc_id) return true
+  const raisedA = a.total_receipts ?? 0
+  return raisedA > 0
+    && raisedA === (b.total_receipts ?? 0)
+    && lastName(a.candidate_name) === lastName(b.candidate_name)
+    && (a.party_full ?? '') === (b.party_full ?? '')
+}
+
+/** Collapse duplicate records of one campaign, keeping the one with the latest report. */
+export function dedupeCampaigns(rows: FecElectionCandidate[]): FecElectionCandidate[] {
+  const out: FecElectionCandidate[] = []
+  for (const r of rows) {
+    const i = out.findIndex(o => sameCampaign(o, r))
+    if (i === -1) out.push(r)
+    else if ((r.coverage_end_date ?? '') > (out[i].coverage_end_date ?? '')) out[i] = r
+  }
+  return out
 }
 
 export type PartyCode = 'D' | 'R' | 'I' | 'L' | 'G' | 'O'
@@ -89,7 +118,8 @@ export function summarizeRace(
   }: { max?: number; minRaised?: number; today?: string } = {},
 ): SenateRace {
   const raised = (r: FecElectionCandidate) => r.total_receipts ?? 0
-  const sorted = [...rows].sort((a, b) => raised(b) - raised(a))
+  const campaigns = dedupeCampaigns(rows)
+  const sorted = [...campaigns].sort((a, b) => raised(b) - raised(a))
   const isIncumbent = (r: FecElectionCandidate) => r.incumbent_challenge_full === 'Incumbent'
 
   const incumbents = sorted.filter(isIncumbent)
@@ -116,7 +146,7 @@ export function summarizeRace(
       incumbent: isIncumbent(r),
       raised: raised(r),
     })),
-    filedCount: rows.length,
+    filedCount: campaigns.length,
     asOf: dates.at(-1) ?? null,
   }
 }
