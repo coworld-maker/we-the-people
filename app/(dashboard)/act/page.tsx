@@ -14,7 +14,7 @@ import FadeIn from '@/components/ui/FadeIn'
 import { UserService } from '@/lib/services/userService'
 import { isModerator } from '@/lib/admin'
 
-export const metadata = { title: 'Act · Democracy Unlocked' }
+export const metadata = { title: 'Act' } // the root layout's template appends "| Democracy Unlocked"
 
 const FEEDBACK_URL = process.env.NEXT_PUBLIC_FEEDBACK_URL || ''
 

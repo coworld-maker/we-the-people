@@ -6,6 +6,9 @@ import {
 } from 'lucide-react'
 import PageViewTracker from '@/components/ui/PageViewTracker'
 
+// The root layout's template appends "| Democracy Unlocked".
+export const metadata = { title: 'Get started' }
+
 // ─── How a bill becomes law ──────────────────────────────────────────────────
 const BILL_STEPS = [
   {
