@@ -23,6 +23,9 @@ import MovingThisWeek from '@/components/dashboard/MovingThisWeek'
 import GuideBanner from '@/components/ui/GuideBanner'
 import NewsTeaser from '@/components/dashboard/NewsTeaser'
 
+// The root layout's template appends "| Democracy Unlocked".
+export const metadata = { title: 'Dashboard' }
+
 export default async function DashboardPage() {
   const { userId: clerkUserId } = await auth()
   if (!clerkUserId) redirect('/sign-in')
