@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma'
 import { ON_THE_BILL, agrees, normalizeMemberPosition } from '@/lib/data/voteKinds'
+import { communityVotesItem, communityCommentsItem } from '@/lib/data/activityFeed'
 
 // ── LEVELS ──
 const LEVELS = [
@@ -205,35 +206,56 @@ export class GamificationService {
     return recommended
   }
 
+  /**
+   * Dashboard activity feed. Privacy: nobody sees anyone else's vote — the
+   * About page promises votes are anonymous and individual voting records are
+   * never shared. (This used to list every voter's real first name with their
+   * position.) The feed now has:
+   *  - the signed-in user's own votes and comments ("You voted yes on …");
+   *  - everyone else only as anonymous per-bill totals — counted in the
+   *    database, so no per-person rows or names are loaded at all;
+   *  - "your rep voted differently" items (below), unchanged.
+   */
   static async getActivityFeed(
     limit: number = 15,
     opts?: { userId?: string; userState?: string }
   ) {
-    const [recentVotes, recentComments] = await Promise.all([
-      prisma.vote.findMany({
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          bill: { select: { title: true, billType: true, billNumber: true } },
-          user: { select: { firstName: true } },
-        },
+    const me = opts?.userId
+    const othersOnly = me ? { userId: { not: me } } : {}
+    const billCode = { select: { billType: true, billNumber: true } }
+
+    const [myVotes, myComments, voteTotals, commentTotals] = await Promise.all([
+      me
+        ? prisma.vote.findMany({ where: { userId: me }, take: limit, orderBy: { createdAt: 'desc' }, include: { bill: billCode } })
+        : Promise.resolve([]),
+      me
+        ? prisma.discussion.findMany({ where: { userId: me }, take: limit, orderBy: { createdAt: 'desc' }, include: { bill: billCode } })
+        : Promise.resolve([]),
+      prisma.vote.groupBy({
+        by: ['billId'], where: othersOnly, _count: { _all: true },
+        _max: { createdAt: true }, orderBy: { _max: { createdAt: 'desc' } }, take: limit,
       }),
-      prisma.discussion.findMany({
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          bill: { select: { title: true, billType: true, billNumber: true } },
-          user: { select: { firstName: true } },
-        },
+      prisma.discussion.groupBy({
+        by: ['billId'], where: othersOnly, _count: { _all: true },
+        _max: { createdAt: true }, orderBy: { _max: { createdAt: 'desc' } }, take: limit,
       }),
     ])
+
+    const totalBillIds = [...new Set([...voteTotals, ...commentTotals].map(g => g.billId))]
+    const totalBills = totalBillIds.length
+      ? await prisma.bill.findMany({ where: { id: { in: totalBillIds } }, select: { id: true, billType: true, billNumber: true } })
+      : []
+    const codeFor = (id: string) => {
+      const b = totalBills.find(x => x.id === id)
+      return b ? `${b.billType} ${b.billNumber}` : 'a bill'
+    }
 
     const feed: Array<{
       id: string; type: string; emoji: string; text: string
       billId: string; date: string; user: string
     }> = []
 
-    recentVotes.forEach(v => {
+    for (const v of myVotes) {
       feed.push({
         id: `v-${v.id}`,
         type: 'vote',
@@ -241,11 +263,11 @@ export class GamificationService {
         text: `voted ${v.position} on ${v.bill?.billType} ${v.bill?.billNumber}`,
         billId: v.billId,
         date: v.createdAt.toISOString(),
-        user: v.user?.firstName || 'A citizen',
+        user: 'You',
       })
-    })
+    }
 
-    recentComments.forEach(c => {
+    for (const c of myComments) {
       feed.push({
         id: `c-${c.id}`,
         type: 'comment',
@@ -253,9 +275,33 @@ export class GamificationService {
         text: `commented on ${c.bill?.billType} ${c.bill?.billNumber}`,
         billId: c.billId,
         date: c.createdAt.toISOString(),
-        user: c.user?.firstName || 'A citizen',
+        user: 'You',
       })
-    })
+    }
+
+    for (const g of voteTotals) {
+      if (!g._max.createdAt) continue
+      feed.push({
+        id: `vt-${g.billId}`,
+        type: 'vote',
+        emoji: '🗳️',
+        ...communityVotesItem(g._count._all, codeFor(g.billId)),
+        billId: g.billId,
+        date: g._max.createdAt.toISOString(),
+      })
+    }
+
+    for (const g of commentTotals) {
+      if (!g._max.createdAt) continue
+      feed.push({
+        id: `ct-${g.billId}`,
+        type: 'comment',
+        emoji: '💬',
+        ...communityCommentsItem(g._count._all, codeFor(g.billId)),
+        billId: g.billId,
+        date: g._max.createdAt.toISOString(),
+      })
+    }
 
     // Rep-mismatch items: your rep voted against your position
     if (opts?.userId && opts?.userState) {

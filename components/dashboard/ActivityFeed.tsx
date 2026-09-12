@@ -27,11 +27,15 @@ export default function ActivityFeed({ items }: { items: FeedItem[] }) {
         <div className="w-1.5 h-1.5 bg-[--success] rounded-full animate-pulse" />
         <h3 className="font-display text-sm font-bold text-[--text]">Platform activity</h3>
       </div>
+      {/* Privacy: other people's votes are never shown — only per-bill totals. */}
+      <p className="px-6 pt-2.5 text-[11px] text-[--text-muted]">
+        Your own activity, plus how many people are voting on each bill. Other people&apos;s votes are never shown.
+      </p>
       {items.length === 0 ? (
         <div className="p-8 text-center">
           <p className="text-sm font-semibold text-[--text] mb-1">It&apos;s quiet right now</p>
           <p className="text-xs text-[--text-muted] mb-3">
-            Votes and comments from citizens across the country show up here in real time.
+            Your votes and comments show up here, along with how many people are voting on each bill.
             Yours can be the first.
           </p>
           <Link href="/bills" className="text-xs font-semibold text-[--accent] hover:underline">
