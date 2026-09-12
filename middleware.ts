@@ -10,6 +10,7 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',               // CRITICAL: prevents redirect loop on mobile Safari
   '/bills',                     // bills list — public for SEO
   '/bills/(.*)',                // bill detail pages — public for SEO
+  '/elections',                 // FEC Senate races, ratings, House counts — no per-user data
   // Read-only data behind public bill-page sections. The matcher is by path,
   // not method: every write handler on these routes (generate impacts, post,
   // delete) runs its own auth check and stays signed-in only.
