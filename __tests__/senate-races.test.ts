@@ -12,6 +12,8 @@ describe('displayName', () => {
     expect(displayName('COLLINS, MICHAEL A JR')).toBe('Michael A Collins Jr.')
     expect(displayName('DUBLIN, MICHAEL LOUIS JR.')).toBe('Michael Louis Dublin Jr.')
     expect(displayName('BLACKWOLF, MICHAEL JAMES MR.')).toBe('Michael James Blackwolf')
+    expect(displayName('CORNYN, JOHN SEN')).toBe('John Cornyn')
+    expect(displayName('PAXTON, WARREN KENNETH JR.')).toBe('Warren Kenneth Paxton Jr.')
     expect(displayName('EL-SAYED, ABDUL')).toBe('Abdul El-Sayed')
     expect(displayName('MCMORROW, MALLORY')).toBe('Mallory McMorrow')
     expect(displayName("O'ROURKE, BETO")).toBe("Beto O'Rourke")

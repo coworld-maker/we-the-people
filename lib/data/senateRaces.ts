@@ -39,7 +39,8 @@ export interface SenateRace {
 }
 
 const SUFFIXES = new Set(['JR', 'SR', 'II', 'III', 'IV'])
-const TITLES = new Set(['MR', 'MRS', 'MS', 'DR'])
+// Honorifics the FEC sometimes appends to a name ("CORNYN, JOHN SEN").
+const TITLES = new Set(['MR', 'MRS', 'MS', 'DR', 'SEN', 'HON', 'REP', 'GOV'])
 
 function titleCase(word: string): string {
   const cap = word.toLowerCase().replace(/(^|[-'])([a-z])/g, (_, p: string, c: string) => p + c.toUpperCase())
