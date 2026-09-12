@@ -10,6 +10,13 @@ import { getSenateRaces } from '@/lib/api/fec'
 import { formatRaised } from '@/lib/data/senateRaces'
 import { abbrToName } from '@/lib/utils/state-codes'
 import ElectionsClient from '@/components/elections/ElectionsClient'
+import prisma from '@/lib/prisma'
+
+// Non-voting delegates sit in the House but aren't among its 435 seats.
+const NON_VOTING_HOUSE = [
+  'District of Columbia', 'Puerto Rico', 'Guam', 'Virgin Islands', 'U.S. Virgin Islands',
+  'American Samoa', 'Northern Mariana Islands',
+]
 
 export const metadata = {
   title: 'Elections',
@@ -74,6 +81,23 @@ function daysUntilElection(): number {
 export default async function ElectionsPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
+
+  // Current House from the member table (synced nightly), voting members only.
+  // Was hand-typed "220 R / 215 D (est.)"; on 2026-09-12 the table had 218 R,
+  // 214 D, 1 independent and 2 vacancies. null = query failed → no counts shown.
+  const houseByParty = await prisma.representative.groupBy({
+    by: ['party'],
+    where: { currentTerm: true, chamber: 'House', state: { notIn: NON_VOTING_HOUSE } },
+    _count: { _all: true },
+  }).catch(() => null)
+  const house = houseByParty
+    ? (() => {
+        const n = (p: string) => houseByParty.find(g => g.party === p)?._count._all ?? 0
+        const filled = houseByParty.reduce((sum, g) => sum + g._count._all, 0)
+        const r = n('R'), d = n('D')
+        return { r, d, other: filled - r - d, vacant: Math.max(0, 435 - filled) }
+      })()
+    : null
 
   const senate = await getSenateRaces('2026')
   const senateAsOf = senate?.races.map(r => r.asOf).filter((d): d is string => !!d).sort().at(-1) ?? null
@@ -279,15 +303,22 @@ export default async function ElectionsPage() {
             <div className="flex-1">
               <h2 className="font-display text-base font-bold text-[--text] mb-1">U.S. House of Representatives — 2026</h2>
               <p className="text-sm text-[--text-secondary] mb-4">
-                All 435 seats are on the ballot. Republicans currently hold a slim majority. Historically,
-                the party in the White House loses House seats in midterm elections.
+                All 435 seats are on the ballot; 218 is a majority.
+                {house && house.r !== house.d && (
+                  <> {house.r > house.d ? 'Republicans' : 'Democrats'} currently hold {Math.max(house.r, house.d)} seats.</>
+                )}{' '}
+                Historically, the party in the White House loses House seats in midterm elections.
               </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2">
                 {[
                   { label: 'Total seats', value: '435', color: 'text-[--text]' },
-                  { label: 'To flip House', value: '218', color: 'text-[--text]' },
-                  { label: 'R seats (est.)', value: '220', color: 'text-red-600' },
-                  { label: 'D seats (est.)', value: '215', color: 'text-blue-600' },
+                  { label: 'Majority', value: '218', color: 'text-[--text]' },
+                  ...(house
+                    ? [
+                        { label: 'Republicans now', value: String(house.r), color: 'text-red-600' },
+                        { label: 'Democrats now', value: String(house.d), color: 'text-blue-600' },
+                      ]
+                    : []),
                 ].map(s => (
                   <div key={s.label} className="bg-[--surface-secondary] rounded-lg p-3 text-center">
                     <p className={`font-display text-xl font-extrabold ${s.color}`}>{s.value}</p>
@@ -295,6 +326,16 @@ export default async function ElectionsPage() {
                   </div>
                 ))}
               </div>
+              <p className="text-[10px] text-[--text-muted] mb-4">
+                {house
+                  ? <>
+                      Current voting members from our member roster, updated nightly
+                      {house.other > 0 && ` · ${house.other} independent${house.other === 1 ? '' : 's'}`}
+                      {house.vacant > 0 && ` · ${house.vacant} vacant seat${house.vacant === 1 ? '' : 's'}`}
+                      . Excludes the six non-voting delegates.
+                    </>
+                  : 'Current party counts are unavailable right now.'}
+              </p>
               <a
                 href="https://ballotpedia.org/United_States_House_of_Representatives_elections,_2026"
                 target="_blank"
