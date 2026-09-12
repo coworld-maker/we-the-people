@@ -26,6 +26,11 @@ Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale mem
   Labeled "filed with the FEC, by money raised — not a ballot": FEC data keeps primary losers and
   withdrawals and doesn't mark results. Senate ratings dropped (no source). The FEC's own
   `incumbent_challenge_full` handles retirements ("Open seat") and specials correctly.
+- **Governor ratings checked** (`b446033`): incumbents/term limits were all right, but 5 of 8
+  ratings didn't match Cook (TX, NY, PA, GA, AZ) and three Cook toss-ups were missing (NV, OH, WI).
+  Now 11 rows in Cook's wording, labeled "checked Sep 12, 2026" via the `GOV_RATINGS_CHECKED`
+  constant in `app/(dashboard)/elections/page.tsx`. Still hand-entered — nothing refreshes them, so
+  re-check against Cook (or Wikipedia's predictions table) and bump the date when you do.
 - **Google Civic is fine for what we use:** only the `representatives` endpoint was retired; the
   `elections` list still works and `GOOGLE_CIVIC_API_KEY` is set on prod (it showed the DE primary).
 - **Testing tip:** OpenFEC's `DEMO_KEY` allows 40 calls/hour; prod uses `OPEN_FEC_API_KEY` (1,000/hr).
