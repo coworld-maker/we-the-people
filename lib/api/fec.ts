@@ -1,3 +1,5 @@
+import { summarizeRace, type FecElectionCandidate, type SenateRace } from '@/lib/data/senateRaces'
+
 const FEC_BASE = 'https://api.open.fec.gov/v1'
 const FEC_API_KEY = process.env.OPEN_FEC_API_KEY || 'DEMO_KEY'
 
@@ -48,6 +50,35 @@ async function fecFetch<T>(path: string, params: Record<string, string> = {}): P
 function currentFECCycle(): string {
   const year = new Date().getFullYear()
   return String(year % 2 === 0 ? year : year + 1)
+}
+
+/**
+ * Every Senate race in `cycle` (35 in 2026, specials included), each trimmed to
+ * its top fundraisers — see lib/data/senateRaces.ts for what the FEC data can
+ * and can't say. Returns null when the FEC can't be reached at all, so the page
+ * says so instead of rendering an empty list; states whose own lookup failed
+ * are listed in `missing`.
+ */
+export async function getSenateRaces(
+  cycle: string = currentFECCycle(),
+): Promise<{ races: SenateRace[]; missing: string[] } | null> {
+  const search = await fecFetch<{ results: Array<{ state: string }> }>(
+    '/elections/search/', { cycle, office: 'senate', per_page: '100' },
+  )
+  if (!search?.results?.length) return null
+
+  const states = [...new Set(search.results.map(r => r.state))].sort()
+  const results = await Promise.all(states.map(async state => {
+    const data = await fecFetch<{ results: FecElectionCandidate[] }>('/elections/', {
+      cycle, office: 'senate', state, election_full: 'true', sort: '-total_receipts', per_page: '20',
+    })
+    return { state, race: data ? summarizeRace(state, data.results ?? []) : null }
+  }))
+
+  return {
+    races: results.flatMap(r => (r.race ? [r.race] : [])),
+    missing: results.filter(r => !r.race).map(r => r.state),
+  }
 }
 
 export async function getFECCommittees(fecCandidateId: string): Promise<FECCommittee[]> {

@@ -6,6 +6,9 @@ import {
   ChevronRight, Users, BarChart3, Star, Clock, RefreshCw,
 } from 'lucide-react'
 import { CivicService } from '@/lib/services/civicService'
+import { getSenateRaces } from '@/lib/api/fec'
+import { formatRaised } from '@/lib/data/senateRaces'
+import { abbrToName } from '@/lib/utils/state-codes'
 import ElectionsClient from '@/components/elections/ElectionsClient'
 
 export const metadata = {
@@ -13,17 +16,9 @@ export const metadata = {
   description: '2026 midterms, key races, runoffs, and upcoming elections across the United States.',
 }
 
-// ── Static data: 2026 key Senate races ────────────────────────────────────
-const KEY_SENATE_RACES_2026 = [
-  { state: 'GA', name: 'Georgia', incumbent: 'Jon Ossoff', party: 'D', rating: 'Toss-up', notes: 'Open seat — Ossoff not running' },
-  { state: 'MI', name: 'Michigan', incumbent: 'Gary Peters', party: 'D', rating: 'Lean D', notes: 'Peters retiring; competitive open race' },
-  { state: 'NH', name: 'New Hampshire', incumbent: 'Jeanne Shaheen', party: 'D', rating: 'Lean D', notes: 'Shaheen not seeking re-election' },
-  { state: 'MT', name: 'Montana', incumbent: 'Jon Tester', party: 'D', rating: 'Likely R', notes: 'Trump-won state; D retention hard' },
-  { state: 'NC', name: 'North Carolina', incumbent: 'Ted Budd', party: 'R', rating: 'Lean R', notes: 'Competitive swing state' },
-  { state: 'TX', name: 'Texas', incumbent: 'John Cornyn', party: 'R', rating: 'Safe R', notes: 'Cornyn seeking another term' },
-  { state: 'ME', name: 'Maine', incumbent: 'Susan Collins', party: 'R', rating: 'Lean R', notes: 'Collins is a perennial tough race' },
-  { state: 'OH', name: 'Ohio', incumbent: 'Bernie Moreno', party: 'R', rating: 'Lean R', notes: 'Moreno won in 2024; first re-elect' },
-]
+// Senate races come from FEC filings (getSenateRaces), not a hand-typed list:
+// the old list had four wrong seats (a retired senator, two seats not up in
+// 2026, and Ossoff marked as not running).
 
 const KEY_GOV_RACES_2026 = [
   { state: 'TX', name: 'Texas', incumbent: 'Greg Abbott', party: 'R', rating: 'Safe R' },
@@ -70,6 +65,9 @@ export default async function ElectionsPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
+  const senate = await getSenateRaces('2026')
+  const senateAsOf = senate?.races.map(r => r.asOf).filter((d): d is string => !!d).sort().at(-1) ?? null
+
   const configured = CivicService.isConfigured()
   const civicElections = configured ? await CivicService.getElections() : []
   const daysLeft = daysUntilElection()
@@ -101,7 +99,7 @@ export default async function ElectionsPage() {
             <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-1">
               2026 Midterm Elections
             </h2>
-            <p className="text-white/80 text-sm">November 3, 2026 · All 435 House seats · 33 Senate seats · 36+ Governor races</p>
+            <p className="text-white/80 text-sm">November 3, 2026 · All 435 House seats · {senate?.races.length ?? 35} Senate races, incl. 2 specials · 36+ Governor races</p>
           </div>
           <div className="shrink-0 text-center bg-white/10 border border-white/20 rounded-2xl px-6 py-4 backdrop-blur-sm">
             <p className="font-display text-4xl font-extrabold text-white">{daysLeft.toLocaleString()}</p>
@@ -135,50 +133,92 @@ export default async function ElectionsPage() {
         configured={configured}
       />
 
-      {/* Key Senate races */}
+      {/* 2026 Senate races — FEC filings, refreshed daily (lib/api/fec.ts).
+          The FEC lists everyone who filed, including candidates who lost a
+          primary or withdrew, so this is a fundraising view, not a ballot. */}
       <section className="mb-8">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
           <Star className="w-4 h-4 text-amber-500" />
-          <h2 className="font-display text-lg font-bold text-[--text]">Key Senate Races — 2026</h2>
-          <span className="text-xs text-[--text-muted] ml-auto">Ratings: Cook Political Report</span>
+          <h2 className="font-display text-lg font-bold text-[--text]">Senate Races — 2026</h2>
+          {senate && (
+            <span className="text-xs text-[--text-muted] ml-auto">{senate.races.length} races · FEC filings</span>
+          )}
         </div>
-        <div className="card overflow-hidden">
-          <div className="divide-y divide-[--border]">
-            {KEY_SENATE_RACES_2026.map(race => (
-              <a
-                key={race.state}
-                href={`https://ballotpedia.org/United_States_Senate_election_in_${race.name.replace(/ /g, '_')},_2026`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-4 px-5 py-3.5 hover:bg-[--surface-secondary] transition-colors"
-              >
-                {/* State badge */}
-                <div className="w-10 h-10 bg-[--surface-secondary] rounded-xl flex items-center justify-center shrink-0 font-display font-extrabold text-sm text-[--accent] group-hover:bg-[--accent-light] transition-colors">
-                  {race.state}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-[--text] group-hover:text-[--accent] transition-colors">
-                      {race.name}
-                    </span>
-                    <span className={`text-xs ${PARTY_CLS[race.party] ?? ''}`}>
-                      ({race.party}) {race.incumbent}
-                    </span>
-                  </div>
-                  {race.notes && (
-                    <p className="text-xs text-[--text-muted] mt-0.5">{race.notes}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`badge border text-[10px] font-semibold ${RACE_RATING_CLS[race.rating] ?? ''}`}>
-                    {race.rating}
-                  </span>
-                  <ExternalLink className="w-3.5 h-3.5 text-[--text-muted] group-hover:text-[--accent] transition-colors" />
-                </div>
-              </a>
-            ))}
+        <p className="text-xs text-[--text-muted] mb-4 max-w-3xl">
+          The top fundraisers who filed with the FEC for each seat, by money raised. This isn&apos;t a
+          ballot: the FEC doesn&apos;t mark primary results, so it can include candidates who lost a
+          primary or withdrew. Each race links to its full FEC page.
+        </p>
+
+        {!senate ? (
+          <div className="card p-5 text-sm text-[--text-secondary]">
+            FEC data couldn&apos;t be loaded right now. See{' '}
+            <a
+              href="https://www.fec.gov/data/elections/?cycle=2026&office=S"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[--accent] font-semibold hover:underline"
+            >
+              2026 Senate races on fec.gov
+            </a>.
           </div>
-        </div>
+        ) : (
+          <div className="card overflow-hidden">
+            <div className="divide-y divide-[--border]">
+              {senate.races.map(race => (
+                <a
+                  key={race.state}
+                  href={`https://www.fec.gov/data/elections/senate/${race.state}/2026/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-start gap-4 px-5 py-3.5 hover:bg-[--surface-secondary] transition-colors"
+                >
+                  <div className="w-10 h-10 bg-[--surface-secondary] rounded-xl flex items-center justify-center shrink-0 font-display font-extrabold text-sm text-[--accent] group-hover:bg-[--accent-light] transition-colors">
+                    {race.state}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-[--text] group-hover:text-[--accent] transition-colors">
+                        {abbrToName(race.state) ?? race.state}
+                      </span>
+                      {race.openSeat && (
+                        <span className="badge border text-[10px] font-semibold bg-[--surface-secondary] text-[--text-secondary] border-[--border]">
+                          Open seat
+                        </span>
+                      )}
+                    </div>
+                    {race.candidates.length > 0 ? (
+                      <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-[--text-secondary]">
+                        {race.candidates.map(c => (
+                          <li key={c.id}>
+                            <span className="font-medium text-[--text]">{c.name}</span>{' '}
+                            <span className={PARTY_CLS[c.party] ?? 'text-gray-600 font-bold'}>({c.party})</span>
+                            {c.incumbent && <span className="text-[--text-muted]"> · incumbent</span>}
+                            <span className="text-[--text-muted]"> · {formatRaised(c.raised)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-[--text-muted] mt-1">No candidate has reported $100K raised yet.</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="hidden sm:inline text-[10px] text-[--text-muted]">{race.filedCount} filed</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-[--text-muted] group-hover:text-[--accent] transition-colors" />
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {senate && (
+          <p className="text-[10px] text-[--text-muted] mt-2">
+            Source: Federal Election Commission, refreshed daily
+            {senateAsOf ? `; reports through ${senateAsOf}` : ''}.
+            {senate.missing.length > 0 && ` Couldn't load: ${senate.missing.join(', ')}.`}
+          </p>
+        )}
       </section>
 
       {/* Key Governor races */}
@@ -286,8 +326,8 @@ export default async function ElectionsPage() {
       <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
         <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
         <p>
-          Race ratings are nonpartisan estimates based on public forecasting models (Cook Political Report, Sabato's Crystal Ball).
-          They reflect current conditions and change frequently. Democracy Unlocked is not affiliated with any campaign or party.
+          Senate candidates and money raised come from FEC filings. Governor race ratings are hand-entered
+          estimates from public forecasters (Cook Political Report, Sabato's Crystal Ball) and change frequently. Democracy Unlocked is not affiliated with any campaign or party.
           Always verify voter registration and polling place info through your state's official election authority.
         </p>
       </div>
