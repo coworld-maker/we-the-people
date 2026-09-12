@@ -82,7 +82,11 @@ export function partyCode(partyFull: string | null): PartyCode {
 export function summarizeRace(
   state: string,
   rows: FecElectionCandidate[],
-  { max = 4, minRaised = 100_000 }: { max?: number; minRaised?: number } = {},
+  {
+    max = 4,
+    minRaised = 100_000,
+    today = new Date().toISOString().slice(0, 10),
+  }: { max?: number; minRaised?: number; today?: string } = {},
 ): SenateRace {
   const raised = (r: FecElectionCandidate) => r.total_receipts ?? 0
   const sorted = [...rows].sort((a, b) => raised(b) - raised(a))
@@ -94,7 +98,13 @@ export function summarizeRace(
     .slice(0, Math.max(max, incumbents.length))
     .sort((a, b) => raised(b) - raised(a))
 
-  const dates = picked.map(r => r.coverage_end_date?.slice(0, 10)).filter((d): d is string => !!d).sort()
+  // Some FEC records carry a coverage end date after today (production showed
+  // "reports through 2026-09-30" on Sept 12). A report can't cover days that
+  // haven't happened, so future dates never become the "as of" date.
+  const dates = picked
+    .map(r => r.coverage_end_date?.slice(0, 10))
+    .filter((d): d is string => !!d && d <= today)
+    .sort()
 
   return {
     state,

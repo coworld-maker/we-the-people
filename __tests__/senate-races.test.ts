@@ -64,6 +64,16 @@ describe('summarizeRace', () => {
     ])
     expect(r.asOf).toBe('2026-07-29')
   })
+
+  it('never reports a future date as asOf', () => {
+    const r = summarizeRace('XX', [
+      row('A, BIG', 'REPUBLICAN PARTY', 'Incumbent', 9_000_000, '2026-09-30T00:00:00'),
+      row('B, BIG', 'DEMOCRATIC PARTY', 'Challenger', 8_000_000, '2026-06-30T00:00:00'),
+    ], { today: '2026-09-12' })
+    expect(r.asOf).toBe('2026-06-30')
+    const allFuture = summarizeRace('XX', [row('A, BIG', 'REPUBLICAN PARTY', 'Incumbent', 1, '2026-12-31')], { today: '2026-09-12' })
+    expect(allFuture.asOf).toBeNull()
+  })
 })
 
 describe('formatRaised', () => {
