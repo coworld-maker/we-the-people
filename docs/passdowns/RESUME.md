@@ -19,6 +19,19 @@ Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale mem
 **Superseded:** the old `landing-broadsheet` branch is gone; the landing page was redesigned in Sep 2026 (see the status blocks below).
 **Known silent-empty risks (not fixed):** `/elections` (static fallback now exists, but live data still needs retired Google Civic API), lobbying firm-count badge (sync-lobbying unscheduled), `OPEN_FEC_API_KEY` unset in Vercel. See latest passdown §3.
 
+## ⛳ Status (2026-09-12)
+- **/elections Senate races from the FEC** (`dc05fe0`): `getSenateRaces()` in `lib/api/fec.ts`
+  (all 35 races incl. the OH/FL specials, cached 24h) + tested `lib/data/senateRaces.ts`. Replaced a
+  hand-typed list with four wrong seats (GA "Ossoff not running", MT Tester, NC Budd, OH Moreno).
+  Labeled "filed with the FEC, by money raised — not a ballot": FEC data keeps primary losers and
+  withdrawals and doesn't mark results. Senate ratings dropped (no source). The FEC's own
+  `incumbent_challenge_full` handles retirements ("Open seat") and specials correctly.
+- **Google Civic is fine for what we use:** only the `representatives` endpoint was retired; the
+  `elections` list still works and `GOOGLE_CIVIC_API_KEY` is set on prod (it showed the DE primary).
+- **Testing tip:** OpenFEC's `DEMO_KEY` allows 40 calls/hour; prod uses `OPEN_FEC_API_KEY` (1,000/hr).
+- **Signed-in checks:** the owner's Chrome (claude-in-chrome MCP) is signed in to prod — use it to
+  verify signed-in pages instead of calling them unverifiable.
+
 ## ⛳ Status (2026-09-11, evening)
 **✅ Merged to `main` and verified on production** (except where marked). 76 unit tests.
 - **Key hero:** mobile-first order, redrawn key, scroll-to-results on phones only (`a17b11e`). The
@@ -56,8 +69,8 @@ Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale mem
 - **Preview gotcha:** create `get_access_to_vercel_url` links for a deployment's own URL *after* it
   is READY. Links made mid-build, or for the branch alias, bounce to the Vercel login page.
 - **Open:** owner should eyeball signed-in pages (dashboard alignment, scorecards); AI summary
-  backlog ~2,160 bills, clearing ~600/night (nightly job green all week); `/elections` still needs
-  the retired Google Civic API; Terms trademark clause undrafted; digest needs a verified Resend
+  backlog ~2,160 bills, clearing ~600/night (nightly job green all week); `/elections` governor
+  ratings are still hand-typed (Senate races now come from FEC filings — see the 2026-09-12 block); Terms trademark clause undrafted; digest needs a verified Resend
   domain; unmerged remote branch `claude/fix-vercel-deployment-Ld6an` was left alone (not ours).
 
 ## ⛳ Status (2026-09-11)
