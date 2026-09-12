@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { CivicService } from '@/lib/services/civicService'
 import { getSenateRaces } from '@/lib/api/fec'
-import { formatRaised } from '@/lib/data/senateRaces'
+import { formatRaised, applyIncumbentParties } from '@/lib/data/senateRaces'
 import { abbrToName } from '@/lib/utils/state-codes'
 import ElectionsClient from '@/components/elections/ElectionsClient'
 import prisma from '@/lib/prisma'
@@ -94,7 +94,18 @@ export default async function ElectionsPage() {
       })()
     : null
 
-  const senate = await getSenateRaces('2026')
+  const senateRaw = await getSenateRaces('2026')
+  // FEC party labels can be missing; incumbents' parties come from our member table.
+  const seatedSenators = senateRaw
+    ? await prisma.representative.findMany({
+        where: { currentTerm: true, chamber: 'Senate' },
+        select: { state: true, lastName: true, party: true },
+      }).catch(() => [])
+    : []
+  const senate = senateRaw && {
+    ...senateRaw,
+    races: applyIncumbentParties(senateRaw.races, seatedSenators, abbrToName),
+  }
   const senateAsOf = senate?.races.map(r => r.asOf).filter((d): d is string => !!d).sort().at(-1) ?? null
 
   const configured = CivicService.isConfigured()

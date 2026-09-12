@@ -151,6 +151,41 @@ export function summarizeRace(
   }
 }
 
+/** A sitting senator from our member table: full state name, party 'R' | 'D' | 'I'. */
+export interface SeatedSenator {
+  state: string
+  lastName: string
+  party: string
+}
+
+/**
+ * Some FEC records carry no usable party — production showed Idaho's James
+ * Risch, a Republican, as "(O)". An incumbent's party is already known from the
+ * member table, so when the FEC label is "O" it comes from the senator seated
+ * in that state with the same last name. Challengers are left as the FEC says.
+ */
+export function applyIncumbentParties(
+  races: SenateRace[],
+  senators: SeatedSenator[],
+  stateName: (code: string) => string | null,
+): SenateRace[] {
+  return races.map(race => {
+    const seated = senators.filter(s => s.state === (stateName(race.state) ?? race.state))
+    return {
+      ...race,
+      candidates: race.candidates.map(c => {
+        if (!c.incumbent || c.party !== 'O') return c
+        const words = c.name.toLowerCase().split(/\s+/)
+        const match = seated.find(s => words.includes(s.lastName.toLowerCase()))
+        if (!match) return c
+        const p = match.party.trim().toUpperCase()
+        const party = (['D', 'R', 'I', 'L', 'G'].includes(p) ? p : partyCode(match.party)) as PartyCode
+        return { ...c, party }
+      }),
+    }
+  })
+}
+
 /** $97,986,263 → "$98.0M"; $563,078 → "$563K". */
 export function formatRaised(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
