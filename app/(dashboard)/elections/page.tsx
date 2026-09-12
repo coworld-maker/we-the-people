@@ -20,15 +20,23 @@ export const metadata = {
 // the old list had four wrong seats (a retired senator, two seats not up in
 // 2026, and Ossoff marked as not running).
 
+// Cook Political Report governor ratings, entered by hand. Checked against
+// Cook's current ratings on 2026-09-12 (five were stale: TX, NY, PA, GA, AZ)
+// and the three missing toss-ups (NV, OH, WI) added. Re-check before relying
+// on them — the FEC can't supply ratings, so nothing refreshes these.
+const GOV_RATINGS_CHECKED = 'Sep 12, 2026'
 const KEY_GOV_RACES_2026 = [
-  { state: 'TX', name: 'Texas', incumbent: 'Greg Abbott', party: 'R', rating: 'Safe R' },
-  { state: 'FL', name: 'Florida', incumbent: 'Ron DeSantis', party: 'R', rating: 'Likely R', notes: 'Term-limited; open race' },
-  { state: 'CA', name: 'California', incumbent: 'Gavin Newsom', party: 'D', rating: 'Safe D', notes: 'Newsom term-limited; open race' },
-  { state: 'NY', name: 'New York', incumbent: 'Kathy Hochul', party: 'D', rating: 'Lean D' },
-  { state: 'PA', name: 'Pennsylvania', incumbent: 'Josh Shapiro', party: 'D', rating: 'Likely D' },
-  { state: 'GA', name: 'Georgia', incumbent: 'Brian Kemp', party: 'R', rating: 'Lean R', notes: 'Kemp term-limited; open race' },
+  { state: 'GA', name: 'Georgia', incumbent: 'Brian Kemp', party: 'R', rating: 'Toss-up', notes: 'Kemp term-limited; open race' },
+  { state: 'NV', name: 'Nevada', incumbent: 'Joe Lombardo', party: 'R', rating: 'Toss-up', notes: 'Lombardo seeking a second term' },
+  { state: 'OH', name: 'Ohio', incumbent: 'Mike DeWine', party: 'R', rating: 'Toss-up', notes: 'DeWine term-limited; open race' },
+  { state: 'WI', name: 'Wisconsin', incumbent: 'Tony Evers', party: 'D', rating: 'Toss-up', notes: 'Evers retiring; open race' },
+  { state: 'AZ', name: 'Arizona', incumbent: 'Katie Hobbs', party: 'D', rating: 'Lean D', notes: 'Hobbs seeking a second term' },
   { state: 'MI', name: 'Michigan', incumbent: 'Gretchen Whitmer', party: 'D', rating: 'Lean D', notes: 'Whitmer term-limited; open race' },
-  { state: 'AZ', name: 'Arizona', incumbent: 'Katie Hobbs', party: 'D', rating: 'Toss-up' },
+  { state: 'TX', name: 'Texas', incumbent: 'Greg Abbott', party: 'R', rating: 'Likely R', notes: 'Abbott seeking re-election' },
+  { state: 'FL', name: 'Florida', incumbent: 'Ron DeSantis', party: 'R', rating: 'Likely R', notes: 'DeSantis term-limited; open race' },
+  { state: 'NY', name: 'New York', incumbent: 'Kathy Hochul', party: 'D', rating: 'Solid D', notes: 'Hochul seeking re-election' },
+  { state: 'PA', name: 'Pennsylvania', incumbent: 'Josh Shapiro', party: 'D', rating: 'Solid D', notes: 'Shapiro seeking re-election' },
+  { state: 'CA', name: 'California', incumbent: 'Gavin Newsom', party: 'D', rating: 'Solid D', notes: 'Newsom term-limited; open race' },
 ]
 
 const ELECTION_RESOURCES = [
@@ -40,6 +48,8 @@ const ELECTION_RESOURCES = [
 
 const RACE_RATING_CLS: Record<string, string> = {
   'Safe R':    'bg-red-50 text-red-700 border-red-200',
+  'Solid R':   'bg-red-50 text-red-700 border-red-200',   // Cook's word for Safe
+  'Solid D':   'bg-blue-100 text-blue-800 border-blue-300',
   'Likely R':  'bg-red-50/60 text-red-600 border-red-200/60',
   'Lean R':    'bg-orange-50 text-orange-700 border-orange-200',
   'Toss-up':   'bg-amber-50 text-amber-700 border-amber-200',
@@ -226,6 +236,7 @@ export default async function ElectionsPage() {
         <div className="flex items-center gap-2 mb-4">
           <MapPin className="w-4 h-4 text-purple-500" />
           <h2 className="font-display text-lg font-bold text-[--text]">Key Governor Races — 2026</h2>
+          <span className="text-xs text-[--text-muted] ml-auto">Ratings: Cook Political Report · checked {GOV_RATINGS_CHECKED}</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {KEY_GOV_RACES_2026.map(race => (
@@ -326,8 +337,8 @@ export default async function ElectionsPage() {
       <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
         <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
         <p>
-          Senate candidates and money raised come from FEC filings. Governor race ratings are hand-entered
-          estimates from public forecasters (Cook Political Report, Sabato's Crystal Ball) and change frequently. Democracy Unlocked is not affiliated with any campaign or party.
+          Senate candidates and money raised come from FEC filings. Governor race ratings are the Cook Political
+          Report&apos;s, entered by hand and last checked {GOV_RATINGS_CHECKED}; forecasts change frequently. Democracy Unlocked is not affiliated with any campaign or party.
           Always verify voter registration and polling place info through your state's official election authority.
         </p>
       </div>
