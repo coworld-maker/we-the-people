@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 
 export const metadata = {
-  title: 'Transparency Dashboard | Democracy Unlocked',
+  title: 'Transparency Dashboard',
   description: 'Platform statistics, engagement metrics, and data transparency.',
 }
 

@@ -9,7 +9,7 @@ import { CivicService } from '@/lib/services/civicService'
 import ElectionsClient from '@/components/elections/ElectionsClient'
 
 export const metadata = {
-  title: 'Elections | Democracy Unlocked',
+  title: 'Elections',
   description: '2026 midterms, key races, runoffs, and upcoming elections across the United States.',
 }
 

@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   const { code } = await params
   const name = STATE_NAMES[code.toUpperCase()] ?? code.toUpperCase()
   return {
-    title: `${name} | Democracy Unlocked`,
+    title: name, // the root layout's template appends "| Democracy Unlocked"
     description: `What citizens in ${name} are voting on and discussing.`,
   }
 }

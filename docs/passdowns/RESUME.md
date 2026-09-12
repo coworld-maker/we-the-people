@@ -1,6 +1,6 @@
 # ▶ RESUME HERE — fast bootstrap for the next session
 
-_Last updated: 2026-09-10 (see the 2026-09-10 status block below). This is the "start here" file. Latest detail:
+_Last updated: 2026-09-11 evening (see the top status block below). This is the "start here" file. Latest detail:
 [2026-09-02-lobbying-dollar-attribution.md](./2026-09-02-lobbying-dollar-attribution.md)
 (prior: [2026-08-24-data-correctness-sweep.md](./2026-08-24-data-correctness-sweep.md),
 [2026-06-29-summaries-crons-links-launchprep.md](./2026-06-29-summaries-crons-links-launchprep.md))
@@ -16,8 +16,46 @@ Strategic moat: **community + accountability** (citizen voting, discussions, mon
 
 ## Recently fixed (2026-06-27)
 Congressional roster audit (all 50 states vs 2020 apportionment) → 4 stale members retired (Apr-2026 deaths/resignations) · **`sync-representatives` now auto-retires departed members** (`notIn(seen)` + `MIN_EXPECTED_MEMBERS=400` guard — was append-only) · high-effort code review fixed 10 bugs incl. **a `CRON_SECRET`-unset auth bypass on every sync route** (now centralized in `lib/auth/syncAuth.ts`), LDA firm over-count, FEC `Math.max(...[])`→`-Infinity`, dashboard "mismatches this week" accuracy, `VotingPanel` double-count on re-vote. All merged via **PR #13 → `e5e8682`**.
-**In-flight:** `landing-broadsheet` branch (1 commit, live preview) — ZIP→your-reps product hero, **not yet merged**, decide first.
+**Superseded:** the old `landing-broadsheet` branch is gone; the landing page was redesigned in Sep 2026 (see the status blocks below).
 **Known silent-empty risks (not fixed):** `/elections` (static fallback now exists, but live data still needs retired Google Civic API), lobbying firm-count badge (sync-lobbying unscheduled), `OPEN_FEC_API_KEY` unset in Vercel. See latest passdown §3.
+
+## ⛳ Status (2026-09-11, evening)
+**✅ Merged to `main` and verified on production** (except where marked). 76 unit tests.
+- **Key hero:** mobile-first order, redrawn key, scroll-to-results on phones only (`a17b11e`). The
+  key's bow already matches the solid dome — ignore that "Next candidate" in the block below.
+- **About page** (`app/(dashboard)/about/page.tsx`, the only /about route): restyled to the redesign
+  (flat navy, serif, ruled lists) with a "Meet the founder" section (`public/founder.jpg`, name
+  Coleman Dumas IV). The bio was drafted by Claude and published at the founder's request ("publish
+  for now") — he may edit it. **"Nonpartisan" is a staple — keep it** (hero eyebrow, landing CTA,
+  About). Still-unverified About claims: "Free forever", AI "impact assessment across demographics".
+- **Nav:** About tab in the desktop NavBar, an About link in the landing header, and a **5th mobile
+  tab** — supersedes the June "mobile tab bar stays at 4 tabs" decision.
+- **Public signed out:** `/privacy`, `/terms`, `/about`, the `/bills` list, and every bill-page
+  section. `middleware.ts` also lists the read APIs `/api/bills/(.*)/state-impact`,
+  `/state-sentiment` and `/discussions`. The matcher is path-based, not method-based: **every write
+  handler on those routes keeps its own auth check** (verified 401 signed out) — never remove them.
+- **Privacy:** discussion authors leave the server only as `{ id, username, displayName }`
+  (`lib/data/discussionAuthor.ts`, tested). Full last names used to reach every signed-in browser.
+- **Signed-out UX:** notification bell only for signed-in users (`<SignedIn>`); search shows "Sign
+  in to search" (search stays signed-in only — founder's choice); BillImpactMap never
+  auto-generates AI analysis for signed-out visitors; DiscussionBoard shows a sign-in prompt and
+  hides Reply/Report. These components also treat a 401/404 as signed out, because **Clerk never
+  loads on preview domains** (`window.Clerk.loaded` stays false) — `useAuth()`-gated UI can't be
+  checked on previews, only on production.
+- **Alignment** (`e143549`): `AlignmentService.calculateAlignment` reads stored `CongressVote`
+  (`ON_THE_BILL`, latest per bill) instead of live Congress.gov calls, and `alignmentPct` is null —
+  never 0 — with no overlap ("No shared votes yet" on the rep card). Both alignment calcs share
+  `tallyAgreement` (`lib/data/agreement.ts`, tested). On 2026-09-11 only 6 users had yes/no votes
+  and none overlapped their delegation's passage votes, so every score is "no shared votes yet".
+  **Not verified signed in.**
+- **Tab titles:** pages set a bare `title`; the root layout's template adds "| Democracy Unlocked"
+  (it was doubled on 13 pages). Don't hard-code the site name in a page title again.
+- **Preview gotcha:** create `get_access_to_vercel_url` links for a deployment's own URL *after* it
+  is READY. Links made mid-build, or for the branch alias, bounce to the Vercel login page.
+- **Open:** owner should eyeball signed-in pages (dashboard alignment, scorecards); AI summary
+  backlog ~2,160 bills, clearing ~600/night (nightly job green all week); `/elections` still needs
+  the retired Google Civic API; Terms trademark clause undrafted; digest needs a verified Resend
+  domain; unmerged remote branch `claude/fix-vercel-deployment-Ld6an` was left alone (not ours).
 
 ## ⛳ Status (2026-09-11)
 **✅ Merged to `main` and verified on production** (except where marked).

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import ScorecardDetailPage from '@/components/scorecards/ScorecardDetailPage'
 
 export const metadata = {
-  title: 'Official Scorecard | Democracy Unlocked',
+  title: 'Official Scorecard',
 }
 
 export default async function Page() {

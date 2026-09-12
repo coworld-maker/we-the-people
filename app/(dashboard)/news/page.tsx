@@ -13,7 +13,7 @@ import { billStatusLabel } from '@/lib/bill-status'
 import { STATE_IMPACT_HIGH } from '@/lib/data/state-impact-weights'
 
 export const metadata = {
-  title: 'News & Activity | Democracy Unlocked',
+  title: 'News & Activity',
   description: 'Latest congressional activity and platform engagement.',
 }
 

@@ -5,7 +5,7 @@ import { GraduationCap, Clock, ArrowRight, ChevronRight, Lightbulb } from 'lucid
 import { CIVIC_GUIDES } from '@/lib/data/civic-guides'
 
 export const metadata = {
-  title: 'Learn | Democracy Unlocked',
+  title: 'Learn',
   description: 'Civic education resources to help you understand how government works.',
 }
 

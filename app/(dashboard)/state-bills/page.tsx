@@ -4,7 +4,7 @@ import { Landmark, MapPin } from 'lucide-react'
 import StateBillsBrowser from '@/components/state-bills/StateBillsBrowser'
 
 export const metadata = {
-  title: 'State Legislature | Democracy Unlocked',
+  title: 'State Legislature',
   description: 'Browse recent state legislature bills from all 50 states, powered by OpenStates.',
 }
 
