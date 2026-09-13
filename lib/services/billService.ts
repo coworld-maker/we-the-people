@@ -85,7 +85,7 @@ export class BillService {
               cosponsors: parseSponsorList(details.cosponsors),
             },
             update: {
-              title, shortTitle: null, // see sync-bills: Congress.gov has no shortTitle field
+              title, // shortTitle untouched: it holds hand-set popular names (see sync-bills)
               summary: details.summary?.text || null,
               latestActionDate, latestActionText: details.latestAction?.text || null,
               status: normalizeBillStatus(details.latestAction?.text, details.laws), policyArea: details.policyArea?.name || null,
@@ -163,6 +163,7 @@ export class BillService {
     if (filters?.search) {
       where.OR = [
         { title: { contains: filters.search, mode: 'insensitive' } },
+        { shortTitle: { contains: filters.search, mode: 'insensitive' } }, // popular names
         { summary: { contains: filters.search, mode: 'insensitive' } },
       ]
     }
