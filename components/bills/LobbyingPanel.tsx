@@ -21,7 +21,7 @@ export default async function LobbyingPanel({ bill }: { bill: any }) {
   // null = lookup failed (rate-limited/unreachable), [] = checked, none found.
   // These must render differently — see the panel body below.
   const ldaResult = billType && billNumber
-    ? await getLobbyingForBill(billType, billNumber, congress).catch(() => null)
+    ? await getLobbyingForBill(billType, billNumber, congress, [bill.title, bill.shortTitle]).catch(() => null)
     : { filings: [], total: 0 }
   const ldaUnavailable = ldaResult === null
   const filings = ldaResult?.filings ?? []

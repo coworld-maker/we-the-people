@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     const [bills, total] = await Promise.all([
       prisma.bill.findMany({
         where,
-        select: { id: true, billType: true, billNumber: true, congress: true },
+        select: { id: true, billType: true, billNumber: true, congress: true, title: true, shortTitle: true },
         orderBy: [{ latestActionDate: { sort: 'desc', nulls: 'last' } }, { id: 'asc' }],
         skip: offset,
         take: limit,
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       // Throttle between calls only — no trailing delay after the last bill.
       if (i > 0) await delay(DELAY_MS)
       try {
-        const count = await getLobbyingFirmCount(bill.billType, bill.billNumber, bill.congress)
+        const count = await getLobbyingFirmCount(bill.billType, bill.billNumber, bill.congress, [bill.title, bill.shortTitle])
         if (count === null) {
           // Lookup failed (usually rate-limited) — leave the stored value alone.
           // Writing 0 here previously erased verified counts.
