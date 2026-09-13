@@ -81,12 +81,11 @@ export async function POST(req: NextRequest) {
         title: src.title ?? bill.title ?? 'Untitled',
         // NOT a Congress.gov field. Verified against the live API: the bill
         // object exposes `title`, `titles` (a sub-resource link), and no
-        // `shortTitle` — so this always wrote null, which is why the column is
-        // empty on every row. Kept null deliberately: sampling the /titles
-        // sub-resource for long-titled bills returned no short title at all
-        // (they simply don't have one), and where a short title DOES exist,
-        // `title` already carries it. See docs/passdowns for the working.
-        shortTitle: null,
+        // `shortTitle` — so the sync used to write null, which is why the
+        // column is empty on most rows. It's now left out entirely so a
+        // popular name set by hand (H.R. 1 → "One Big Beautiful Bill Act",
+        // whose official title is only the reconciliation wording) survives
+        // re-syncs. Search matches it; the list shows it in place of `title`.
         summary: src.summaries?.[0]?.text ?? null,
         introducedDate,
         latestActionDate: src.latestAction?.actionDate
