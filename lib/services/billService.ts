@@ -74,7 +74,7 @@ export class BillService {
             create: {
               congress: congressStr, billType, billNumber, title,
               shortTitle: null, // see sync-bills: Congress.gov has no shortTitle field
-              summary: details.summary?.text || null,
+              ...(details.summary?.text ? { summary: details.summary.text } : {}), // never erase a stored summary
               introducedDate, latestActionDate,
               latestActionText: details.latestAction?.text || null,
               status: normalizeBillStatus(details.latestAction?.text, details.laws),
@@ -86,7 +86,7 @@ export class BillService {
             },
             update: {
               title, // shortTitle untouched: it holds hand-set popular names (see sync-bills)
-              summary: details.summary?.text || null,
+              ...(details.summary?.text ? { summary: details.summary.text } : {}), // never erase a stored summary
               latestActionDate, latestActionText: details.latestAction?.text || null,
               status: normalizeBillStatus(details.latestAction?.text, details.laws), policyArea: details.policyArea?.name || null,
               subjects: parseSubjects(details.subjects),
