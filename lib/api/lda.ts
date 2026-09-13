@@ -93,6 +93,35 @@ function periodLabel(r: LDARawFiling): string | undefined {
   return q ? `${q} ${r.filing_year}` : String(r.filing_year)
 }
 
+// Filers name bills like "H.R. 1, Lower Energy Costs Act". Bill numbers
+// restart every Congress and filers reuse old wording, so a 2025 filing can
+// name the 118th Congress's H.R. 1 while our bill is the 119th's (production
+// showed five such filings on the One Big Beautiful Bill Act). If the words
+// right after the number name an Act that isn't this bill, it's another bill.
+// Commas are excluded from the name on purpose: a list like "H.R. 1, Medicaid,
+// SNAP and the Social Security Act" then finds no name and is KEPT — this
+// check may only drop filings it can positively identify as another bill.
+const NAMED_ACT = /^[\s,:;–—-]*(?:\(|“|"|the\s+)?\s*([A-Z][A-Za-z0-9'’.& -]{1,80}?\bAct\b)/
+const normTitle = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+
+export function namesOtherBill(textAfterNumber: string, titles: Array<string | null | undefined>): boolean {
+  const m = textAfterNumber.match(NAMED_ACT)
+  if (!m) return false
+  const known = titles.filter((t): t is string => !!t).map(normTitle)
+  if (!known.length) return false
+  const named = normTitle(m[1])
+  return !known.some(t => t.includes(named) || named.includes(t))
+}
+
+/** Index of the first mention of this bill that isn't another bill's, or -1. */
+function mentionIndex(text: string, re: RegExp, titles: Array<string | null | undefined>): number {
+  const all = new RegExp(re.source, 'gi')
+  for (let m = all.exec(text); m; m = all.exec(text)) {
+    if (!namesOtherBill(text.slice(m.index + m[0].length), titles)) return m.index
+  }
+  return -1
+}
+
 // One fetch shared by both public functions. Exact-matches the bill in the
 // activity text and de-dupes by registrant+client.
 async function fetchExactFilings(
@@ -100,6 +129,7 @@ async function fetchExactFilings(
   billNumber: string,
   pageSize: number,
   congress?: number | string,
+  titles: Array<string | null | undefined> = [],
 ): Promise<LDAFiling[] | null> {
   if (!billType || !billNumber) return null
   const re = exactRegex(billType, billNumber)
@@ -148,8 +178,9 @@ async function fetchExactFilings(
 
     for (const r of results) {
       const acts = r.lobbying_activities ?? []
-      const match = acts.find(a => a.description && re.test(a.description))
-      if (!match) continue // substring-only collision (e.g. H.R. 1 vs H.R. 1000) — skip
+      // Exact number match (H.R. 1 ≠ H.R. 1000) that doesn't name another Act.
+      const match = acts.find(a => a.description && mentionIndex(a.description, re, titles) !== -1)
+      if (!match) continue
 
       const registrant = r.registrant?.name || 'Unknown Firm'
       const client = r.client?.name || 'Unknown Client'
@@ -161,7 +192,7 @@ async function fetchExactFilings(
       // lists many bills, so showing the start of the text would surface an
       // unrelated bill. Window around the match instead.
       const full = match.description || ''
-      const idx = full.search(re)
+      const idx = mentionIndex(full, re, titles)
       const start = Math.max(0, idx - 70)
       const end = Math.min(full.length, idx + 150)
       const description = `${start > 0 ? '…' : ''}${full.slice(start, end).trim()}${end < full.length ? '…' : ''}`
@@ -188,8 +219,9 @@ async function fetchExactFilings(
  */
 export async function getLobbyingFirmCount(
   billType: string, billNumber: string, congress?: number | string,
+  titles: Array<string | null | undefined> = [], // this bill's title + popular name
 ): Promise<number | null> {
-  const filings = await fetchExactFilings(billType, billNumber, 100, congress)
+  const filings = await fetchExactFilings(billType, billNumber, 100, congress, titles)
   // null = could not determine (fetch failed / rate-limited). Callers MUST NOT
   // persist this as 0 — doing so overwrote verified counts with zeros.
   return filings === null ? null : filings.length
@@ -213,8 +245,9 @@ export const LOBBYING_ROW_LIMIT = 10
  */
 export async function getLobbyingForBill(
   billType: string, billNumber: string, congress?: number | string,
+  titles: Array<string | null | undefined> = [], // this bill's title + popular name
 ): Promise<{ filings: LDAFiling[]; total: number } | null> {
-  const filings = await fetchExactFilings(billType, billNumber, 100, congress)
+  const filings = await fetchExactFilings(billType, billNumber, 100, congress, titles)
   if (filings === null) return null
   return { filings: filings.slice(0, LOBBYING_ROW_LIMIT), total: filings.length }
 }

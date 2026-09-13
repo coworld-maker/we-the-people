@@ -31,6 +31,11 @@ const STATE_ABBR: Record<string, string> = {
 // Build a "LASTNAME_STATEABBR" → bioguide ID lookup map for current senators.
 // Senate.gov vote XML includes last_name and 2-letter state for each member vote.
 // Our DB stores full state names, so we convert them to abbreviations here.
+// Accent-insensitive: our member table stores "Luján" while senate.gov's XML
+// may say "Lujan" — the mismatch left Sen. Luján with zero stored Senate votes.
+const senatorKey = (lastName: string, state: string) =>
+  `${lastName.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()}_${state.toUpperCase()}`;
+
 async function buildSenatorNameMap(): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   try {
@@ -41,7 +46,7 @@ async function buildSenatorNameMap(): Promise<Map<string, string>> {
     for (const s of senators) {
       if (s.lastName && s.state) {
         const stateAbbr = STATE_ABBR[s.state] ?? s.state.toUpperCase().slice(0, 2);
-        map.set(`${s.lastName.toUpperCase()}_${stateAbbr}`, s.bioguideId);
+        map.set(senatorKey(s.lastName, stateAbbr), s.bioguideId);
       }
     }
   } catch (e) {
@@ -508,7 +513,7 @@ export async function POST(req: NextRequest) {
             // Match senator to bioguide ID via lastName+state lookup in our DB map
             const lastName = get('last_name').toUpperCase();
             const state = get('state').toUpperCase();
-            const bioguideId = (lastName && state) ? (senatorNameMap.get(`${lastName}_${state}`) ?? '') : '';
+            const bioguideId = (lastName && state) ? (senatorNameMap.get(senatorKey(lastName, state)) ?? '') : '';
             const position = normalizePosition(get('vote_cast'));
             if (!bioguideId || !position) continue;
             rows.push({

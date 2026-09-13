@@ -65,7 +65,7 @@ async function getMoneyStrip(): Promise<MoneyStripData | null> {
 
     // Only the client names are used here; the strip's count comes from the
     // stored lobbyingFirmCount above, so the capped row list is fine.
-    const lobbying = await getLobbyingForBill(bill.billType, bill.billNumber, bill.congress)
+    const lobbying = await getLobbyingForBill(bill.billType, bill.billNumber, bill.congress, [bill.title, bill.shortTitle])
       .catch(() => null)
     const filings = lobbying?.filings ?? null
 
