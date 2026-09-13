@@ -86,7 +86,9 @@ export async function POST(req: NextRequest) {
         // popular name set by hand (H.R. 1 → "One Big Beautiful Bill Act",
         // whose official title is only the reconciliation wording) survives
         // re-syncs. Search matches it; the list shows it in place of `title`.
-        summary: src.summaries?.[0]?.text ?? null,
+        // Only write a summary Congress.gov actually returned — a missing one
+        // must not erase a stored official summary (see H.R. 1).
+        ...(src.summaries?.[0]?.text ? { summary: src.summaries[0].text } : {}),
         introducedDate,
         latestActionDate: src.latestAction?.actionDate
           ? new Date(src.latestAction.actionDate)

@@ -124,7 +124,8 @@ export class AIService {
       `Policy Area: ${bill.policyArea || 'Not specified'}`,
       `Introduced: ${bill.introducedDate.toISOString().split('T')[0]}`,
       `Latest Action: ${bill.latestActionText || 'None'}`,
-      `Summary: ${bill.summary || 'No official summary'}`,
+      // Official CRS summaries of big bills run to 100k+ characters; cap it.
+      `Summary: ${bill.summary ? (bill.summary.length > 12000 ? bill.summary.slice(0, 12000) + ' [… truncated]' : bill.summary) : 'No official summary'}`,
       `Subjects: ${bill.subjects?.length ? bill.subjects.join(', ') : 'None'}`,
       truncatedText ? `\nFull Bill Text:\n${truncatedText}` : '',
     ].filter(Boolean).join('\n')
