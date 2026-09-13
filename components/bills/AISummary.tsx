@@ -103,7 +103,7 @@ export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyz
                 </button>
                 {showOfficial && (
                   <div className="mt-3 p-4 bg-[--surface-secondary] rounded-lg border border-[--border]">
-                    <p className="text-sm text-[--text-secondary] leading-relaxed">{officialSummary}</p>
+                    <p className="text-sm text-[--text-secondary] leading-relaxed whitespace-pre-line">{officialSummary}</p>
                   </div>
                 )}
               </div>
@@ -133,7 +133,7 @@ export default function AISummary({ billId, aiSummary, officialSummary, aiAnalyz
             {officialSummary && (
               <div className="mt-6 p-4 bg-[--surface-secondary] rounded-lg border border-[--border] text-left">
                 <p className="text-[10px] font-semibold text-[--text-muted] uppercase tracking-wider mb-2">Official summary (fallback)</p>
-                <p className="text-sm text-[--text-secondary] leading-relaxed">{officialSummary}</p>
+                <p className="text-sm text-[--text-secondary] leading-relaxed whitespace-pre-line">{officialSummary}</p>
               </div>
             )}
           </div>
