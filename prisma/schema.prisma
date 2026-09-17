@@ -352,5 +352,17 @@ model AnalyticsEvent {
   meta      Json?
   createdAt DateTime @default(now())
 
+  // Where the visit came from. Campaign tags are the values we put in our own
+  // shared links (utm_source=instagram&utm_content=r4); referrerHost is only
+  // the linking site's hostname — never the full referring URL, and never set
+  // for same-site navigation. See lib/data/attribution.ts.
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  utmContent   String?
+  utmTerm      String?
+  referrerHost String?
+
   @@index([event, createdAt])
+  @@index([utmSource, createdAt])
 }
