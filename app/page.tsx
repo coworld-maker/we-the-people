@@ -7,6 +7,7 @@ import { getLobbyingForBill } from '@/lib/api/lda'
 import prisma from '@/lib/prisma'
 import Logo from '@/components/ui/Logo'
 import CookieConsent from '@/components/legal/CookieConsent'
+import PageViewTracker from '@/components/ui/PageViewTracker'
 
 // ── STATIC DATA ──────────────────────────────────────────────────────────────
 // One section, three steps, in the order the product is actually used — and
@@ -233,6 +234,10 @@ export default async function LandingPage() {
           </p>
         </div>
       </footer>
+
+      {/* The page most shared links land on: without this, arrivals from
+          Instagram (and the utm_ tags on those links) were never recorded. */}
+      <PageViewTracker page="landing" />
 
       {/* GDPR cookie banner — renders only when the user hasn't decided yet */}
       <CookieConsent />

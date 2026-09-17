@@ -22,6 +22,11 @@ const ALLOWED_EVENTS = new Set([
   'social_share',
 ])
 
+/** Trim and cap a client-supplied string; anything else becomes null. */
+function text(v: unknown, max = 80): string | null {
+  return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null)
@@ -36,6 +41,14 @@ export async function POST(req: Request) {
         device: body.device === 'mobile' || body.device === 'desktop' ? body.device : null,
         sessionId: typeof body.sessionId === 'string' ? body.sessionId.slice(0, 40) : null,
         meta: body.meta && typeof body.meta === 'object' ? body.meta : null,
+        // Where the visit came from (lib/data/attribution.ts). Capped again
+        // here: the client is not to be trusted about length.
+        utmSource: text(body.utmSource),
+        utmMedium: text(body.utmMedium),
+        utmCampaign: text(body.utmCampaign),
+        utmContent: text(body.utmContent),
+        utmTerm: text(body.utmTerm),
+        referrerHost: text(body.referrerHost),
       },
     })
 
