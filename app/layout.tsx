@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Source_Serif_4 } from 'next/font/google'
 import { ClerkProvider } from '@clerk/nextjs'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 // Sans for all UI/body; editorial serif exposed as --font-serif for opt-in
@@ -63,7 +64,14 @@ export default function RootLayout({
       signUpFallbackRedirectUrl="/dashboard"
     >
       <html lang="en">
-        <body className={`${inter.variable} ${sourceSerif.variable} ${inter.className}`}>{children}</body>
+        <body className={`${inter.variable} ${sourceSerif.variable} ${inter.className}`}>
+          {children}
+          {/* Vercel Web Analytics: pageviews, referrers and UTM tags on every
+              page (the site's own /api/track only fires on a few). Cookieless
+              and no personal data, so it needs no consent gate. Must also be
+              switched on in the Vercel dashboard: Project → Analytics. */}
+          <Analytics />
+        </body>
       </html>
     </ClerkProvider>
   )
