@@ -32,6 +32,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/alignment',            // alignment API
   '/api/scorecard/(.*)',        // scorecard API
   '/api/track',                 // anonymous analytics — signed-out share-link visitors included
+  '/api/webhooks/(.*)',         // inbound mail forwarder (verified by Svix signature, not a session)
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
