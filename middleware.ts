@@ -11,6 +11,8 @@ const isPublicRoute = createRouteMatcher([
   '/bills',                     // bills list — public for SEO
   '/bills/(.*)',                // bill detail pages — public for SEO
   '/elections',                 // FEC Senate races, ratings, House counts — no per-user data
+  '/ballot',                    // per-state Nov 3 races — public for SEO, no per-user data
+  '/ballot/(.*)',
   // Read-only data behind public bill-page sections. The matcher is by path,
   // not method: every write handler on these routes (generate impacts, post,
   // delete) runs its own auth check and stays signed-in only.
