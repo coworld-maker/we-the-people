@@ -6,6 +6,7 @@ import {
 import { CivicService } from '@/lib/services/civicService'
 import { getSenateRaces } from '@/lib/api/fec'
 import { formatRaised, applyIncumbentParties } from '@/lib/data/senateRaces'
+import { GOV_RATINGS_CHECKED, KEY_GOV_RACES_2026 } from '@/lib/data/governorRaces'
 import { abbrToName } from '@/lib/utils/state-codes'
 import ElectionsClient from '@/components/elections/ElectionsClient'
 import prisma from '@/lib/prisma'
@@ -25,30 +26,8 @@ export const metadata = {
 // the old list had four wrong seats (a retired senator, two seats not up in
 // 2026, and Ossoff marked as not running).
 
-// Cook Political Report governor ratings, entered by hand. Nothing refreshes
-// these — the FEC supplies candidates and money, never forecasts — so the
-// "checked" date below is shown to readers and must be updated with the rows.
-//
-// Checked 2026-10-14 against Cook's ratings of 2026-10-13: Texas and Florida
-// moved Likely R -> Lean R (Cook, Oct 1), and Iowa was missing entirely — it
-// has been competitive since April and Cook now has it Lean D, the one race
-// rated to flip. Cook's four toss-ups (GA, NV, OH, WI) were already right.
-// Re-check weekly until Nov 3; ratings move fastest in the closing weeks.
-const GOV_RATINGS_CHECKED = 'Oct 14, 2026'
-const KEY_GOV_RACES_2026 = [
-  { state: 'GA', name: 'Georgia', incumbent: 'Brian Kemp', party: 'R', rating: 'Toss-up', notes: 'Kemp term-limited; open race' },
-  { state: 'NV', name: 'Nevada', incumbent: 'Joe Lombardo', party: 'R', rating: 'Toss-up', notes: 'Lombardo seeking a second term' },
-  { state: 'OH', name: 'Ohio', incumbent: 'Mike DeWine', party: 'R', rating: 'Toss-up', notes: 'DeWine term-limited; open race' },
-  { state: 'WI', name: 'Wisconsin', incumbent: 'Tony Evers', party: 'D', rating: 'Toss-up', notes: 'Evers retiring; open race' },
-  { state: 'IA', name: 'Iowa', incumbent: 'Kim Reynolds', party: 'R', rating: 'Lean D', notes: 'Reynolds not seeking a third term; open race' },
-  { state: 'AZ', name: 'Arizona', incumbent: 'Katie Hobbs', party: 'D', rating: 'Lean D', notes: 'Hobbs seeking a second term' },
-  { state: 'MI', name: 'Michigan', incumbent: 'Gretchen Whitmer', party: 'D', rating: 'Lean D', notes: 'Whitmer term-limited; open race' },
-  { state: 'TX', name: 'Texas', incumbent: 'Greg Abbott', party: 'R', rating: 'Lean R', notes: 'Abbott seeking re-election' },
-  { state: 'FL', name: 'Florida', incumbent: 'Ron DeSantis', party: 'R', rating: 'Lean R', notes: 'DeSantis term-limited; open race' },
-  { state: 'NY', name: 'New York', incumbent: 'Kathy Hochul', party: 'D', rating: 'Solid D', notes: 'Hochul seeking re-election' },
-  { state: 'PA', name: 'Pennsylvania', incumbent: 'Josh Shapiro', party: 'D', rating: 'Solid D', notes: 'Shapiro seeking re-election' },
-  { state: 'CA', name: 'California', incumbent: 'Gavin Newsom', party: 'D', rating: 'Solid D', notes: 'Newsom term-limited; open race' },
-]
+// Governor ratings and their "checked" date live in lib/data/governorRaces.ts
+// so this page and /ballot/[code] can never disagree about them.
 
 const ELECTION_RESOURCES = [
   { label: 'Vote.gov', desc: 'Register and find your polling place', href: 'https://vote.gov', icon: Vote },
@@ -161,6 +140,12 @@ export default async function ElectionsPage() {
           >
             Register to Vote <ExternalLink className="w-3.5 h-3.5" />
           </a>
+          <Link
+            href="/ballot"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-white/10 border border-white/25 text-white rounded-full text-sm font-medium hover:bg-white/20 transition-colors"
+          >
+            What&rsquo;s on your ballot <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
           <a
             href="https://ballotpedia.org/2026_elections"
             target="_blank"
