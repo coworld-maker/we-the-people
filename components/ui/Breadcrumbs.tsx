@@ -3,10 +3,13 @@
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronRight, Home } from 'lucide-react'
+import { abbrToName } from '@/lib/utils/state-codes'
 
 const LABEL_MAP: Record<string, string> = {
   dashboard: 'Dashboard',
   bills: 'Bills',
+  ballot: 'Ballot',
+  states: 'States',
   'policy-areas': 'Policy Areas',
   'action-center': 'Action Center',
   'voting-records': 'Voting Records',
@@ -41,7 +44,13 @@ export default function Breadcrumbs() {
     const isLast = i === segments.length - 1
     // If segment looks like a DB ID (contains digits and is long), show "Detail"
     const decoded = decodeURIComponent(segment).replace(/-/g, ' ')
-    const label = LABEL_MAP[segment] || (/[0-9]/.test(segment) && segment.length > 8 ? 'Detail' : decoded)
+    // /ballot/ga and /states/ga read as "Ga" otherwise — the CSS capitalize
+    // only touches the first letter of the raw URL segment.
+    const stateName = segment.length === 2 ? abbrToName(segment) : null
+    const label =
+      LABEL_MAP[segment] ||
+      stateName ||
+      (/[0-9]/.test(segment) && segment.length > 8 ? 'Detail' : decoded)
 
     return { href, label, isLast }
   })
