@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useCallback } from 'react'
-import { Search, X, MapPin, Users, Check } from 'lucide-react'
+import { Search, X, MapPin, Users, Check, SlidersHorizontal, ChevronDown } from 'lucide-react'
 
 interface Props {
   policyAreas: string[]
@@ -53,6 +53,15 @@ export default function BillFilters({ policyAreas, userState, signedIn }: Props)
   }, [search, status, year, policyArea, affectsState, votedInState, voted, router])
 
   const hasFilters = search || status || year || policyArea || affectsState || votedInState || voted
+
+  // On a phone the dropdowns and state chips pushed the first bill off the
+  // screen — three rows of controls before any content. They collapse behind
+  // one button on mobile and stay open on desktop, where there's room.
+  const [showFilters, setShowFilters] = useState(false)
+  const activeCount =
+    [status, year, policyArea, voted].filter(Boolean).length +
+    (affectsState ? 1 : 0) +
+    (votedInState ? 1 : 0)
   const years = Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - i)
 
   return (
@@ -85,6 +94,33 @@ export default function BillFilters({ policyAreas, userState, signedIn }: Props)
         )}
       </div>
 
+      {/* Mobile only: one button instead of three rows of controls. */}
+      <button
+        type="button"
+        onClick={() => setShowFilters(v => !v)}
+        aria-expanded={showFilters}
+        aria-controls="bill-filter-controls"
+        className="sm:hidden w-full min-h-[44px] flex items-center justify-between px-3 py-2 border border-[--border] rounded-lg text-sm font-medium text-[--text] bg-[--surface]"
+      >
+        <span className="flex items-center gap-2">
+          <SlidersHorizontal className="w-4 h-4 text-[--text-muted]" aria-hidden="true" />
+          Filters
+          {activeCount > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full bg-[--accent] text-white text-[10px] font-bold">
+              {activeCount}
+            </span>
+          )}
+        </span>
+        <ChevronDown
+          className={`w-4 h-4 text-[--text-muted] transition-transform ${showFilters ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        />
+      </button>
+
+      <div
+        id="bill-filter-controls"
+        className={`${showFilters ? 'block' : 'hidden'} sm:block space-y-3`}
+      >
       {/* Row 2 — Dropdowns */}
       <div className="flex flex-wrap gap-2">
         <select
@@ -163,6 +199,7 @@ export default function BillFilters({ policyAreas, userState, signedIn }: Props)
             Pick your state on the <a href="/my-representatives" className="underline">map</a> to enable state filters.
           </p>
         )}
+      </div>
       </div>
     </form>
   )
