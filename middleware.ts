@@ -8,11 +8,26 @@ const isPublicRoute = createRouteMatcher([
   '/about',                     // founder page
   '/sign-in(.*)',               // CRITICAL: prevents redirect loop on mobile Safari
   '/sign-up(.*)',               // CRITICAL: prevents redirect loop on mobile Safari
-  '/bills',                     // bills list — public for SEO
-  '/bills/(.*)',                // bill detail pages — public for SEO
-  '/elections',                 // FEC Senate races, ratings, House counts — no per-user data
-  '/ballot',                    // per-state Nov 3 races — public for SEO, no per-user data
-  '/ballot/(.*)',
+
+  // ── Browsing pages — public until you vote or comment ───────────────────
+  // Signing up is only required for write actions (voting on a bill, posting
+  // a comment). All read/browse pages are open so visitors can explore before
+  // committing to an account.
+  '/bills(.*)',                 // bills list + detail pages — public for SEO
+  '/elections(.*)',             // FEC Senate races, ratings, House counts
+  '/ballot(.*)',                // per-state Nov 3 races — public for SEO
+  '/news(.*)',                  // news feed — no per-user data
+  '/documents(.*)',             // reference documents — read-only
+  '/policy-areas(.*)',          // policy browsing
+  '/my-representatives(.*)',    // rep profiles — public (no personal data until signed in)
+  '/scorecards(.*)',            // congressional scorecards
+  '/voting-records(.*)',        // roll call votes
+  '/states(.*)',                // state-level pages
+  '/learn(.*)',                 // civic education
+  '/act(.*)',                   // action hub (links to external resources)
+  '/transparency(.*)',          // site stats + data sources
+  '/get-started(.*)',           // onboarding (shown signed-out too)
+
   '/robots.txt',                // crawlers: both were answered with a 307 to /sign-in
   '/sitemap.xml',
   // Read-only data behind public bill-page sections. The matcher is by path,
@@ -36,6 +51,15 @@ const isPublicRoute = createRouteMatcher([
   '/api/alignment',            // alignment API
   '/api/scorecard/(.*)',        // scorecard API
   '/api/track',                 // anonymous analytics — signed-out share-link visitors included
+  // Read-only APIs backing the public browsing pages above.
+  // Write actions in these handlers (POST /api/votes, POST discussions, etc.)
+  // run their own auth.protect() call — the middleware only controls page access.
+  '/api/representatives(.*)',   // rep profiles, committee assignments
+  '/api/voting-records(.*)',    // congressional roll call votes
+  '/api/elections(.*)',         // FEC senate races, election data
+  '/api/states(.*)',            // state-level data
+  '/api/search(.*)',            // search — useful signed-out
+  '/api/news(.*)',              // news articles
   '/api/webhooks/(.*)',         // inbound mail forwarder (verified by Svix signature, not a session)
 ]);
 

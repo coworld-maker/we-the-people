@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   ChevronDown,
   LayoutDashboard, FileText, ScrollText, Grid3X3,
-  Users, BarChart3,
+  Users, BarChart3, Vote,
   Landmark, Newspaper, Megaphone, GraduationCap, Info,
 } from 'lucide-react'
 import { track } from '@/lib/track'
@@ -32,7 +32,6 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/bills',        icon: FileText,   label: 'Federal Bills' },
       { href: '/state-bills',  icon: Landmark,   label: 'State Legislature' },
       { href: '/policy-areas', icon: Grid3X3,    label: 'Policy Areas' },
-      { href: '/documents',    icon: ScrollText, label: 'Documents' },
     ],
   },
   {
@@ -40,8 +39,10 @@ const NAV_ITEMS: NavItem[] = [
     description: 'Understand who represents you',
     items: [
       { href: '/my-representatives', icon: Users,      label: 'My Reps' },
+      { href: '/elections',          icon: Vote,       label: 'Elections' },
       { href: '/scorecards',         icon: BarChart3,  label: 'Scorecards' },
       { href: '/news',               icon: Newspaper,  label: 'News' },
+      { href: '/documents',          icon: ScrollText, label: 'Documents' },
     ],
   },
   { kind: 'link', href: '/act', icon: Megaphone, label: 'Act' },

@@ -23,9 +23,9 @@ const TABS = [
 
 // Routes that belong to a tab's section, so the tab stays lit on deep pages
 const SECTION_PREFIXES: Record<string, string[]> = {
-  '/bills':              ['/bills', '/state-bills', '/policy-areas', '/documents'],
-  '/my-representatives': ['/my-representatives', '/scorecards', '/voting-records', '/news', '/states'],
-  '/act':                ['/act', '/action-center', '/get-started', '/learn', '/elections', '/transparency'],
+  '/bills':              ['/bills', '/state-bills', '/policy-areas'],
+  '/my-representatives': ['/my-representatives', '/scorecards', '/voting-records', '/news', '/states', '/elections', '/ballot', '/documents'],
+  '/act':                ['/act', '/action-center', '/get-started', '/learn', '/transparency'],
 }
 
 export default function MobileTabBar() {
