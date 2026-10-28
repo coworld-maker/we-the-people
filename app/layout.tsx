@@ -19,6 +19,10 @@ export const metadata: Metadata = {
     'Read real legislation, cast your vote, and see how your views compare to Congress — ' +
     'powered by AI and official data from Congress.gov.',
   applicationName: 'Democracy Unlocked',
+  // Google Search Console ownership (URL-prefix property for www). Public by
+  // design — it is served in the page head. Needed to submit sitemap.xml and
+  // to see which pages Google actually indexes.
+  verification: { google: 'y0TNydFLUD7TAF4D70bojDXSi8Y9uX2f432wXHIdS0Q' },
   // iOS PWA support — pairs with the web app manifest at app/manifest.ts to
   // make "Add to Home Screen" launch the site as a standalone app
   appleWebApp: {
