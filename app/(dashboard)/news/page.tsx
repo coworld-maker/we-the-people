@@ -10,6 +10,7 @@ import { CongressAPI } from '@/lib/api/congress'
 import { getRecentNews } from '@/lib/api/news'
 import PressFeed from '@/components/news/PressFeed'
 import { billStatusLabel } from '@/lib/bill-status'
+import { toPublicAuthor } from '@/lib/data/discussionAuthor'
 import { STATE_IMPACT_HIGH } from '@/lib/data/state-impact-weights'
 
 export const metadata = {
@@ -27,13 +28,14 @@ function timeAgo(d: Date | string) {
 }
 
 export default async function NewsPage() {
+  // Public: signed out there is simply no personalised state section.
   const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
-
-  const userRow = await prisma.user.findUnique({
-    where: { clerkId: userId },
-    select: { state: true },
-  })
+  const userRow = userId
+    ? await prisma.user.findUnique({
+        where: { clerkId: userId },
+        select: { state: true },
+      })
+    : null
   const userState = userRow?.state ?? null
 
   const [
@@ -63,7 +65,9 @@ export default async function NewsPage() {
       orderBy: { createdAt: 'desc' },
       take: 8,
       include: {
-        user: { select: { firstName: true, lastName: true } },
+        // This page is public: render authors via toPublicAuthor so a real
+        // name never reaches the HTML (see lib/data/discussionAuthor.ts).
+        user: { select: { id: true, firstName: true, lastName: true, username: true } },
         bill: { select: { id: true, billType: true, billNumber: true, shortTitle: true } },
         _count: { select: { replies: true } },
       },
@@ -231,12 +235,12 @@ export default async function NewsPage() {
                     className="group flex items-start gap-3 px-6 py-4 hover:bg-[--surface-secondary] transition-colors"
                   >
                     <div className="w-8 h-8 bg-purple-50 rounded-full flex items-center justify-center text-xs font-bold text-purple-600 shrink-0">
-                      {(disc.user.firstName || 'C').charAt(0).toUpperCase()}
+                      {toPublicAuthor(disc.user).displayName.replace('@', '').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-sm font-semibold text-[--text]">
-                          {disc.user.firstName || 'Citizen'} {(disc.user.lastName || '').charAt(0)}.
+                          {toPublicAuthor(disc.user).displayName}
                         </span>
                         <span className="text-xs text-[--text-muted]">{timeAgo(disc.createdAt)}</span>
                       </div>

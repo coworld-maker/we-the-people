@@ -1,5 +1,3 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
 import { Landmark, MapPin } from 'lucide-react'
 import StateBillsBrowser from '@/components/state-bills/StateBillsBrowser'
 
@@ -9,8 +7,6 @@ export const metadata = {
 }
 
 export default async function StateBillsPage() {
-  const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
 
   return (
     <div className="max-w-5xl mx-auto">

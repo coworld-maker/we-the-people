@@ -1,5 +1,4 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect, notFound } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Clock } from 'lucide-react'
 import { CIVIC_GUIDES, GUIDE_ORDER, getGuide } from '@/lib/data/civic-guides'
@@ -9,8 +8,6 @@ export async function generateStaticParams() {
 }
 
 export default async function GuidePage({ params }: { params: Promise<{ slug: string }> }) {
-  const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
 
   const { slug } = await params
   const guide = getGuide(slug)

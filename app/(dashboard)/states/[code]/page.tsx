@@ -1,5 +1,4 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect, notFound } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, ChevronRight, Users, Vote as VoteIcon, MessageSquare,
@@ -66,8 +65,6 @@ async function fetchStateData(code: string) {
 }
 
 export default async function StatePage({ params }: { params: Promise<{ code: string }> }) {
-  const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
 
   const { code: raw } = await params
   const code = raw.toUpperCase()

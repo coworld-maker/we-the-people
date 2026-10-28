@@ -1,5 +1,3 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
 import {
   BarChart3, Users, ExternalLink, ArrowRight, TrendingUp,
   Search, Shield, Award, Building, CheckCircle,
@@ -61,8 +59,6 @@ const FEATURES = [
 ]
 
 export default async function ScorecardsPage() {
-  const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
 
   return (
     <div className="max-w-5xl mx-auto">

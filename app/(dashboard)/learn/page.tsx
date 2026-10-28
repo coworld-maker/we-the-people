@@ -1,5 +1,3 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { GraduationCap, Clock, ArrowRight, ChevronRight, Lightbulb } from 'lucide-react'
 import { CIVIC_GUIDES } from '@/lib/data/civic-guides'
@@ -10,8 +8,6 @@ export const metadata = {
 }
 
 export default async function LearnPage() {
-  const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
 
   return (
     <div className="max-w-5xl mx-auto">

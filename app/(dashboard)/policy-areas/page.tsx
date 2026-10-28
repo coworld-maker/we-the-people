@@ -1,5 +1,3 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import { ChevronRight, FileText, Vote, TrendingUp } from 'lucide-react'
@@ -36,8 +34,6 @@ const AREA_CONFIG: Record<string, { color: string; bg: string; border: string }>
 const DEFAULT_CONFIG = { color: 'text-gray-700', bg: 'bg-gray-50', border: 'border-gray-200' }
 
 export default async function PolicyAreasPage() {
-  const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
 
   // Aggregate bills by policy area with vote counts + status breakdown
   const bills = await prisma.bill.findMany({

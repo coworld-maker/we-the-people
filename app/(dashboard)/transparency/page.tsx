@@ -1,5 +1,3 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
 import prisma from '@/lib/prisma'
 import {
   BarChart3, Users, Vote, MessageSquare, FileText, TrendingUp,
@@ -12,8 +10,6 @@ export const metadata = {
 }
 
 export default async function TransparencyPage() {
-  const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
 
   // Gather all platform stats from existing data
   const [
