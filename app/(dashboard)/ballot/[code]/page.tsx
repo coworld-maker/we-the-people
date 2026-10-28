@@ -144,12 +144,17 @@ export default async function StateBallotPage({ params }: { params: Promise<{ co
       {ballot.governor && (
         <div className="card p-5">
           <h2 className="font-display text-sm font-bold text-[--text] mb-1">Governor</h2>
+          <p className="text-sm font-semibold text-[--text] mb-1">
+            {ballot.governor.candidates.map(c => `${c.name} (${c.party})`).join(' vs. ')}
+          </p>
           <p className="text-sm text-[--text-secondary]">
             {ballot.governor.notes}. Rated <strong>{ballot.governor.rating}</strong> by the Cook
             Political Report.
           </p>
           <p className="text-[11px] text-[--text-muted] mt-2">
-            Ratings are entered by hand and last checked {GOV_RATINGS_CHECKED}; forecasts change often.
+            Democratic and Republican nominees shown; third-party and independent candidates may
+            also be on your ballot. Ratings are entered by hand and last checked {GOV_RATINGS_CHECKED};
+            forecasts change often.
           </p>
         </div>
       )}

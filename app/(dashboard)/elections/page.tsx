@@ -278,6 +278,14 @@ export default async function ElectionsPage() {
                   </span>
                   <span className={`text-[10px] ${PARTY_CLS[race.party] ?? ''}`}>({race.party})</span>
                 </div>
+                <p className="text-xs text-[--text-secondary] mt-0.5">
+                  {race.candidates.map((c, i) => (
+                    <span key={c.name}>
+                      {i > 0 && <span className="text-[--text-muted]"> vs. </span>}
+                      {c.name} <span className={`text-[10px] ${PARTY_CLS[c.party] ?? ''}`}>({c.party})</span>
+                    </span>
+                  ))}
+                </p>
                 {race.notes && (
                   <p className="text-[10px] text-[--text-muted] mt-0.5">{race.notes}</p>
                 )}
@@ -288,6 +296,10 @@ export default async function ElectionsPage() {
             </a>
           ))}
         </div>
+        <p className="text-[10px] text-[--text-muted] mt-2">
+          Democratic and Republican nominees shown; some states also list third-party and
+          independent candidates. Check your state&rsquo;s official ballot for the full list.
+        </p>
       </section>
 
       {/* House overview */}
