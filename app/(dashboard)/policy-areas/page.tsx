@@ -1,3 +1,4 @@
+import { auth } from '@clerk/nextjs/server'
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import { ChevronRight, FileText, Vote, TrendingUp } from 'lucide-react'
@@ -34,6 +35,8 @@ const AREA_CONFIG: Record<string, { color: string; bg: string; border: string }>
 const DEFAULT_CONFIG = { color: 'text-gray-700', bg: 'bg-gray-50', border: 'border-gray-200' }
 
 export default async function PolicyAreasPage() {
+  // Public page; userId only decides whether the maintenance tool renders.
+  const { userId } = await auth()
 
   // Aggregate bills by policy area with vote counts + status breakdown
   const bills = await prisma.bill.findMany({
@@ -81,7 +84,9 @@ export default async function PolicyAreasPage() {
       </div>
 
       {/* Uncategorized-bills banner with one-click AI categorization */}
-      <CategorizeUncategorized />
+      {/* Maintenance tool: its API is signed-in only, so for the public it
+          just fired a request that 404'd and rendered nothing. */}
+      {userId && <CategorizeUncategorized />}
 
       {/* Summary stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">

@@ -23,6 +23,7 @@ const isPublicRoute = createRouteMatcher([
   '/scorecards(.*)',            // congressional scorecards
   '/voting-records(.*)',        // roll call votes
   '/states(.*)',                // state-level pages
+  '/state-bills(.*)',           // state legislature browser — its page gate is gone too
   '/learn(.*)',                 // civic education
   '/act(.*)',                   // action hub (links to external resources)
   '/transparency(.*)',          // site stats + data sources
