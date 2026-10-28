@@ -13,7 +13,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
-import { useAuth } from '@clerk/nextjs'
 import {
   Search, FileText, Users, Grid3X3, CornerDownLeft,
   LayoutDashboard, Landmark, Loader2,
@@ -58,15 +57,12 @@ export default function CommandPalette() {
   const listRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  // /api/search is signed-in only; a signed-out query would just 404, so
-  // signed-out visitors get a sign-in prompt instead of a silent empty list.
-  // When Clerk loads we skip the request entirely. If it never loads (ad
-  // blocker, network, preview domains), the API's 401/404 answer triggers the
-  // same prompt, so nobody is left looking at an empty list.
-  const { isLoaded, isSignedIn } = useAuth()
-  const signedOut = isLoaded && !isSignedIn
+  // /api/search is public — bills, members and topics are all readable signed
+  // out, so everyone can search. The authRequired fallback stays for the case
+  // where the API answers 401/404 anyway (an older deployment still live, or
+  // an auth wall added later): nobody should face a silently empty list.
   const [authRequired, setAuthRequired] = useState(false)
-  const needsSignIn = (signedOut || authRequired) && query.trim().length >= 2
+  const needsSignIn = authRequired && query.trim().length >= 2
 
   // Flatten grouped results into one keyboard-navigable list
   const flat: Array<Result & { group: string }> = needsSignIn ? []
@@ -134,7 +130,7 @@ export default function CommandPalette() {
   // Debounced search
   useEffect(() => {
     const q = query.trim()
-    if (q.length < 2 || signedOut) { setResults(null); setLoading(false); return }
+    if (q.length < 2) { setResults(null); setLoading(false); return }
     setLoading(true)
     const t = setTimeout(async () => {
       abortRef.current?.abort()
@@ -155,7 +151,7 @@ export default function CommandPalette() {
       }
     }, 250)
     return () => clearTimeout(t)
-  }, [query, signedOut])
+  }, [query])
 
   function select(item: Result & { group?: string }) {
     selectedRef.current = true

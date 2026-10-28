@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { OpenStatesService } from '@/lib/services/openStatesService'
 
 const VALID_STATES = new Set([
@@ -13,8 +12,6 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { code: raw } = await params
   const code = raw.toUpperCase()

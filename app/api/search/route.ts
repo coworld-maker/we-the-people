@@ -8,7 +8,6 @@
  *   topics — distinct policy areas, linking into the filtered bill feed
  */
 
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
@@ -25,8 +24,6 @@ function parseBillNumber(q: string): { billType: string; billNumber: string } | 
 }
 
 export async function GET(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
   const q = searchParams.get('q')?.trim() ?? ''

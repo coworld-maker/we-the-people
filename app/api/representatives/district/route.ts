@@ -12,13 +12,10 @@
  * wrong representative.
  */
 
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { lookupZip } from '@/lib/data/zip-lookup'
 
 export async function GET(req: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
   const zip = searchParams.get('zip')?.trim()

@@ -1,11 +1,8 @@
-import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
 const CONGRESS_API_KEY = process.env.CONGRESS_API_KEY
 
 export async function GET(request: Request) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
   const state = searchParams.get('state')
