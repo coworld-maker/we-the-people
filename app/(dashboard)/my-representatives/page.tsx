@@ -1,27 +1,47 @@
 import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
-import { Users, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import MapAndCompare from '@/components/representatives/MapAndCompare'
+import ZipRepLookup from '@/components/representatives/ZipRepLookup'
 import SectionNav from '@/components/ui/SectionNav'
 import Link from 'next/link'
 
 export const metadata = {
   title: 'My Representatives',
-  description: 'Compare your votes to how your representatives voted in Congress.',
+  description: 'Find your U.S. senators and representative by ZIP code, and compare your votes with theirs.',
 }
 
-const SECTIONS = [
+const SECTIONS_AUTHED = [
   { id: 'map',          label: 'Find My State' },
   { id: 'how-it-works', label: 'How It Works' },
 ]
 
 export default async function MyRepresentativesPage() {
   const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
 
+  // ── Signed-out: ZIP code lookup + rep cards + sign-up CTA ───────────────
+  if (!userId) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-6">
+          <div className="badge bg-[--accent-light] text-[--accent] border border-[--accent]/20 mb-3">
+            Your Congress
+          </div>
+          <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-[--text] mb-2">
+            My Representatives
+          </h1>
+          <p className="text-[--text-secondary] text-base leading-relaxed">
+            Enter your ZIP code to find your senators and house representative.
+            Sign up free to compare your votes with theirs.
+          </p>
+        </div>
+        <ZipRepLookup />
+      </div>
+    )
+  }
+
+  // ── Signed-in: map + alignment comparison ────────────────────────────────
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Header */}
       <div className="mb-8">
         <div className="badge bg-[--accent-light] text-[--accent] border border-[--accent]/20 mb-3">
           Your votes vs. their votes
@@ -31,16 +51,13 @@ export default async function MyRepresentativesPage() {
         </h1>
         <p className="text-[--text-secondary] text-base leading-relaxed max-w-2xl">
           Tap your state to see how your positions on legislation align with your
-          senators and representatives' actual recorded votes in Congress.
+          senators and representatives&apos; actual recorded votes in Congress.
         </p>
       </div>
 
-      <SectionNav sections={SECTIONS} />
-
-      {/* Interactive map + comparison results */}
+      <SectionNav sections={SECTIONS_AUTHED} />
       <MapAndCompare />
 
-      {/* How it works */}
       <section id="how-it-works" className="card p-6 mt-8 scroll-mt-20">
         <h2 className="font-display text-sm font-bold text-[--text] mb-5">How it works</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
