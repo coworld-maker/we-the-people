@@ -208,12 +208,12 @@ export default async function StatePage({ params }: { params: Promise<{ code: st
                     className="group flex items-start gap-3 px-5 py-3.5 hover:bg-[--surface-secondary] transition-colors"
                   >
                     <div className="w-7 h-7 bg-purple-50 rounded-full flex items-center justify-center text-[10px] font-bold text-purple-600 shrink-0">
-                      {(disc.user?.firstName || 'C').charAt(0).toUpperCase()}
+                      {(disc.user?.displayName || 'Citizen').replace('@', '').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-xs font-semibold text-[--text]">
-                          {disc.user?.firstName || 'Citizen'} {(disc.user?.lastName || '').charAt(0)}.
+                          {disc.user?.displayName || 'Citizen'}
                         </span>
                         <span className="text-[10px] text-[--text-muted]">{timeAgo(disc.createdAt)}</span>
                       </div>

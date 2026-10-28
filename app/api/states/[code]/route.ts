@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 import { abbrToName } from '@/lib/utils/state-codes'
+import { publicThread } from '@/lib/data/discussionAuthor'
 
 const VALID_STATES = new Set([
   'AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA',
@@ -87,7 +88,10 @@ export async function GET(
     .sort((a, b) => b.count - a.count)
 
   // ── Recent discussions from users in this state ────────────────────────────
-  const discussions = await prisma.discussion.findMany({
+  // This route is public, so real names must never reach the client — the
+  // response carries the same {username, displayName} shape the bill-page
+  // discussions use. A member who chose a username stays pseudonymous.
+  const discussionsRaw = await prisma.discussion.findMany({
     where: { user: { state: code }, parentId: null },
     orderBy: { createdAt: 'desc' },
     take: 6,
@@ -95,11 +99,12 @@ export async function GET(
       id: true,
       content: true,
       createdAt: true,
-      user: { select: { firstName: true, lastName: true } },
+      user: { select: { id: true, firstName: true, lastName: true, username: true } },
       bill: { select: { id: true, billType: true, billNumber: true, shortTitle: true, title: true } },
       _count: { select: { replies: true } },
     },
   })
+  const discussions = discussionsRaw.map(publicThread)
 
   // ── State's representatives ────────────────────────────────────────────────
   // Representative.state is stored as the full name ('California'), so we
