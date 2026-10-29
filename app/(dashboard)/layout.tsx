@@ -4,6 +4,7 @@ import Breadcrumbs from '@/components/ui/Breadcrumbs'
 import PageTransition from '@/components/ui/PageTransition'
 import NavBar from '@/components/ui/NavBar'
 import Logo from '@/components/ui/Logo'
+import HomeLink from '@/components/ui/HomeLink'
 import CookieConsent from '@/components/legal/CookieConsent'
 import NotificationBell from '@/components/ui/NotificationBell'
 import CommandPalette from '@/components/ui/CommandPalette'
@@ -22,7 +23,7 @@ export default function DashboardLayout({
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex items-center h-14 gap-3">
             {/* Logo */}
-            <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
+            <HomeLink className="flex items-center gap-2 shrink-0">
               <Logo className="w-7 h-7 text-[--accent]" />
               <span className="font-display text-sm font-bold text-[--text] hidden sm:block">
                 Democracy Unlocked<span className="align-super text-[8px] font-semibold ml-0.5">™</span>
@@ -33,7 +34,7 @@ export default function DashboardLayout({
               >
                 Beta
               </span>
-            </Link>
+            </HomeLink>
 
             {/* Nav links — flex-1 so it's bounded between logo and avatar */}
             <NavBar />
@@ -71,7 +72,7 @@ export default function DashboardLayout({
         <div className="max-w-6xl mx-auto px-5 py-6 flex flex-col gap-3 text-xs text-[--text-muted]">
           <p className="text-center sm:text-left bg-amber-50 border border-amber-200 text-amber-800 rounded px-3 py-2">
             <strong className="font-semibold">Beta:</strong> Data may be incomplete, and AI summaries can err — check the bill text before acting.
-            Spot something wrong? <Link href="/account/privacy" className="underline">Tell us</Link>.
+            Spot something wrong? <a href="mailto:privacy@democracyunlocked.com?subject=Something%20looks%20wrong" className="underline">Tell us</a>.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <p>
@@ -83,7 +84,10 @@ export default function DashboardLayout({
               <Link href="/elections" className="hover:text-[--accent] transition-colors">Elections</Link>
               <Link href="/privacy" className="hover:text-[--accent] transition-colors">Privacy</Link>
               <Link href="/terms" className="hover:text-[--accent] transition-colors">Terms</Link>
-              <Link href="/account/privacy" className="hover:text-[--accent] transition-colors">Your data</Link>
+              {/* Per-account controls — signed out there's no data to show. */}
+              <SignedIn>
+                <Link href="/account/privacy" className="hover:text-[--accent] transition-colors">Your data</Link>
+              </SignedIn>
             </nav>
           </div>
         </div>

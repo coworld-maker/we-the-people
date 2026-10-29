@@ -18,6 +18,7 @@ import {
   LayoutDashboard, Landmark, Loader2,
 } from 'lucide-react'
 import { track } from '@/lib/track'
+import { useHomeHref } from './useHomeHref'
 
 interface Result {
   label: string
@@ -48,6 +49,7 @@ const QUICK_ICONS = [LayoutDashboard, FileText, Users, Landmark]
 export default function CommandPalette() {
   const router = useRouter()
   const pathname = usePathname()
+  const homeHref = useHomeHref()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResponse | null>(null)
@@ -72,7 +74,9 @@ export default function CommandPalette() {
         ...results.reps.map(r => ({ ...r, group: 'Representatives' })),
         ...results.topics.map(r => ({ ...r, group: 'Topics' })),
       ]
-    : QUICK_LINKS.map(r => ({ ...r, group: 'Go to' }))
+    : QUICK_LINKS.map(r => r.href === '/dashboard' && homeHref !== '/dashboard'
+        ? { ...r, label: 'Home', href: homeHref, group: 'Go to' }
+        : { ...r, group: 'Go to' })
 
   const selectedRef = useRef(false)
   const queryRef = useRef('')

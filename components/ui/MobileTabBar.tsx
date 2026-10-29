@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, FileText, Users, Megaphone, Info } from 'lucide-react'
 import { track } from '@/lib/track'
+import { useHomeHref } from './useHomeHref'
 
 const TABS = [
   { href: '/dashboard',          icon: LayoutDashboard, label: 'Home' },
@@ -30,9 +31,10 @@ const SECTION_PREFIXES: Record<string, string[]> = {
 
 export default function MobileTabBar() {
   const pathname = usePathname()
+  const homeHref = useHomeHref()
 
   function isActive(href: string) {
-    if (href === '/dashboard') return pathname === '/dashboard'
+    if (href === '/dashboard') return pathname === homeHref
     return (SECTION_PREFIXES[href] ?? [href]).some(p => pathname.startsWith(p))
   }
 
@@ -44,11 +46,12 @@ export default function MobileTabBar() {
       <div className="grid grid-cols-5">
         {TABS.map(tab => {
           const active = isActive(tab.href)
+          const href = tab.href === '/dashboard' ? homeHref : tab.href
           return (
             <Link
               key={tab.href}
-              href={tab.href}
-              onClick={() => track('nav_click', { label: tab.label, href: tab.href, surface: 'tab_bar' })}
+              href={href}
+              onClick={() => track('nav_click', { label: tab.label, href, surface: 'tab_bar' })}
               aria-current={active ? 'page' : undefined}
               className={`relative flex flex-col items-center gap-0.5 py-2 transition-colors focus-visible:outline-2 focus-visible:outline-[--accent] focus-visible:-outline-offset-2 ${
                 active ? 'text-[--accent]' : 'text-[--text-muted]'

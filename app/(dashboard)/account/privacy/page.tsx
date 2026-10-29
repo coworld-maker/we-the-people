@@ -55,12 +55,12 @@ export default async function PrivacyControlsPage() {
           </div>
           <div className="p-5">
             <p className="text-xs text-[--text-secondary] mb-3">
-              Manage notifications about tracked bills, weekly digests, and
-              product updates from your account settings.
+              To stop the weekly digest or other emails, write to us and we&apos;ll
+              turn them off for your account.
             </p>
-            <Link href="/account/settings" className="text-xs font-semibold text-[--accent] hover:text-[--accent-hover] inline-flex items-center gap-1">
-              Manage email preferences <ChevronRight className="w-3 h-3" />
-            </Link>
+            <a href="mailto:privacy@democracyunlocked.com?subject=Turn%20off%20my%20emails" className="text-xs font-semibold text-[--accent] hover:text-[--accent-hover] inline-flex items-center gap-1">
+              Turn off emails <ChevronRight className="w-3 h-3" />
+            </a>
           </div>
         </div>
 

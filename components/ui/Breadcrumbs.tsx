@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronRight, Home } from 'lucide-react'
 import { abbrToName } from '@/lib/utils/state-codes'
+import { useHomeHref } from './useHomeHref'
 
 const LABEL_MAP: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -22,10 +23,15 @@ const LABEL_MAP: Record<string, string> = {
   about: 'About',
   elections: 'Elections',
   'state-bills': 'State Legislature',
+  account: 'Account',
 }
+
+// Path prefixes with no page of their own — shown as plain text, not links.
+const NO_INDEX = new Set(['/account'])
 
 export default function Breadcrumbs() {
   const pathname = usePathname()
+  const homeHref = useHomeHref()
 
   // Don't show on dashboard root
   if (pathname === '/dashboard') return null
@@ -59,7 +65,7 @@ export default function Breadcrumbs() {
     <nav aria-label="Breadcrumb" className="mb-4">
       <ol className="flex items-center gap-1 text-xs">
         <li>
-          <Link href="/dashboard" className="text-[--text-muted] hover:text-[--accent] transition-colors flex items-center gap-1">
+          <Link href={homeHref} className="text-[--text-muted] hover:text-[--accent] transition-colors flex items-center gap-1">
             <Home className="w-3 h-3" />
             <span className="sr-only">Home</span>
           </Link>
@@ -70,6 +76,8 @@ export default function Breadcrumbs() {
             <ChevronRight className="w-3 h-3 text-[--text-muted]/40" />
             {crumb.isLast ? (
               <span className="text-[--text] font-medium capitalize">{crumb.label}</span>
+            ) : NO_INDEX.has(crumb.href) ? (
+              <span className="text-[--text-muted] capitalize">{crumb.label}</span>
             ) : (
               <Link href={crumb.href} className="text-[--text-muted] hover:text-[--accent] transition-colors capitalize">
                 {crumb.label}

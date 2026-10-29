@@ -208,7 +208,7 @@ export default async function LandingPage() {
               Free, nonpartisan, and drawn from the official congressional record.
             </p>
             <Link
-              href={userId ? '/dashboard' : '/sign-up'}
+              href={userId ? '/dashboard' : '/get-started'}
               className="mt-9 inline-flex items-center justify-center min-h-[48px] px-7 text-base font-semibold rounded-[--radius] bg-[#E8B33C] text-[#0A2463] hover:bg-[#F0C35A] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-colors"
             >
               Get started — it&rsquo;s free <ArrowRight className="w-5 h-5 ml-2" aria-hidden="true" />
