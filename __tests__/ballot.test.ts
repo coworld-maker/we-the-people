@@ -17,6 +17,11 @@ describe('daysUntilElection', () => {
     expect(daysUntilElection(new Date('2026-10-14T12:00:00Z'))).toBe(20)
   })
 
+  it('counts on the Eastern calendar, not UTC', () => {
+    // 10pm Eastern on Oct 28 is already Oct 29 in UTC
+    expect(daysUntilElection(new Date('2026-10-29T02:00:00Z'))).toBe(6)
+  })
+
   it('is 0 on the day and after it, never negative', () => {
     expect(daysUntilElection(new Date(`${ELECTION_DAY}T08:00:00Z`))).toBe(0)
     expect(daysUntilElection(new Date('2026-12-01T00:00:00Z'))).toBe(0)

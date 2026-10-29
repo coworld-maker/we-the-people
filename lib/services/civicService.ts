@@ -40,9 +40,10 @@ export class CivicService {
       const raw: Array<{ id: string; name: string; electionDay: string; ocdDivisionId: string }> =
         data.elections ?? []
 
-      // Filter out the test election Google always includes (id: '2000')
+      // Filter out Google's test elections: id '2000' historically, and by
+      // name too since a "Google Test Election (Future)" arrived with another id.
       return raw
-        .filter(e => e.id !== '2000')
+        .filter(e => e.id !== '2000' && !/\btest election\b/i.test(e.name))
         .sort((a, b) => a.electionDay.localeCompare(b.electionDay))
     } catch (e) {
       console.error('Google Civic elections fetch failed:', e)
