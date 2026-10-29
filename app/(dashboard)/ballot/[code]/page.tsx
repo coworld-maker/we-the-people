@@ -6,7 +6,7 @@
  * "what's on my ballot in X" is what people search in the closing weeks. Every
  * figure here comes from what the site already holds: the member roster for
  * House seats and sitting senators, FEC filings for Senate candidates, and the
- * hand-checked governor ratings.
+ * hand-checked governor nominees and three-forecaster race ratings.
  *
  * It is deliberately NOT a ballot: FEC filings include people who lost
  * primaries, and no federal source carries state or local contests. The
@@ -19,7 +19,9 @@ import { ExternalLink, Vote, Landmark, Users, CalendarDays, ArrowRight } from 'l
 import prisma from '@/lib/prisma'
 import { getSenateRaces } from '@/lib/api/fec'
 import { formatRaised } from '@/lib/data/senateRaces'
-import { governorRaceFor, GOV_RATINGS_CHECKED } from '@/lib/data/governorRaces'
+import { governorRaceFor } from '@/lib/data/governorRaces'
+import { senateRatingsFor } from '@/lib/data/forecasts'
+import ForecastRatings, { ForecastSources } from '@/components/elections/ForecastRatings'
 import { buildStateBallot, ballotSummary, daysUntilElection } from '@/lib/data/ballot'
 import { ABBR_TO_NAME, abbrToName } from '@/lib/utils/state-codes'
 
@@ -138,6 +140,12 @@ export default async function StateBallotPage({ params }: { params: Promise<{ co
               </li>
             ))}
           </ul>
+          {senateRatingsFor(code) && (
+            <div className="mt-3 space-y-1">
+              <ForecastRatings ratings={senateRatingsFor(code)!} />
+              <ForecastSources office="senate" />
+            </div>
+          )}
         </div>
       )}
 
@@ -147,15 +155,15 @@ export default async function StateBallotPage({ params }: { params: Promise<{ co
           <p className="text-sm font-semibold text-[--text] mb-1">
             {ballot.governor.candidates.map(c => `${c.name} (${c.party})`).join(' vs. ')}
           </p>
-          <p className="text-sm text-[--text-secondary]">
-            {ballot.governor.notes}. Rated <strong>{ballot.governor.rating}</strong> by the Cook
-            Political Report.
-          </p>
+          <p className="text-sm text-[--text-secondary] mb-2">{ballot.governor.notes}.</p>
+          <ForecastRatings ratings={ballot.governor.ratings} />
           <p className="text-[11px] text-[--text-muted] mt-2">
             Democratic and Republican nominees shown; third-party and independent candidates may
-            also be on your ballot. Ratings are entered by hand and last checked {GOV_RATINGS_CHECKED};
-            forecasts change often.
+            also be on your ballot.
           </p>
+          <div className="mt-1">
+            <ForecastSources office="governor" />
+          </div>
         </div>
       )}
 

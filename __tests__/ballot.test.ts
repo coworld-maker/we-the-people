@@ -28,7 +28,7 @@ describe('buildStateBallot', () => {
     const b = buildStateBallot({ code: 'ga', name: 'Georgia', houseSeats: 14, senate, governor: governorRaceFor('GA') })
     expect(b.code).toBe('GA')
     expect(b.hasStatewideRace).toBe(true)
-    expect(b.governor?.rating).toBe('Toss-up')
+    expect(b.governor?.ratings.cook).toBe('Toss-up')
   })
 
   it('handles a state with House seats only', () => {
@@ -64,12 +64,13 @@ describe('ballotSummary', () => {
 
 describe('governorRaceFor', () => {
   it('finds a rated race regardless of case, and nothing for unrated states', () => {
-    expect(governorRaceFor('ia')?.rating).toBe('Lean D')
+    expect(governorRaceFor('ia')?.ratings.cook).toBe('Lean D')
     expect(governorRaceFor('WA')).toBeUndefined()
   })
 
-  it('keeps every rating in the class map the elections page knows', () => {
-    const known = ['Toss-up', 'Lean D', 'Lean R', 'Likely D', 'Likely R', 'Solid D', 'Solid R', 'Safe D', 'Safe R']
-    for (const race of KEY_GOV_RACES_2026) expect(known).toContain(race.rating)
+  it('lists exactly one Democrat and one Republican in every race', () => {
+    for (const race of KEY_GOV_RACES_2026) {
+      expect(race.candidates.map(c => c.party).sort()).toEqual(['D', 'R'])
+    }
   })
 })
