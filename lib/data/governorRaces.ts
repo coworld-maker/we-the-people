@@ -1,32 +1,20 @@
 /**
- * Governor race ratings — the one dataset on the site entered by hand.
+ * The most-watched 2026 governor races: nominees plus three forecasters'
+ * ratings (see lib/data/forecasts.ts for sources and dates). The FEC doesn't
+ * cover state offices, so everything here is entered by hand.
  *
- * The FEC supplies candidates and money; nobody supplies forecasts, so these
- * rows and GOV_RATINGS_CHECKED must be updated together, and the date is shown
- * to readers wherever the ratings appear.
+ * Checked 2026-10-28. Cook's Oct 27 update moved Ohio Toss-up -> Lean D (the
+ * move this file previously held back as unconfirmed) and Kansas Lean R ->
+ * Toss-up; both are now confirmed on cookpolitical.com itself.
  *
- * Checked 2026-10-28 (six days out). Added Kansas at Lean R — an open seat
- * (Kelly term-limited) that Ballotpedia, MultiState and Cook's own race page
- * all put at Lean R.
- *
- * Ohio is left at Toss-up deliberately. One outlet reported on Oct 23 that
- * Cook moved it to Lean D, and Sabato's Crystal Ball did move it on Oct 22,
- * but cookpolitical.com returns 403 to automated requests, so the move could
- * not be confirmed at the source. Toss-up is the last Cook rating that could
- * be verified (MultiState, Oct 22). If you can open Cook in a browser and it
- * says Lean D, change that row and this date together.
- *
- * Earlier: Texas and Florida moved Likely R -> Lean R (Cook, Oct 1), and Iowa
- * was added at Lean D, the one governor race Cook rates to flip.
- *
- * Candidates (checked 2026-10-28) are the Democratic and Republican nominees,
- * matched across Wikipedia's 2026 gubernatorial table and whatsonmyballot.info.
- * Listed by surname so neither party is always first. Third-party and
- * independent candidates are on several of these ballots too (Mike Duggan
- * withdrew in Michigan), so the UI must not present these as the full field.
+ * Candidates are the Democratic and Republican nominees, matched across
+ * Wikipedia's 2026 gubernatorial table and whatsonmyballot.info. Listed by
+ * surname so neither party is always first. Third-party and independent
+ * candidates are on several of these ballots too (Mike Duggan withdrew in
+ * Michigan), so the UI must not present these as the full field.
  */
 
-export const GOV_RATINGS_CHECKED = 'Oct 28, 2026'
+import { competitiveness, raceRatings as r, type RaceRatings } from '@/lib/data/forecasts'
 
 export interface GovernorCandidate {
   name: string
@@ -38,7 +26,8 @@ export interface GovernorRace {
   name: string
   incumbent: string
   party: 'R' | 'D' | 'I'
-  rating: string
+  /** Cook, Sabato, Inside Elections — in that order in each row below. */
+  ratings: RaceRatings
   notes: string
   candidates: GovernorCandidate[]
 }
@@ -46,21 +35,26 @@ export interface GovernorRace {
 const D = (name: string): GovernorCandidate => ({ name, party: 'D' })
 const R = (name: string): GovernorCandidate => ({ name, party: 'R' })
 
-export const KEY_GOV_RACES_2026: GovernorRace[] = [
-  { state: 'GA', name: 'Georgia', incumbent: 'Brian Kemp', party: 'R', rating: 'Toss-up', notes: 'Kemp term-limited; open race', candidates: [D('Keisha Lance Bottoms'), R('Rick Jackson')] },
-  { state: 'NV', name: 'Nevada', incumbent: 'Joe Lombardo', party: 'R', rating: 'Toss-up', notes: 'Lombardo seeking a second term', candidates: [D('Aaron Ford'), R('Joe Lombardo')] },
-  { state: 'OH', name: 'Ohio', incumbent: 'Mike DeWine', party: 'R', rating: 'Toss-up', notes: 'DeWine term-limited; open race', candidates: [D('Amy Acton'), R('Vivek Ramaswamy')] },
-  { state: 'WI', name: 'Wisconsin', incumbent: 'Tony Evers', party: 'D', rating: 'Toss-up', notes: 'Evers retiring; open race', candidates: [D('David Crowley'), R('Tom Tiffany')] },
-  { state: 'IA', name: 'Iowa', incumbent: 'Kim Reynolds', party: 'R', rating: 'Lean D', notes: 'Reynolds not seeking a third term; open race', candidates: [R('Zach Lahn'), D('Rob Sand')] },
-  { state: 'AZ', name: 'Arizona', incumbent: 'Katie Hobbs', party: 'D', rating: 'Lean D', notes: 'Hobbs seeking a second term', candidates: [R('Andy Biggs'), D('Katie Hobbs')] },
-  { state: 'MI', name: 'Michigan', incumbent: 'Gretchen Whitmer', party: 'D', rating: 'Lean D', notes: 'Whitmer term-limited; open race', candidates: [D('Jocelyn Benson'), R('John James')] },
-  { state: 'KS', name: 'Kansas', incumbent: 'Laura Kelly', party: 'D', rating: 'Lean R', notes: 'Kelly term-limited; open race', candidates: [D('Cindy Holscher'), R('Ty Masterson')] },
-  { state: 'TX', name: 'Texas', incumbent: 'Greg Abbott', party: 'R', rating: 'Lean R', notes: 'Abbott seeking re-election', candidates: [R('Greg Abbott'), D('Gina Hinojosa')] },
-  { state: 'FL', name: 'Florida', incumbent: 'Ron DeSantis', party: 'R', rating: 'Lean R', notes: 'DeSantis term-limited; open race', candidates: [R('Byron Donalds'), D('David Jolly')] },
-  { state: 'NY', name: 'New York', incumbent: 'Kathy Hochul', party: 'D', rating: 'Solid D', notes: 'Hochul seeking re-election', candidates: [R('Bruce Blakeman'), D('Kathy Hochul')] },
-  { state: 'PA', name: 'Pennsylvania', incumbent: 'Josh Shapiro', party: 'D', rating: 'Solid D', notes: 'Shapiro seeking re-election', candidates: [R('Stacy Garrity'), D('Josh Shapiro')] },
-  { state: 'CA', name: 'California', incumbent: 'Gavin Newsom', party: 'D', rating: 'Solid D', notes: 'Newsom term-limited; open race', candidates: [D('Xavier Becerra'), R('Steve Hilton')] },
+const RACES: GovernorRace[] = [
+  { state: 'GA', name: 'Georgia', incumbent: 'Brian Kemp', party: 'R', ratings: r('Toss-up', 'Toss-up', 'Toss-up'), notes: 'Kemp term-limited; open race', candidates: [D('Keisha Lance Bottoms'), R('Rick Jackson')] },
+  { state: 'NV', name: 'Nevada', incumbent: 'Joe Lombardo', party: 'R', ratings: r('Toss-up', 'Toss-up', 'Tilt R'), notes: 'Lombardo seeking a second term', candidates: [D('Aaron Ford'), R('Joe Lombardo')] },
+  { state: 'OH', name: 'Ohio', incumbent: 'Mike DeWine', party: 'R', ratings: r('Lean D', 'Lean D', 'Toss-up'), notes: 'DeWine term-limited; open race', candidates: [D('Amy Acton'), R('Vivek Ramaswamy')] },
+  { state: 'WI', name: 'Wisconsin', incumbent: 'Tony Evers', party: 'D', ratings: r('Toss-up', 'Lean D', 'Toss-up'), notes: 'Evers retiring; open race', candidates: [D('David Crowley'), R('Tom Tiffany')] },
+  { state: 'IA', name: 'Iowa', incumbent: 'Kim Reynolds', party: 'R', ratings: r('Lean D', 'Lean D', 'Tilt D'), notes: 'Reynolds not seeking a third term; open race', candidates: [R('Zach Lahn'), D('Rob Sand')] },
+  { state: 'AZ', name: 'Arizona', incumbent: 'Katie Hobbs', party: 'D', ratings: r('Lean D', 'Likely D', 'Tilt D'), notes: 'Hobbs seeking a second term', candidates: [R('Andy Biggs'), D('Katie Hobbs')] },
+  { state: 'MI', name: 'Michigan', incumbent: 'Gretchen Whitmer', party: 'D', ratings: r('Lean D', 'Likely D', 'Tilt D'), notes: 'Whitmer term-limited; open race', candidates: [D('Jocelyn Benson'), R('John James')] },
+  { state: 'KS', name: 'Kansas', incumbent: 'Laura Kelly', party: 'D', ratings: r('Toss-up', 'Lean R', 'Tilt R'), notes: 'Kelly term-limited; open race', candidates: [D('Cindy Holscher'), R('Ty Masterson')] },
+  { state: 'TX', name: 'Texas', incumbent: 'Greg Abbott', party: 'R', ratings: r('Lean R', 'Lean R', 'Lean R'), notes: 'Abbott seeking re-election', candidates: [R('Greg Abbott'), D('Gina Hinojosa')] },
+  { state: 'FL', name: 'Florida', incumbent: 'Ron DeSantis', party: 'R', ratings: r('Lean R', 'Lean R', 'Lean R'), notes: 'DeSantis term-limited; open race', candidates: [R('Byron Donalds'), D('David Jolly')] },
+  { state: 'NY', name: 'New York', incumbent: 'Kathy Hochul', party: 'D', ratings: r('Solid D', 'Safe D', 'Likely D'), notes: 'Hochul seeking re-election', candidates: [R('Bruce Blakeman'), D('Kathy Hochul')] },
+  { state: 'PA', name: 'Pennsylvania', incumbent: 'Josh Shapiro', party: 'D', ratings: r('Solid D', 'Safe D', 'Solid D'), notes: 'Shapiro seeking re-election', candidates: [R('Stacy Garrity'), D('Josh Shapiro')] },
+  { state: 'CA', name: 'California', incumbent: 'Gavin Newsom', party: 'D', ratings: r('Solid D', 'Safe D', 'Solid D'), notes: 'Newsom term-limited; open race', candidates: [D('Xavier Becerra'), R('Steve Hilton')] },
 ]
+
+/** Closest races first, judged by all three forecasters together; ties by state name. */
+export const KEY_GOV_RACES_2026: GovernorRace[] = [...RACES].sort(
+  (a, b) => competitiveness(a.ratings) - competitiveness(b.ratings) || a.name.localeCompare(b.name),
+)
 
 /**
  * The rated race for one state, or undefined. Only the dozen most-watched

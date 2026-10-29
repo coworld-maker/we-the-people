@@ -6,9 +6,11 @@ import {
 import { CivicService } from '@/lib/services/civicService'
 import { getSenateRaces } from '@/lib/api/fec'
 import { formatRaised, applyIncumbentParties } from '@/lib/data/senateRaces'
-import { GOV_RATINGS_CHECKED, KEY_GOV_RACES_2026 } from '@/lib/data/governorRaces'
+import { KEY_GOV_RACES_2026 } from '@/lib/data/governorRaces'
+import { FORECASTS_CHECKED, senateRatingsFor } from '@/lib/data/forecasts'
 import { abbrToName } from '@/lib/utils/state-codes'
 import ElectionsClient from '@/components/elections/ElectionsClient'
+import ForecastRatings, { ForecastSources } from '@/components/elections/ForecastRatings'
 import prisma from '@/lib/prisma'
 
 // Non-voting delegates sit in the House but aren't among its 435 seats.
@@ -26,8 +28,9 @@ export const metadata = {
 // the old list had four wrong seats (a retired senator, two seats not up in
 // 2026, and Ossoff marked as not running).
 
-// Governor ratings and their "checked" date live in lib/data/governorRaces.ts
-// so this page and /ballot/[code] can never disagree about them.
+// Governor nominees live in lib/data/governorRaces.ts and all race ratings
+// (three forecasters, with dates) in lib/data/forecasts.ts, so this page and
+// /ballot/[code] can never disagree about them.
 
 const ELECTION_RESOURCES = [
   { label: 'Vote.gov', desc: 'Register and find your polling place', href: 'https://vote.gov', icon: Vote },
@@ -35,18 +38,6 @@ const ELECTION_RESOURCES = [
   { label: 'Can I Vote?', desc: 'NASS voter registration lookup', href: 'https://www.nass.org/can-I-vote', icon: Users },
   { label: 'Google Elections', desc: 'Your personalized ballot info', href: 'https://elections.google.com', icon: MapPin },
 ]
-
-const RACE_RATING_CLS: Record<string, string> = {
-  'Safe R':    'bg-red-50 text-red-700 border-red-200',
-  'Solid R':   'bg-red-50 text-red-700 border-red-200',   // Cook's word for Safe
-  'Solid D':   'bg-blue-100 text-blue-800 border-blue-300',
-  'Likely R':  'bg-red-50/60 text-red-600 border-red-200/60',
-  'Lean R':    'bg-orange-50 text-orange-700 border-orange-200',
-  'Toss-up':   'bg-amber-50 text-amber-700 border-amber-200',
-  'Lean D':    'bg-blue-50/60 text-blue-600 border-blue-200/60',
-  'Likely D':  'bg-blue-50 text-blue-700 border-blue-200',
-  'Safe D':    'bg-blue-100 text-blue-800 border-blue-300',
-}
 
 const PARTY_CLS: Record<string, string> = {
   R: 'text-red-600 font-bold',
@@ -232,6 +223,11 @@ export default async function ElectionsPage() {
                     ) : (
                       <p className="text-xs text-[--text-muted] mt-1">No candidate has reported $100K raised yet.</p>
                     )}
+                    {senateRatingsFor(race.state) && (
+                      <div className="mt-1.5">
+                        <ForecastRatings ratings={senateRatingsFor(race.state)!} />
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="hidden sm:inline text-[10px] text-[--text-muted]">{race.filedCount} filed</span>
@@ -244,11 +240,14 @@ export default async function ElectionsPage() {
         )}
 
         {senate && (
-          <p className="text-[10px] text-[--text-muted] mt-2">
-            Source: Federal Election Commission, refreshed daily
-            {senateAsOf ? `; reports through ${senateAsOf}` : ''}.
-            {senate.missing.length > 0 && ` Couldn't load: ${senate.missing.join(', ')}.`}
-          </p>
+          <div className="mt-2 space-y-0.5">
+            <p className="text-[10px] text-[--text-muted]">
+              Candidates and money raised: Federal Election Commission, refreshed daily
+              {senateAsOf ? `; reports through ${senateAsOf}` : ''}.
+              {senate.missing.length > 0 && ` Couldn't load: ${senate.missing.join(', ')}.`}
+            </p>
+            <ForecastSources office="senate" />
+          </div>
         )}
       </section>
 
@@ -257,7 +256,7 @@ export default async function ElectionsPage() {
         <div className="flex items-center gap-2 mb-4">
           <MapPin className="w-4 h-4 text-purple-500" />
           <h2 className="font-display text-lg font-bold text-[--text]">Key Governor Races — 2026</h2>
-          <span className="text-xs text-[--text-muted] ml-auto">Ratings: Cook Political Report · checked {GOV_RATINGS_CHECKED}</span>
+          <span className="text-xs text-[--text-muted] ml-auto">Closest races first · checked {FORECASTS_CHECKED}</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {KEY_GOV_RACES_2026.map(race => (
@@ -266,7 +265,7 @@ export default async function ElectionsPage() {
               href={`https://ballotpedia.org/${race.name.replace(/ /g, '_')}_gubernatorial_election,_2026`}
               target="_blank"
               rel="noopener noreferrer"
-              className="card group flex items-center gap-3 p-4 hover:border-[--accent] transition-all"
+              className="card group flex items-start gap-3 p-4 hover:border-[--accent] transition-all"
             >
               <div className="w-10 h-10 bg-[--surface-secondary] rounded-xl flex items-center justify-center shrink-0 font-display font-extrabold text-sm text-purple-600 group-hover:bg-purple-50 transition-colors">
                 {race.state}
@@ -289,17 +288,20 @@ export default async function ElectionsPage() {
                 {race.notes && (
                   <p className="text-[10px] text-[--text-muted] mt-0.5">{race.notes}</p>
                 )}
+                <div className="mt-2">
+                  <ForecastRatings ratings={race.ratings} />
+                </div>
               </div>
-              <span className={`badge border text-[10px] font-semibold shrink-0 ${RACE_RATING_CLS[race.rating] ?? ''}`}>
-                {race.rating}
-              </span>
             </a>
           ))}
         </div>
-        <p className="text-[10px] text-[--text-muted] mt-2">
-          Democratic and Republican nominees shown; some states also list third-party and
-          independent candidates. Check your state&rsquo;s official ballot for the full list.
-        </p>
+        <div className="mt-2 space-y-0.5">
+          <p className="text-[10px] text-[--text-muted]">
+            Democratic and Republican nominees shown; some states also list third-party and
+            independent candidates. Check your state&rsquo;s official ballot for the full list.
+          </p>
+          <ForecastSources office="governor" />
+        </div>
       </section>
 
       {/* House overview */}
@@ -387,8 +389,10 @@ export default async function ElectionsPage() {
       <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
         <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
         <p>
-          Senate candidates and money raised come from FEC filings. Governor race ratings are the Cook Political
-          Report&apos;s, entered by hand and last checked {GOV_RATINGS_CHECKED}; forecasts change frequently. Democracy Unlocked is not affiliated with any campaign or party.
+          Senate candidates and money raised come from FEC filings. Race ratings are the published forecasts of the Cook
+          Political Report, Sabato&apos;s Crystal Ball and Inside Elections, shown side by side and entered by hand (last
+          checked {FORECASTS_CHECKED}). They are forecasts, not results, and they change often. Democracy Unlocked doesn&apos;t
+          make its own predictions and is not affiliated with any campaign, party or forecaster.
           Always verify voter registration and polling place info through your state's official election authority.
         </p>
       </div>
