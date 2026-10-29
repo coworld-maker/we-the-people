@@ -96,7 +96,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <BillTypeBadge billType={bill.billType} billNumber={bill.billNumber} className="bg-white/10 text-white border border-white/10" />
           <span className={`badge border ${st.cls}`}>{st.label}</span>
-          {bill.policyArea && <span className="badge bg-[--accent]/20 text-[--accent-light] border border-[--accent]/20">{bill.policyArea}</span>}
+          {bill.policyArea && <span className="badge bg-white/10 text-white/90 border border-white/20">{bill.policyArea}</span>}
           <span className="badge bg-white/5 text-white/60 border border-white/10">{bill.congress}th Congress</span>
         </div>
         <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-extrabold text-white leading-tight mb-3">

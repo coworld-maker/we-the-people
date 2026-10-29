@@ -298,6 +298,65 @@ code, pre {
   font-size: 0.875em;
 }
 
+/* ── Component Layer ──────────────────────────────────────── */
+
+/* Badges live in `components`, not `utilities`, so Tailwind classes written
+   alongside them (`badge bg-red-50 text-red-700 text-[10px]`) win. In the
+   utilities layer these defaults were emitted after Tailwind's own utilities
+   and every coloured badge on the site rendered grey. */
+@layer components {
+
+  /* ── Badge / Chip ───────────────────────────────────────── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 22px;
+    padding-inline: var(--space-2);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface-secondary);
+    color: var(--text-secondary);
+  }
+  /* Variant text colours are the -700/-800 shades: ≥4.5:1 on their own
+     tinted backgrounds over the light surfaces. The old #A5B4FC-style
+     pastels were written for a dark theme and were ~1.5–2:1 here. */
+  .badge-accent {
+    background: var(--accent-light);
+    border-color: rgba(10,36,99,0.25);
+    color: var(--accent);
+  }
+  .badge-success {
+    background: var(--success-light);
+    border-color: rgba(22,163,74,0.25);
+    color: #15803D;
+  }
+  .badge-warning {
+    background: var(--warning-light);
+    border-color: rgba(217,119,6,0.25);
+    color: #92400E;
+  }
+  .badge-danger {
+    background: var(--danger-light);
+    border-color: rgba(220,38,38,0.25);
+    color: #B91C1C;
+  }
+  .badge-democrat {
+    background: var(--democrat-light);
+    border-color: rgba(37,99,235,0.25);
+    color: #1D4ED8;
+  }
+  .badge-republican {
+    background: var(--republican-light);
+    border-color: rgba(220,38,38,0.25);
+    color: #B91C1C;
+  }
+}
+
 /* ── Utility Layer ────────────────────────────────────────── */
 
 @layer utilities {
@@ -465,53 +524,6 @@ code, pre {
   .btn-sm  { height: 32px; padding-inline: var(--space-3); font-size: var(--text-xs); }
   .btn-lg  { height: 48px; padding-inline: var(--space-6); font-size: var(--text-md); }
   .btn-xl  { height: 56px; padding-inline: var(--space-8); font-size: var(--text-lg); font-weight: 600; }
-
-  /* ── Badge / Chip ───────────────────────────────────────── */
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    height: 22px;
-    padding-inline: var(--space-2);
-    font-size: var(--text-xs);
-    font-weight: 500;
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
-    background: var(--surface-secondary);
-    color: var(--text-secondary);
-  }
-  .badge-accent {
-    background: var(--accent-light);
-    border-color: rgba(10,36,99,0.25);
-    color: #A5B4FC;
-  }
-  .badge-success {
-    background: var(--success-light);
-    border-color: rgba(34,197,94,0.25);
-    color: #86EFAC;
-  }
-  .badge-warning {
-    background: var(--warning-light);
-    border-color: rgba(245,158,11,0.25);
-    color: #FCD34D;
-  }
-  .badge-danger {
-    background: var(--danger-light);
-    border-color: rgba(239,68,68,0.25);
-    color: #FCA5A5;
-  }
-  .badge-democrat {
-    background: var(--democrat-light);
-    border-color: rgba(59,130,246,0.25);
-    color: #93C5FD;
-  }
-  .badge-republican {
-    background: var(--republican-light);
-    border-color: rgba(239,68,68,0.25);
-    color: #FCA5A5;
-  }
 
   /* ── Input / Form ───────────────────────────────────────── */
   .input {
