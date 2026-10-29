@@ -8,6 +8,7 @@ import { getSenateRaces } from '@/lib/api/fec'
 import { formatRaised, applyIncumbentParties } from '@/lib/data/senateRaces'
 import { KEY_GOV_RACES_2026 } from '@/lib/data/governorRaces'
 import { FORECASTS_CHECKED, senateRatingsFor } from '@/lib/data/forecasts'
+import { daysUntilElection } from '@/lib/data/ballot'
 import { abbrToName } from '@/lib/utils/state-codes'
 import ElectionsClient from '@/components/elections/ElectionsClient'
 import ForecastRatings, { ForecastSources } from '@/components/elections/ForecastRatings'
@@ -43,13 +44,6 @@ const PARTY_CLS: Record<string, string> = {
   R: 'text-red-600 font-bold',
   D: 'text-blue-600 font-bold',
   I: 'text-gray-600 font-bold',
-}
-
-// Days until Nov 3, 2026 (general election day)
-function daysUntilElection(): number {
-  const electionDay = new Date('2026-11-03T00:00:00')
-  const now = new Date()
-  return Math.max(0, Math.ceil((electionDay.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
 }
 
 export default async function ElectionsPage() {

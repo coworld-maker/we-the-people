@@ -16,10 +16,18 @@ import type { GovernorRace } from '@/lib/data/governorRaces'
 /** Federal Election Day 2026. */
 export const ELECTION_DAY = '2026-11-03'
 
-/** Whole days from `today` to Election Day; 0 once it has arrived or passed. */
+/**
+ * Whole days from `today` to Election Day; 0 once it has arrived or passed.
+ * Counted on the US Eastern calendar: counting in UTC (the server's clock)
+ * dropped a day every evening from 7–8pm Eastern for American readers.
+ */
 export function daysUntilElection(today: Date = new Date()): number {
   const day = new Date(`${ELECTION_DAY}T00:00:00Z`)
-  const from = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
+  const [y, m, d] = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
+    .format(today)
+    .split('-')
+    .map(Number)
+  const from = new Date(Date.UTC(y, m - 1, d))
   return Math.max(0, Math.round((day.getTime() - from.getTime()) / 86_400_000))
 }
 
