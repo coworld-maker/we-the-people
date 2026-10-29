@@ -147,7 +147,7 @@ export default async function ElectionsPage() {
             What&rsquo;s on your ballot <ChevronRight className="w-3.5 h-3.5" />
           </Link>
           <a
-            href="https://ballotpedia.org/2026_elections"
+            href="https://ballotpedia.org/Ballotpedia%27s_Election_Analysis_Hub,_2026"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-white/10 border border-white/25 text-white rounded-full text-sm font-medium hover:bg-white/20 transition-colors"
@@ -263,7 +263,7 @@ export default async function ElectionsPage() {
           {KEY_GOV_RACES_2026.map(race => (
             <a
               key={race.state}
-              href={`https://ballotpedia.org/Gubernatorial_election_in_${race.name.replace(/ /g, '_')},_2026`}
+              href={`https://ballotpedia.org/${race.name.replace(/ /g, '_')}_gubernatorial_election,_2026`}
               target="_blank"
               rel="noopener noreferrer"
               className="card group flex items-center gap-3 p-4 hover:border-[--accent] transition-all"
