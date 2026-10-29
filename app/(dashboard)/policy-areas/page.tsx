@@ -126,7 +126,7 @@ export default async function PolicyAreasPage() {
               >
                 <div className="flex items-start justify-between mb-3 gap-2">
                   <div
-                    className={`badge ${cfg.bg} ${cfg.color} border ${cfg.border} text-left leading-snug`}
+                    className={`badge ${cfg.bg} ${cfg.color} border ${cfg.border} h-auto min-h-[22px] py-1 text-left leading-snug`}
                     style={{ whiteSpace: 'normal' }}
                   >
                     {area.name}
