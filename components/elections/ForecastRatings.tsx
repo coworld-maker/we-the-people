@@ -21,9 +21,11 @@ const RATING_CLS: Record<Rating, string> = {
   'Solid R':  'bg-red-50 text-red-700 border-red-200',
 }
 
+// Not the shared .badge class: globals.css defines it inside @layer utilities,
+// where its grey background and text override these colour classes.
 export function RatingBadge({ rating }: { rating: Rating }) {
   return (
-    <span className={`badge border text-[10px] font-semibold whitespace-nowrap ${RATING_CLS[rating]}`}>
+    <span className={`inline-flex items-center h-5 px-1.5 rounded border text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap ${RATING_CLS[rating]}`}>
       {rating}
     </span>
   )
