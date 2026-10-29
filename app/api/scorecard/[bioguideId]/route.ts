@@ -8,17 +8,18 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ bioguideId: string }> }
 ) {
+  // Scorecards are public: everything below is public roll-call data except
+  // the personal alignment score, which is only computed when signed in.
   const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { bioguideId } = await params
 
-  // Get user's DB id
-  const user = await prisma.user.findUnique({
-    where: { clerkId: userId },
-    select: { id: true },
-  })
-  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  const user = userId
+    ? await prisma.user.findUnique({
+        where: { clerkId: userId },
+        select: { id: true },
+      })
+    : null
 
   // ── 0. Rep profile from DB ─────────────────────────────────────────────────
   const repProfile = await prisma.representative.findUnique({
@@ -105,10 +106,12 @@ export async function GET(
     .slice(0, 8)
 
   // ── 3. Alignment score ────────────────────────────────────────────────────
-  const userVotes = await prisma.vote.findMany({
-    where: { userId: user.id, billId: { in: billIds } },
-    select: { billId: true, position: true },
-  })
+  const userVotes = user
+    ? await prisma.vote.findMany({
+        where: { userId: user.id, billId: { in: billIds } },
+        select: { billId: true, position: true },
+      })
+    : []
 
   const userVoteMap = new Map(userVotes.map(v => [v.billId, v.position]))
   const memberVoteMap = new Map(congressVotes.map(v => [v.billId, v.position]))

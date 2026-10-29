@@ -37,6 +37,9 @@ const isPublicRoute = createRouteMatcher([
   '/api/bills/(.*)/state-impact',     // stored per-state impact analysis
   '/api/bills/(.*)/state-sentiment',  // per-state vote totals, no identities
   '/api/bills/(.*)/discussions',      // comments; authors as usernames, never real names
+  '/api/bills/(.*)/text',             // full bill text (public record, cached after first fetch)
+  '/api/state-bills',                 // Open States feed behind the public /state-bills page
+  '/api/compare',                     // rep records on /my-representatives; your-vote match only when signed in
   '/api/sync-bills',            // bill sync (protected by CRON_SECRET)
   '/api/sync-congress-votes',   // vote sync (protected by CRON_SECRET)
   '/api/sync-representatives',  // rep sync (protected by CRON_SECRET)
