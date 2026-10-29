@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/prisma'
 import { ON_THE_BILL, latestPerMemberBill } from '@/lib/data/voteKinds'
 
@@ -27,9 +26,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ bioguideId: string }> }
 ) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+  // Public: only per-state vote totals leave this route, never identities.
   const { bioguideId } = await params
 
   const rep = await prisma.representative.findUnique({

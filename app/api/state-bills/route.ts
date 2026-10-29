@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
 import { OpenStatesService } from '@/lib/services/openStatesService'
 
 const VALID_STATES = new Set([
@@ -10,9 +9,6 @@ const VALID_STATES = new Set([
 ])
 
 export async function GET(req: NextRequest) {
-  const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const { searchParams } = new URL(req.url)
   const raw = (searchParams.get('state') ?? '').toUpperCase()
   const limit = Math.min(Number(searchParams.get('limit') ?? 12), 20)

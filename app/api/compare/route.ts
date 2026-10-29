@@ -20,11 +20,10 @@ function isMatch(userPosition: string, repPosition: string): boolean {
 }
 
 export async function GET(request: NextRequest) {
+  // Public: reps' records show signed out; the you-vs-rep comparison is only
+  // filled in when there's a signed-in user with votes.
   const { userId: clerkUserId } = await auth()
-  if (!clerkUserId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const user = await UserService.getCurrentUser()
-  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  const user = clerkUserId ? await UserService.getCurrentUser() : null
 
   const stateAbbr = request.nextUrl.searchParams.get('state')?.toUpperCase()
   if (!stateAbbr) return NextResponse.json({ error: 'state is required' }, { status: 400 })
@@ -33,14 +32,16 @@ export async function GET(request: NextRequest) {
   if (!fullStateName) return NextResponse.json({ error: 'Invalid state' }, { status: 400 })
 
   // Get user's votes with bill info
-  const userVotes = await prisma.vote.findMany({
-    where: { userId: user.id },
-    include: {
-      bill: {
-        select: { id: true, title: true, shortTitle: true, billType: true, billNumber: true },
-      },
-    },
-  })
+  const userVotes = user
+    ? await prisma.vote.findMany({
+        where: { userId: user.id },
+        include: {
+          bill: {
+            select: { id: true, title: true, shortTitle: true, billType: true, billNumber: true },
+          },
+        },
+      })
+    : []
 
   // NOTE: deliberately no early return when the user hasn't voted. The rep's
   // own voting record doesn't depend on the user having one, and bailing here
