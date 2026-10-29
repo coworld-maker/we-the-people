@@ -18,32 +18,33 @@ interface SubLink { href: string; label: string }
 const SECTIONS: { match: string[]; items: SubLink[] }[] = [
   {
     // Track
-    match: ['/bills', '/state-bills', '/policy-areas', '/documents'],
+    match: ['/bills', '/state-bills', '/policy-areas'],
     items: [
       { href: '/bills', label: 'Federal Bills' },
       { href: '/state-bills', label: 'State' },
       { href: '/policy-areas', label: 'Policy Areas' },
+    ],
+  },
+  {
+    // Know — same pages as the desktop Know dropdown; /ballot, /voting-records
+    // and /states are deep pages of this section (MobileTabBar lights Know too).
+    match: ['/my-representatives', '/elections', '/scorecards', '/news', '/documents', '/ballot', '/voting-records', '/states'],
+    items: [
+      { href: '/my-representatives', label: 'My Reps' },
+      { href: '/elections', label: 'Elections' },
+      { href: '/scorecards', label: 'Scorecards' },
+      { href: '/news', label: 'News' },
       { href: '/documents', label: 'Documents' },
     ],
   },
   {
-    // Know
-    match: ['/my-representatives', '/scorecards', '/voting-records', '/news', '/states'],
-    items: [
-      { href: '/my-representatives', label: 'My Reps' },
-      { href: '/scorecards', label: 'Scorecards' },
-      { href: '/news', label: 'News' },
-    ],
-  },
-  {
     // Act
-    match: ['/act', '/action-center', '/get-started', '/learn', '/elections', '/transparency'],
+    match: ['/act', '/action-center', '/get-started', '/learn', '/transparency'],
     items: [
       { href: '/act', label: 'Overview' },
       { href: '/action-center', label: 'Contact Reps' },
       { href: '/get-started', label: 'Get Started' },
       { href: '/learn', label: 'Learn' },
-      { href: '/elections', label: 'Elections' },
       { href: '/transparency', label: 'Stats' },
     ],
   },

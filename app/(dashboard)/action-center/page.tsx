@@ -1,5 +1,3 @@
-import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import {
   Landmark, ClipboardCheck, MapPin, Mail, Phone, ExternalLink,
@@ -13,9 +11,6 @@ export const metadata = {
 }
 
 export default async function ActionCenterPage() {
-  const { userId } = await auth()
-  if (!userId) redirect('/sign-in')
-
   return (
     <div className="max-w-5xl mx-auto">
       {/* Header */}

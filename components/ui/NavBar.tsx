@@ -10,6 +10,7 @@ import {
   Landmark, Newspaper, Megaphone, GraduationCap, Info,
 } from 'lucide-react'
 import { track } from '@/lib/track'
+import { useHomeHref } from './useHomeHref'
 
 // ── Nav structure ────────────────────────────────────────────────────────────
 // Task-based IA (Track/Know/Act, Jun 2026 — see docs/passdowns/2026-06-12-nav-overhaul.md):
@@ -18,7 +19,9 @@ import { track } from '@/lib/track'
 // Mobile gets a bottom tab bar (MobileTabBar.tsx) instead of a hamburger.
 
 interface NavLink { href: string; icon: any; label: string }
-interface NavGroup { label: string; icon: any; description: string; href: string; items: NavLink[] }
+// `also`: deeper pages of the section that aren't in the dropdown but should
+// still light it (kept in step with MobileTabBar's SECTION_PREFIXES).
+interface NavGroup { label: string; icon: any; description: string; href: string; items: NavLink[]; also?: string[] }
 type NavItem =
   | ({ kind: 'link' } & NavLink)
   | ({ kind: 'group' } & NavGroup)
@@ -37,6 +40,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     kind: 'group', label: 'Know', icon: Users, href: '/my-representatives',
     description: 'Understand who represents you',
+    also: ['/ballot', '/voting-records', '/states'],
     items: [
       { href: '/my-representatives', icon: Users,      label: 'My Reps' },
       { href: '/elections',          icon: Vote,       label: 'Elections' },
@@ -81,12 +85,19 @@ export default function NavBar() {
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
+  // Home is /dashboard signed in, / signed out — exact match either way, since
+  // every path starts with '/'.
+  const homeHref = useHomeHref()
+  const hrefFor = (href: string) => (href === '/dashboard' ? homeHref : href)
+
   function isActive(href: string) {
     const path = href.split('?')[0]
-    return pathname === path || (path !== '/dashboard' && pathname.startsWith(path))
+    const isHome = path === '/dashboard' || path === '/'
+    return pathname === path || (!isHome && pathname.startsWith(path))
   }
   function isGroupActive(group: NavGroup) {
     return group.items.some(i => isActive(i.href))
+      || (group.also ?? []).some(p => pathname === p || pathname.startsWith(p + '/'))
   }
 
   // Unmistakable active state: accent text + a solid underline bar flush with
@@ -109,14 +120,15 @@ export default function NavBar() {
     <div ref={desktopRef} className="flex-1 min-w-0 hidden md:flex items-center gap-0.5 self-stretch">
       {NAV_ITEMS.map(item => {
         if (item.kind === 'link') {
-          const active = isActive(item.href)
+          const href = hrefFor(item.href)
+          const active = isActive(href)
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={href}
               aria-current={active ? 'page' : undefined}
               className={itemClass(active)}
-              onClick={() => track('nav_click', { label: item.label, href: item.href, surface: 'desktop' })}
+              onClick={() => track('nav_click', { label: item.label, href, surface: 'desktop' })}
               title={item.label}
             >
               <item.icon className="w-3.5 h-3.5" />

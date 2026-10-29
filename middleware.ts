@@ -26,6 +26,7 @@ const isPublicRoute = createRouteMatcher([
   '/state-bills(.*)',           // state legislature browser — its page gate is gone too
   '/learn(.*)',                 // civic education
   '/act(.*)',                   // action hub (links to external resources)
+  '/action-center(.*)',         // vote.org links + rep finder; "Contact Reps" in the Act nav
   '/transparency(.*)',          // site stats + data sources
   '/get-started(.*)',           // onboarding (shown signed-out too)
 
